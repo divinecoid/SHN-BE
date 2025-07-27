@@ -1,0 +1,67 @@
+1. Jenis Barang  
+Entity: JenisBarang  
+- Kode  
+- NamaJenis  
+
+2. Bentuk Barang  
+Entity: BentukBarang  
+- Kode  
+- NamaBentuk  
+
+3. Grade Barang  
+Entity: GradeBarang  
+- Kode  
+- Nama  
+
+4. Item Barang  
+Entity: ItemBarang  
+- KodeBarang  
+- JenisBarangId  
+- BentukBarangId  
+- GradeBarangId  
+- NamaItemBarang  
+
+5. Jenis Mutasi Stock  
+Entity: JenisMutasiStock  
+- Kode  
+- MutasiStock  
+- Jenis  
+
+6. Supplier  
+Entity: Supplier  
+- Kode  
+- NamaSupplier  
+- Kota  
+- TeleponHP  
+- ContactPerson  
+
+7. Pelanggan  
+Entity: Pelanggan  
+- Kode  
+- NamaPelanggan  
+- Kota  
+- TeleponHP  
+- ContactPerson  
+
+8. Gudang  
+Entity: Gudang  
+- Kode  
+- NamaGudang  
+- TeleponHP  
+
+9. Pelaksana  
+Entity: Pelaksana  
+- Kode  
+- NamaPelaksana  
+- Level  
+
+10. Jenis Biaya  
+Entity: JenisBiaya  
+- Kode  
+- JenisBiaya  
+
+11. Jenis Transaksi Kas  
+Entity: JenisTransaksiKas  
+- Kode  
+- JenisTransaksi  
+
