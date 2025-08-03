@@ -11,6 +11,7 @@ use App\Http\Middleware\RoleMiddleware;
 use App\Http\Controllers\MasterData\BentukBarangController;
 use App\Http\Controllers\MasterData\GradeBarangController;
 use App\Http\Controllers\MasterData\ItemBarangController;
+use App\Http\Controllers\MasterData\JenisTransaksiKasController;
 Route::get('/user', function (Request $request) {
     return $request->user();
 });
@@ -113,6 +114,22 @@ Route::prefix('item-barang')->middleware('checkrole:admin')->group(function () {
     Route::delete('{id}/force', [ItemBarangController::class, 'forceDelete']);
     Route::get('with-trashed/all', [ItemBarangController::class, 'indexWithTrashed']);
     Route::get('with-trashed/trashed', [ItemBarangController::class, 'indexTrashed']);
+});
+
+// JenisTransaksiKas routes
+Route::prefix('jenis-transaksi-kas')->middleware('checkrole')->group(function () {
+    Route::get('/', [JenisTransaksiKasController::class, 'index']);
+    Route::get('{id}', [JenisTransaksiKasController::class, 'show']);
+    Route::post('/', [JenisTransaksiKasController::class, 'store']);
+    Route::put('{id}', [JenisTransaksiKasController::class, 'update']);
+    Route::patch('{id}', [JenisTransaksiKasController::class, 'update']);
+});
+Route::prefix('jenis-transaksi-kas')->middleware('checkrole:admin')->group(function () {
+    Route::delete('{id}/soft', [JenisTransaksiKasController::class, 'softDelete']);
+    Route::patch('{id}/restore', [JenisTransaksiKasController::class, 'restore']);
+    Route::delete('{id}/force', [JenisTransaksiKasController::class, 'forceDelete']);
+    Route::get('with-trashed/all', [JenisTransaksiKasController::class, 'indexWithTrashed']);
+    Route::get('with-trashed/trashed', [JenisTransaksiKasController::class, 'indexTrashed']);
 });
 
 

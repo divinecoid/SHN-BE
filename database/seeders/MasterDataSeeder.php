@@ -13,6 +13,7 @@ use App\Models\MasterData\Gudang;
 use App\Models\MasterData\Pelaksana;
 use App\Models\MasterData\JenisBiaya;
 use App\Models\MasterData\ItemBarang;
+use App\Models\MasterData\JenisTransaksiKas;
 
 class MasterDataSeeder extends Seeder
 {
@@ -91,8 +92,8 @@ class MasterDataSeeder extends Seeder
         ]);
 
         // Jenis Biaya
-        JenisBiaya::create(['kode' => 'BIA001', 'jenis_biaya' => 'Transportasi']);
-        JenisBiaya::create(['kode' => 'BIA002', 'jenis_biaya' => 'Listrik']);
+        $jenisBiaya1 = JenisBiaya::create(['kode' => 'BIA001', 'jenis_biaya' => 'Transportasi']);
+        $jenisBiaya2 = JenisBiaya::create(['kode' => 'BIA002', 'jenis_biaya' => 'Listrik']);
 
         // Item Barang (relasi ke master data di atas)
         ItemBarang::create([
@@ -108,6 +109,28 @@ class MasterDataSeeder extends Seeder
             'bentuk_barang_id' => $bentukBarang2->id,
             'grade_barang_id' => $gradeBarang2->id,
             'nama_item_barang' => 'Meja Bundar'
+        ]);
+
+        // Jenis Transaksi Kas
+        JenisTransaksiKas::create([
+            'jenis_biaya_id' => $jenisBiaya1->id,
+            'keterangan' => 'Transaksi pemasukan kas dari hasil penjualan barang',
+            'jumlah' => 1000000.00,
+        ]);
+        JenisTransaksiKas::create([
+            'jenis_biaya_id' => $jenisBiaya1->id,
+            'keterangan' => 'Transaksi pengeluaran kas untuk pembelian barang',
+            'jumlah' => 500000.00,
+        ]);
+        JenisTransaksiKas::create([
+            'jenis_biaya_id' => $jenisBiaya2->id,
+            'keterangan' => 'Transaksi pemasukan kas dari pelunasan piutang',
+            'jumlah' => 750000.00,
+        ]);
+        JenisTransaksiKas::create([
+            'jenis_biaya_id' => $jenisBiaya2->id,
+            'keterangan' => 'Transaksi pengeluaran kas untuk biaya operasional',
+            'jumlah' => 250000.00,
         ]);
     }
 } 

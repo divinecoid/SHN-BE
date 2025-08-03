@@ -17,6 +17,10 @@ class ItemBarang extends Model
         'nama_item_barang',
     ];
 
+    protected $hidden = [
+        'deleted_at'
+    ];
+
     public function jenisBarang()
     {
         return $this->belongsTo(JenisBarang::class, 'jenis_barang_id');

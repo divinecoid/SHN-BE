@@ -3,20 +3,20 @@
 namespace App\Http\Controllers\MasterData;
 
 use Illuminate\Http\Request;
-use App\Models\MasterData\ItemBarang;
+use App\Models\MasterData\JenisTransaksiKas;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\ApiFilterTrait;
 
-class ItemBarangController extends Controller
+class JenisTransaksiKasController extends Controller
 {
     use ApiFilterTrait;
 
     public function index(Request $request)
     {
         $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
-        $query = ItemBarang::with(['jenisBarang', 'bentukBarang', 'gradeBarang']);
-        $query = $this->applyFilter($query, $request, ['kode_barang', 'nama_item_barang']);
+        $query = JenisTransaksiKas::with('jenisBiaya');
+        $query = $this->applyFilter($query, $request, ['keterangan']);
         $data = $query->paginate($perPage);
         $items = collect($data->items());
         return response()->json($this->paginateResponse($data, $items));
@@ -25,23 +25,24 @@ class ItemBarangController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'kode_barang' => 'required|string|unique:ref_item_barang,kode_barang',
-            'jenis_barang_id' => 'required|exists:ref_jenis_barang,id',
-            'bentuk_barang_id' => 'required|exists:ref_bentuk_barang,id',
-            'grade_barang_id' => 'required|exists:ref_grade_barang,id',
-            'nama_item_barang' => 'required|string',
+            'jenis_biaya_id' => 'required|exists:ref_jenis_biaya,id',
+            'keterangan' => 'nullable|string',
+            'jumlah' => 'required|numeric|min:0',
         ]);
+        
         if ($validator->fails()) {
             return $this->errorResponse($validator->errors()->first(), 422);
         }
-        $data = ItemBarang::create($request->only(['kode_barang', 'jenis_barang_id', 'bentuk_barang_id', 'grade_barang_id', 'nama_item_barang']));
-        $data->load(['jenisBarang', 'bentukBarang', 'gradeBarang']);
+        
+        $data = JenisTransaksiKas::create($request->only(['jenis_biaya_id', 'keterangan', 'jumlah']));
+        $data->load('jenisBiaya');
+        
         return $this->successResponse($data, 'Data berhasil ditambahkan');
     }
 
     public function show($id)
     {
-        $data = ItemBarang::with(['jenisBarang', 'bentukBarang', 'gradeBarang'])->find($id);
+        $data = JenisTransaksiKas::with('jenisBiaya')->find($id);
         if (!$data) {
             return $this->errorResponse('Data tidak ditemukan', 404);
         }
@@ -50,28 +51,30 @@ class ItemBarangController extends Controller
 
     public function update(Request $request, $id)
     {
-        $data = ItemBarang::find($id);
+        $data = JenisTransaksiKas::find($id);
         if (!$data) {
             return $this->errorResponse('Data tidak ditemukan', 404);
         }
+        
         $validator = Validator::make($request->all(), [
-            'kode_barang' => 'required|string|unique:ref_item_barang,kode_barang,' . $data->id,
-            'jenis_barang_id' => 'required|exists:ref_jenis_barang,id',
-            'bentuk_barang_id' => 'required|exists:ref_bentuk_barang,id',
-            'grade_barang_id' => 'required|exists:ref_grade_barang,id',
-            'nama_item_barang' => 'required|string',
+            'jenis_biaya_id' => 'required|exists:ref_jenis_biaya,id',
+            'keterangan' => 'nullable|string',
+            'jumlah' => 'required|numeric|min:0',
         ]);
+        
         if ($validator->fails()) {
             return $this->errorResponse($validator->errors()->first(), 422);
         }
-        $data->update($request->only(['kode_barang', 'jenis_barang_id', 'bentuk_barang_id', 'grade_barang_id', 'nama_item_barang']));
-        $data->load(['jenisBarang', 'bentukBarang', 'gradeBarang']);
+        
+        $data->update($request->only(['jenis_biaya_id', 'keterangan', 'jumlah']));
+        $data->load('jenisBiaya');
+        
         return $this->successResponse($data, 'Data berhasil diupdate');
     }
 
     public function softDelete($id)
     {
-        $data = ItemBarang::find($id);
+        $data = JenisTransaksiKas::find($id);
         if (!$data) {
             return $this->errorResponse('Data tidak ditemukan', 404);
         }
@@ -81,7 +84,7 @@ class ItemBarangController extends Controller
 
     public function restore($id)
     {
-        $data = ItemBarang::onlyTrashed()->find($id);
+        $data = JenisTransaksiKas::onlyTrashed()->find($id);
         if (!$data) {
             return $this->errorResponse('Data tidak ditemukan atau tidak soft deleted', 404);
         }
@@ -91,7 +94,7 @@ class ItemBarangController extends Controller
 
     public function forceDelete($id)
     {
-        $data = ItemBarang::withTrashed()->find($id);
+        $data = JenisTransaksiKas::withTrashed()->find($id);
         if (!$data) {
             return $this->errorResponse('Data tidak ditemukan', 404);
         }
@@ -102,8 +105,8 @@ class ItemBarangController extends Controller
     public function indexWithTrashed(Request $request)
     {
         $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
-        $query = ItemBarang::withTrashed()->with(['jenisBarang', 'bentukBarang', 'gradeBarang']);
-        $query = $this->applyFilter($query, $request, ['kode_barang', 'nama_item_barang']);
+        $query = JenisTransaksiKas::withTrashed()->with('jenisBiaya');
+        $query = $this->applyFilter($query, $request, ['keterangan']);
         $data = $query->paginate($perPage);
         $items = collect($data->items());
         return response()->json($this->paginateResponse($data, $items));
@@ -112,10 +115,10 @@ class ItemBarangController extends Controller
     public function indexTrashed(Request $request)
     {
         $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
-        $query = ItemBarang::onlyTrashed()->with(['jenisBarang', 'bentukBarang', 'gradeBarang']);
-        $query = $this->applyFilter($query, $request, ['kode_barang', 'nama_item_barang']);
+        $query = JenisTransaksiKas::onlyTrashed()->with('jenisBiaya');
+        $query = $this->applyFilter($query, $request, ['keterangan']);
         $data = $query->paginate($perPage);
         $items = collect($data->items());
         return response()->json($this->paginateResponse($data, $items));
     }
-} 
+}
