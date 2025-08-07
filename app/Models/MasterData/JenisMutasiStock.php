@@ -14,4 +14,5 @@ class JenisMutasiStock extends Model
         'mutasi_stock',
         'jenis',
     ];
+    protected $hidden = ['deleted_at'];
 } 

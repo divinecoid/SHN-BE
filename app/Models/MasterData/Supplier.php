@@ -16,4 +16,5 @@ class Supplier extends Model
         'telepon_hp',
         'contact_person',
     ];
+    protected $hidden = ['deleted_at'];
 } 

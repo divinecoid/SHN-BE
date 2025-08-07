@@ -13,5 +13,6 @@ class Pelaksana extends Model
         'kode',
         'nama_pelaksana',
         'level',
-    ];
+    ];   
+    protected $hidden = ['deleted_at'];
 } 

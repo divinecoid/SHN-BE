@@ -12,6 +12,12 @@ use App\Http\Controllers\MasterData\BentukBarangController;
 use App\Http\Controllers\MasterData\GradeBarangController;
 use App\Http\Controllers\MasterData\ItemBarangController;
 use App\Http\Controllers\MasterData\JenisTransaksiKasController;
+use App\Http\Controllers\MasterData\GudangController;
+use App\Http\Controllers\MasterData\JenisBiayaController;
+use App\Http\Controllers\MasterData\JenisMutasiStockController;
+use App\Http\Controllers\MasterData\PelaksanaController;
+use App\Http\Controllers\MasterData\PelangganController;
+use App\Http\Controllers\MasterData\SupplierController;
 Route::get('/user', function (Request $request) {
     return $request->user();
 });
@@ -130,6 +136,103 @@ Route::prefix('jenis-transaksi-kas')->middleware('checkrole:admin')->group(funct
     Route::delete('{id}/force', [JenisTransaksiKasController::class, 'forceDelete']);
     Route::get('with-trashed/all', [JenisTransaksiKasController::class, 'indexWithTrashed']);
     Route::get('with-trashed/trashed', [JenisTransaksiKasController::class, 'indexTrashed']);
+});
+
+// Gudang routes
+Route::prefix('gudang')->middleware('checkrole')->group(function () {
+    Route::get('/', [GudangController::class, 'index']);
+    Route::get('tipe', [GudangController::class, 'getTipeGudang']);
+    Route::get('{id}', [GudangController::class, 'show']);
+    Route::post('/', [GudangController::class, 'store']);
+    Route::put('{id}', [GudangController::class, 'update']);
+    Route::patch('{id}', [GudangController::class, 'update']);
+});
+Route::prefix('gudang')->middleware('checkrole:admin')->group(function () {
+    Route::delete('{id}/soft', [GudangController::class, 'softDelete']);
+    Route::patch('{id}/restore', [GudangController::class, 'restore']);
+    Route::delete('{id}/force', [GudangController::class, 'forceDelete']);
+    Route::get('with-trashed/all', [GudangController::class, 'indexWithTrashed']);
+    Route::get('with-trashed/trashed', [GudangController::class, 'indexTrashed']);
+});
+
+// JenisBiaya routes
+Route::prefix('jenis-biaya')->middleware('checkrole')->group(function () {
+    Route::get('/', [JenisBiayaController::class, 'index']);
+    Route::get('{id}', [JenisBiayaController::class, 'show']);
+    Route::post('/', [JenisBiayaController::class, 'store']);
+    Route::put('{id}', [JenisBiayaController::class, 'update']);
+    Route::patch('{id}', [JenisBiayaController::class, 'update']);
+});
+Route::prefix('jenis-biaya')->middleware('checkrole:admin')->group(function () {
+    Route::delete('{id}/soft', [JenisBiayaController::class, 'softDelete']);
+    Route::patch('{id}/restore', [JenisBiayaController::class, 'restore']);
+    Route::delete('{id}/force', [JenisBiayaController::class, 'forceDelete']);
+    Route::get('with-trashed/all', [JenisBiayaController::class, 'indexWithTrashed']);
+    Route::get('with-trashed/trashed', [JenisBiayaController::class, 'indexTrashed']);
+});
+
+// JenisMutasiStock routes
+Route::prefix('jenis-mutasi-stock')->middleware('checkrole')->group(function () {
+    Route::get('/', [JenisMutasiStockController::class, 'index']);
+    Route::get('{id}', [JenisMutasiStockController::class, 'show']);
+    Route::post('/', [JenisMutasiStockController::class, 'store']);
+    Route::put('{id}', [JenisMutasiStockController::class, 'update']);
+    Route::patch('{id}', [JenisMutasiStockController::class, 'update']);
+});
+Route::prefix('jenis-mutasi-stock')->middleware('checkrole:admin')->group(function () {
+    Route::delete('{id}/soft', [JenisMutasiStockController::class, 'softDelete']);
+    Route::patch('{id}/restore', [JenisMutasiStockController::class, 'restore']);
+    Route::delete('{id}/force', [JenisMutasiStockController::class, 'forceDelete']);
+    Route::get('with-trashed/all', [JenisMutasiStockController::class, 'indexWithTrashed']);
+    Route::get('with-trashed/trashed', [JenisMutasiStockController::class, 'indexTrashed']);
+});
+
+// Pelaksana routes
+Route::prefix('pelaksana')->middleware('checkrole')->group(function () {
+    Route::get('/', [PelaksanaController::class, 'index']);
+    Route::get('{id}', [PelaksanaController::class, 'show']);
+    Route::post('/', [PelaksanaController::class, 'store']);
+    Route::put('{id}', [PelaksanaController::class, 'update']);
+    Route::patch('{id}', [PelaksanaController::class, 'update']);
+});
+Route::prefix('pelaksana')->middleware('checkrole:admin')->group(function () {
+    Route::delete('{id}/soft', [PelaksanaController::class, 'softDelete']);
+    Route::patch('{id}/restore', [PelaksanaController::class, 'restore']);
+    Route::delete('{id}/force', [PelaksanaController::class, 'forceDelete']);
+    Route::get('with-trashed/all', [PelaksanaController::class, 'indexWithTrashed']);
+    Route::get('with-trashed/trashed', [PelaksanaController::class, 'indexTrashed']);
+});
+
+// Pelanggan routes
+Route::prefix('pelanggan')->middleware('checkrole')->group(function () {
+    Route::get('/', [PelangganController::class, 'index']);
+    Route::get('{id}', [PelangganController::class, 'show']);
+    Route::post('/', [PelangganController::class, 'store']);
+    Route::put('{id}', [PelangganController::class, 'update']);
+    Route::patch('{id}', [PelangganController::class, 'update']);
+});
+Route::prefix('pelanggan')->middleware('checkrole:admin')->group(function () {
+    Route::delete('{id}/soft', [PelangganController::class, 'softDelete']);
+    Route::patch('{id}/restore', [PelangganController::class, 'restore']);
+    Route::delete('{id}/force', [PelangganController::class, 'forceDelete']);
+    Route::get('with-trashed/all', [PelangganController::class, 'indexWithTrashed']);
+    Route::get('with-trashed/trashed', [PelangganController::class, 'indexTrashed']);
+});
+
+// Supplier routes
+Route::prefix('supplier')->middleware('checkrole')->group(function () {
+    Route::get('/', [SupplierController::class, 'index']);
+    Route::get('{id}', [SupplierController::class, 'show']);
+    Route::post('/', [SupplierController::class, 'store']);
+    Route::put('{id}', [SupplierController::class, 'update']);
+    Route::patch('{id}', [SupplierController::class, 'update']);
+});
+Route::prefix('supplier')->middleware('checkrole:admin')->group(function () {
+    Route::delete('{id}/soft', [SupplierController::class, 'softDelete']);
+    Route::patch('{id}/restore', [SupplierController::class, 'restore']);
+    Route::delete('{id}/force', [SupplierController::class, 'forceDelete']);
+    Route::get('with-trashed/all', [SupplierController::class, 'indexWithTrashed']);
+    Route::get('with-trashed/trashed', [SupplierController::class, 'indexTrashed']);
 });
 
 

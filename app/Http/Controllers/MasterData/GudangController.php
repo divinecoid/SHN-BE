@@ -112,4 +112,30 @@ class GudangController extends Controller
         $items = collect($data->items());
         return response()->json($this->paginateResponse($data, $items));
     }
-} 
+
+    public function getTipeGudang()
+    {
+        $tipeGudang = [
+            [
+                'id' => 1,
+                'kode' => 'UTAMA',
+                'nama' => 'Gudang',
+                'deskripsi' => 'Gudang utama XXX'
+            ],
+            [
+                'id' => 2,
+                'kode' => 'Rack',
+                'nama' => 'Gudang Bahan Baku',
+                'deskripsi' => 'Gudang untuk XXX'
+            ],
+            [
+                'id' => 3,
+                'kode' => 'BIN',
+                'nama' => 'Gudang Work In Progress',
+                'deskripsi' => 'Gudang untuk XXX'
+            ]
+        ];
+
+        return $this->successResponse($tipeGudang, 'Data tipe gudang berhasil diambil');
+    }
+}

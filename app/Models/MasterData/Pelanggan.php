@@ -16,4 +16,5 @@ class Pelanggan extends Model
         'telepon_hp',
         'contact_person',
     ];
+    protected $hidden = ['deleted_at'];
 } 
