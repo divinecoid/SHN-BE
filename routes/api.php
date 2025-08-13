@@ -142,7 +142,12 @@ Route::prefix('jenis-transaksi-kas')->middleware('checkrole:admin')->group(funct
 Route::prefix('gudang')->middleware('checkrole')->group(function () {
     Route::get('/', [GudangController::class, 'index']);
     Route::get('tipe', [GudangController::class, 'getTipeGudang']);
+    Route::get('hierarchy', [GudangController::class, 'getHierarchy']);
     Route::get('{id}', [GudangController::class, 'show']);
+    Route::get('{id}/parent', [GudangController::class, 'getParent']);
+    Route::get('{id}/children', [GudangController::class, 'getChildren']);
+    Route::get('{id}/descendants', [GudangController::class, 'getDescendants']);
+    Route::get('{id}/ancestors', [GudangController::class, 'getAncestors']);
     Route::post('/', [GudangController::class, 'store']);
     Route::put('{id}', [GudangController::class, 'update']);
     Route::patch('{id}', [GudangController::class, 'update']);
