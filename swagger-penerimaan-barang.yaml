@@ -1,0 +1,528 @@
+openapi: 3.0.0
+info:
+  title: Penerimaan Barang API
+  description: API untuk mengelola data penerimaan barang
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8000/api
+    description: Development server
+
+paths:
+  /penerimaan-barang:
+    get:
+      summary: Mendapatkan daftar penerimaan barang
+      tags: [Penerimaan Barang]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Search'
+      responses:
+        '200':
+          $ref: '#/components/responses/PenerimaanBarangList'
+    
+    post:
+      summary: Menambah data penerimaan barang baru
+      tags: [Penerimaan Barang]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PenerimaanBarangRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/PenerimaanBarangSingle'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /penerimaan-barang/{id}:
+    get:
+      summary: Mendapatkan detail penerimaan barang
+      tags: [Penerimaan Barang]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          $ref: '#/components/responses/PenerimaanBarangSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    put:
+      summary: Mengupdate data penerimaan barang
+      tags: [Penerimaan Barang]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PenerimaanBarangRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/PenerimaanBarangSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /penerimaan-barang/by-item-barang/{idItemBarang}:
+    get:
+      summary: Mendapatkan penerimaan barang berdasarkan item barang
+      tags: [Penerimaan Barang]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdItemBarang'
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/Page'
+      responses:
+        '200':
+          $ref: '#/components/responses/PenerimaanBarangList'
+
+  /penerimaan-barang/by-gudang/{idGudang}:
+    get:
+      summary: Mendapatkan penerimaan barang berdasarkan gudang
+      tags: [Penerimaan Barang]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdGudang'
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/Page'
+      responses:
+        '200':
+          $ref: '#/components/responses/PenerimaanBarangList'
+
+  /penerimaan-barang/by-rak/{idRak}:
+    get:
+      summary: Mendapatkan penerimaan barang berdasarkan rak
+      tags: [Penerimaan Barang]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdRak'
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/Page'
+      responses:
+        '200':
+          $ref: '#/components/responses/PenerimaanBarangList'
+
+  # Auth endpoints untuk login
+  /auth/login:
+    post:
+      summary: Login user
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: Email user
+                password:
+                  type: string
+                  description: Password user
+      responses:
+        '200':
+          description: Login berhasil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                        description: JWT token
+                      user:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                          name:
+                            type: string
+                          email:
+                            type: string
+                          username:
+                            type: string
+                  message:
+                    type: string
+        '401':
+          description: Login gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/register:
+    post:
+      summary: Register user baru
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - username
+                - password
+                - password_confirmation
+              properties:
+                name:
+                  type: string
+                  description: Nama lengkap user
+                email:
+                  type: string
+                  format: email
+                  description: Email user
+                username:
+                  type: string
+                  description: Username user
+                password:
+                  type: string
+                  minLength: 8
+                  description: Password user
+                password_confirmation:
+                  type: string
+                  description: Konfirmasi password
+      responses:
+        '200':
+          description: Register berhasil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                        description: JWT token
+                      user:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                          name:
+                            type: string
+                          email:
+                            type: string
+                          username:
+                            type: string
+                  message:
+                    type: string
+        '422':
+          description: Validasi gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Masukkan JWT token yang didapat dari endpoint /auth/login
+        
+        Format: Bearer <token>
+        
+        Contoh: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
+    
+
+
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: ID penerimaan barang
+    
+    IdItemBarang:
+      name: idItemBarang
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: ID item barang
+    
+    IdGudang:
+      name: idGudang
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: ID gudang
+    
+    IdRak:
+      name: idRak
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: ID rak
+    
+    PerPage:
+      name: per_page
+      in: query
+      description: Jumlah data per halaman
+      schema:
+        type: integer
+        default: 10
+    
+    Page:
+      name: page
+      in: query
+      description: Nomor halaman
+      schema:
+        type: integer
+        default: 1
+    
+    Search:
+      name: search
+      in: query
+      description: Pencarian berdasarkan jumlah_barang atau catatan
+      schema:
+        type: string
+
+  responses:
+    PenerimaanBarangList:
+      description: Berhasil mendapatkan data
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              data:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PenerimaanBarang'
+              pagination:
+                $ref: '#/components/schemas/Pagination'
+    
+    PenerimaanBarangSingle:
+      description: Berhasil mendapatkan data
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              data:
+                $ref: '#/components/schemas/PenerimaanBarang'
+              message:
+                type: string
+    
+    SuccessMessage:
+      description: Berhasil melakukan operasi
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+    
+    NotFound:
+      description: Data tidak ditemukan
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    
+    ValidationError:
+      description: Validasi gagal
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    PenerimaanBarangRequest:
+      type: object
+      required:
+        - id_item_barang
+        - id_gudang
+        - id_rak
+        - jumlah_barang
+      properties:
+        id_item_barang:
+          type: integer
+          description: ID item barang
+        id_gudang:
+          type: integer
+          description: ID gudang
+        id_rak:
+          type: integer
+          description: ID rak (harus child dari gudang)
+        jumlah_barang:
+          type: number
+          format: float
+          minimum: 0
+          description: Jumlah barang yang diterima
+        catatan:
+          type: string
+          description: Catatan penerimaan (opsional)
+
+    PenerimaanBarang:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ID penerimaan barang
+        id_item_barang:
+          type: integer
+          description: ID item barang
+        id_gudang:
+          type: integer
+          description: ID gudang
+        id_rak:
+          type: integer
+          description: ID rak
+        jumlah_barang:
+          type: number
+          format: float
+          description: Jumlah barang yang diterima
+        catatan:
+          type: string
+          nullable: true
+          description: Catatan penerimaan
+        created_at:
+          type: string
+          format: date-time
+          description: Waktu pembuatan
+        updated_at:
+          type: string
+          format: date-time
+          description: Waktu update
+        item_barang:
+          $ref: '#/components/schemas/ItemBarang'
+        gudang:
+          $ref: '#/components/schemas/Gudang'
+        rak:
+          $ref: '#/components/schemas/Gudang'
+
+    ItemBarang:
+      type: object
+      properties:
+        id:
+          type: integer
+        kode_barang:
+          type: string
+        nama_item_barang:
+          type: string
+        jenis_barang_id:
+          type: integer
+        bentuk_barang_id:
+          type: integer
+        grade_barang_id:
+          type: integer
+
+    Gudang:
+      type: object
+      properties:
+        id:
+          type: integer
+        kode:
+          type: string
+        nama_gudang:
+          type: string
+        tipe_gudang:
+          type: string
+        parent_id:
+          type: integer
+          nullable: true
+        telepon_hp:
+          type: string
+        kapasitas:
+          type: number
+          format: float
+          nullable: true
+
+    Pagination:
+      type: object
+      properties:
+        current_page:
+          type: integer
+        data:
+          type: array
+        first_page_url:
+          type: string
+        from:
+          type: integer
+        last_page:
+          type: integer
+        last_page_url:
+          type: string
+        next_page_url:
+          type: string
+          nullable: true
+        path:
+          type: string
+        per_page:
+          type: integer
+        prev_page_url:
+          type: string
+          nullable: true
+        to:
+          type: integer
+        total:
+          type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Validasi gagal"
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+
+tags:
+  - name: Authentication
+    description: Endpoint untuk autentikasi (login/register)
+  - name: Penerimaan Barang
+    description: Operasi CRUD untuk penerimaan barang 

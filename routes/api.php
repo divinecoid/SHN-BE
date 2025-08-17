@@ -18,6 +18,8 @@ use App\Http\Controllers\MasterData\JenisMutasiStockController;
 use App\Http\Controllers\MasterData\PelaksanaController;
 use App\Http\Controllers\MasterData\PelangganController;
 use App\Http\Controllers\MasterData\SupplierController;
+use App\Http\Controllers\MasterData\PenerimaanBarangController;
+use App\Http\Controllers\SysSettingController;
 Route::get('/user', function (Request $request) {
     return $request->user();
 });
@@ -59,11 +61,11 @@ Route::get('/roles', [RoleController::class, 'index']);
 Route::prefix('jenis-barang')->middleware('checkrole')->group(function () {
     Route::get('/', [JenisBarangController::class, 'index']);
     Route::get('{id}', [JenisBarangController::class, 'show']);
+});
+Route::prefix('jenis-barang')->middleware('checkrole:admin,manager')->group(function () {
     Route::post('/', [JenisBarangController::class, 'store']);
     Route::put('{id}', [JenisBarangController::class, 'update']);
     Route::patch('{id}', [JenisBarangController::class, 'update']);
-});
-Route::prefix('jenis-barang')->middleware('checkrole:admin')->group(function () {
     Route::delete('{id}', [JenisBarangController::class, 'destroy']);
     Route::delete('{id}/soft', [JenisBarangController::class, 'softDelete']);
     Route::patch('{id}/restore', [JenisBarangController::class, 'restore']);
@@ -240,4 +242,34 @@ Route::prefix('supplier')->middleware('checkrole:admin')->group(function () {
     Route::get('with-trashed/trashed', [SupplierController::class, 'indexTrashed']);
 });
 
+// PenerimaanBarang routes
+Route::prefix('penerimaan-barang')->middleware('checkrole')->group(function () {
+    Route::get('/', [PenerimaanBarangController::class, 'index']);
+    Route::get('{id}', [PenerimaanBarangController::class, 'show']);
+    Route::post('/', [PenerimaanBarangController::class, 'store']);
+    Route::put('{id}', [PenerimaanBarangController::class, 'update']);
+    Route::patch('{id}', [PenerimaanBarangController::class, 'update']);
+    Route::get('by-item-barang/{idItemBarang}', [PenerimaanBarangController::class, 'getByItemBarang']);
+    Route::get('by-gudang/{idGudang}', [PenerimaanBarangController::class, 'getByGudang']);
+    Route::get('by-rak/{idRak}', [PenerimaanBarangController::class, 'getByRak']);
+});
+Route::prefix('penerimaan-barang')->middleware('checkrole:admin')->group(function () {
+    Route::delete('{id}/soft', [PenerimaanBarangController::class, 'softDelete']);
+    Route::patch('{id}/restore', [PenerimaanBarangController::class, 'restore']);
+    Route::delete('{id}/force', [PenerimaanBarangController::class, 'forceDelete']);
+    Route::get('with-trashed/all', [PenerimaanBarangController::class, 'indexWithTrashed']);
+    Route::get('with-trashed/trashed', [PenerimaanBarangController::class, 'indexTrashed']);
+});
 
+// SysSetting routes
+Route::prefix('sys-setting')->middleware('checkrole')->group(function () {
+    Route::get('/', [SysSettingController::class, 'index']);
+    Route::get('{id}', [SysSettingController::class, 'show']);
+    Route::post('/', [SysSettingController::class, 'store']);
+    Route::put('{id}', [SysSettingController::class, 'update']);
+    Route::patch('{id}', [SysSettingController::class, 'update']);
+    Route::delete('{id}', [SysSettingController::class, 'destroy']);
+    
+    // Get value by key (with cache)
+    Route::get('value/{key}', [SysSettingController::class, 'getValueByKey']);
+});

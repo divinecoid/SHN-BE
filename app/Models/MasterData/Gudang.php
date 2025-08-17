@@ -15,6 +15,7 @@ class Gudang extends Model
         'tipe_gudang',
         'parent_id',
         'telepon_hp',
+        'kapasitas',
     ];
     protected $hidden = ['deleted_at'];
     

@@ -20,7 +20,7 @@ class ItemBarang extends Model
     protected $hidden = [
         'deleted_at'
     ];
-
+    
     public function jenisBarang()
     {
         return $this->belongsTo(JenisBarang::class, 'jenis_barang_id');

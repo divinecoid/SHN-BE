@@ -16,7 +16,7 @@ class GudangController extends Controller
     {
         $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
         $query = Gudang::query();
-        $query = $this->applyFilter($query, $request, ['kode', 'nama_gudang', 'tipe_gudang', 'telepon_hp']);
+        $query = $this->applyFilter($query, $request, ['kode', 'nama_gudang', 'tipe_gudang', 'telepon_hp', 'kapasitas']);
         $data = $query->paginate($perPage);
         $items = collect($data->items());
         return response()->json($this->paginateResponse($data, $items));
@@ -29,12 +29,13 @@ class GudangController extends Controller
             'nama_gudang' => 'required|string',
             'tipe_gudang' => 'nullable|string',
             'parent_id' => 'nullable|exists:ref_gudang,id',
-            'telepon_hp' => 'required|string',
+            'telepon_hp' => 'string',
+            'kapasitas' => 'nullable|numeric|min:0',
         ]);
         if ($validator->fails()) {
             return $this->errorResponse($validator->errors()->first(), 422);
         }
-        $data = Gudang::create($request->only(['kode', 'nama_gudang', 'tipe_gudang', 'parent_id', 'telepon_hp']));
+        $data = Gudang::create($request->only(['kode', 'nama_gudang', 'tipe_gudang', 'parent_id', 'telepon_hp', 'kapasitas']));
         return $this->successResponse($data, 'Data berhasil ditambahkan');
     }
 
@@ -66,12 +67,13 @@ class GudangController extends Controller
                     }
                 }
             ],
-            'telepon_hp' => 'required|string',
+            'telepon_hp' => 'string',
+            'kapasitas' => 'nullable|numeric|min:0',
         ]);
         if ($validator->fails()) {
             return $this->errorResponse($validator->errors()->first(), 422);
         }
-        $data->update($request->only(['kode', 'nama_gudang', 'tipe_gudang', 'parent_id', 'telepon_hp']));
+        $data->update($request->only(['kode', 'nama_gudang', 'tipe_gudang', 'parent_id', 'telepon_hp', 'kapasitas']));
         return $this->successResponse($data, 'Data berhasil diupdate');
     }
 
@@ -109,7 +111,7 @@ class GudangController extends Controller
     {
         $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
         $query = Gudang::withTrashed();
-        $query = $this->applyFilter($query, $request, ['kode', 'nama_gudang', 'tipe_gudang', 'telepon_hp']);
+        $query = $this->applyFilter($query, $request, ['kode', 'nama_gudang', 'tipe_gudang', 'telepon_hp', 'kapasitas']);
         $data = $query->paginate($perPage);
         $items = collect($data->items());
         return response()->json($this->paginateResponse($data, $items));
@@ -119,7 +121,7 @@ class GudangController extends Controller
     {
         $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
         $query = Gudang::onlyTrashed();
-        $query = $this->applyFilter($query, $request, ['kode', 'nama_gudang', 'tipe_gudang', 'telepon_hp']);
+        $query = $this->applyFilter($query, $request, ['kode', 'nama_gudang', 'tipe_gudang', 'telepon_hp', 'kapasitas']);
         $data = $query->paginate($perPage);
         $items = collect($data->items());
         return response()->json($this->paginateResponse($data, $items));

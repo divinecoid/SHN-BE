@@ -83,7 +83,7 @@
 							"raw": "{\n  \"username\": \"admin\",\n  \"password\": \"password123\"\n}"
 						},
 						"url": {
-							"raw": "{{base_url}}/login",
+							"raw": "{{base_url}}/api/login",
 							"host": [
 								"{{base_url}}"
 							],
@@ -105,7 +105,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/roles",
+							"raw": "{{base_url}}/api/roles",
 							"host": [
 								"{{base_url}}"
 							],
@@ -127,7 +127,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/users",
+							"raw": "{{base_url}}/api/users",
 							"host": [
 								"{{base_url}}"
 							],
@@ -144,7 +144,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/users-with-role",
+							"raw": "{{base_url}}/api/users-with-role",
 							"host": [
 								"{{base_url}}"
 							],
@@ -161,7 +161,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/users/1",
+							"raw": "{{base_url}}/api/users/1",
 							"host": [
 								"{{base_url}}"
 							],
@@ -188,7 +188,7 @@
 							"raw": "{\n  \"username\": \"updateduser\",\n  \"name\": \"Updated User\",\n  \"email\": \"updated@example.com\"\n}"
 						},
 						"url": {
-							"raw": "{{base_url}}/users/1",
+							"raw": "{{base_url}}/api/users/1",
 							"host": [
 								"{{base_url}}"
 							],
@@ -206,7 +206,7 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/users/1",
+							"raw": "{{base_url}}/api/users/1",
 							"host": [
 								"{{base_url}}"
 							],
@@ -224,7 +224,7 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/users/1/soft",
+							"raw": "{{base_url}}/api/users/1/soft",
 							"host": [
 								"{{base_url}}"
 							],
@@ -243,7 +243,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/users-with-trashed/all",
+							"raw": "{{base_url}}/api/users-with-trashed/all",
 							"host": [
 								"{{base_url}}"
 							],
@@ -261,7 +261,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/users-with-trashed/trashed",
+							"raw": "{{base_url}}/api/users-with-trashed/trashed",
 							"host": [
 								"{{base_url}}"
 							],
@@ -279,7 +279,7 @@
 						"method": "PATCH",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/users/1/restore",
+							"raw": "{{base_url}}/api/users/1/restore",
 							"host": [
 								"{{base_url}}"
 							],
@@ -298,7 +298,7 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/users/1/force",
+							"raw": "{{base_url}}/api/users/1/force",
 							"host": [
 								"{{base_url}}"
 							],
@@ -1520,6 +1520,44 @@
 							"response": []
 						},
 						{
+							"name": "Get Tipe Gudang",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/gudang/tipe",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"gudang",
+										"tipe"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Hierarchy",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/gudang/hierarchy",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"gudang",
+										"hierarchy"
+									]
+								}
+							},
+							"response": []
+						},
+						{
 							"name": "Show Gudang",
 							"request": {
 								"method": "GET",
@@ -1539,7 +1577,87 @@
 							"response": []
 						},
 						{
-							"name": "Create Gudang",
+							"name": "Get Parent Gudang",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/gudang/2/parent",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"gudang",
+										"2",
+										"parent"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Children Gudang",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/gudang/1/children",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"gudang",
+										"1",
+										"children"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Descendants Gudang",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/gudang/1/descendants",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"gudang",
+										"1",
+										"descendants"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Ancestors Gudang",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/gudang/2/ancestors",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"gudang",
+										"2",
+										"ancestors"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Gudang (Root)",
 							"request": {
 								"method": "POST",
 								"header": [
@@ -1550,7 +1668,34 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"kode\": \"GUD001\",\n  \"nama_gudang\": \"Gudang Contoh\",\n  \"telepon_hp\": \"08123456789\"\n}"
+									"raw": "{\n  \"kode\": \"GUD001\",\n  \"nama_gudang\": \"Gudang Utama\",\n  \"tipe_gudang\": \"Gudang\",\n  \"telepon_hp\": \"08123456789\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/gudang",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"gudang"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Gudang (Child)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"kode\": \"GUD002\",\n  \"nama_gudang\": \"Gudang Cabang Jakarta\",\n  \"tipe_gudang\": \"Rack\",\n  \"parent_id\": 1,\n  \"telepon_hp\": \"08123456790\"\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/gudang",
@@ -1577,7 +1722,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"kode\": \"GUD001\",\n  \"nama_gudang\": \"Gudang Update\",\n  \"telepon_hp\": \"08123456789\"\n}"
+									"raw": "{\n  \"kode\": \"GUD001\",\n  \"nama_gudang\": \"Gudang Update\",\n  \"tipe_gudang\": \"BIN\",\n  \"parent_id\": null,\n  \"telepon_hp\": \"08123456789\"\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/gudang/1",
