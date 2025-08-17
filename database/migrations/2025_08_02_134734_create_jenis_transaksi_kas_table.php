@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('ref_jenis_transaksi_kas', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('jenis_biaya_id')->constrained('ref_jenis_biaya')->onDelete('cascade');
+            $table->foreignId('jenis_biaya_id')->constrained('ref_jenis_biaya')->onDelete('restrict');
             $table->text('keterangan')->nullable();
             $table->decimal('jumlah', 15, 2)->default(0); // untuk rupiah dengan 2 desimal
             $table->timestamps();
