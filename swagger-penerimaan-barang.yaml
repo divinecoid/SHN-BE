@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
-  title: Penerimaan Barang API
-  description: API untuk mengelola data penerimaan barang
+  title: SHN Backend API
+  description: API untuk sistem manajemen gudang dan inventory
   version: 1.0.0
 
 servers:

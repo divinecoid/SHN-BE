@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
-  title: Penerimaan Barang API
-  description: API untuk mengelola data penerimaan barang
+  title: SHN Backend API
+  description: API untuk sistem manajemen gudang dan inventory
   version: 1.0.0
 
 servers:
@@ -118,7 +118,7 @@ paths:
           $ref: '#/components/responses/PenerimaanBarangList'
 
   # Auth endpoints untuk login
-  /login:
+  /auth/login:
     post:
       summary: Login user
       tags: [Authentication]
@@ -129,12 +129,13 @@ paths:
             schema:
               type: object
               required:
-                - username
+                - email
                 - password
               properties:
-                username:
+                email:
                   type: string
-                  description: Username user
+                  format: email
+                  description: Email user
                 password:
                   type: string
                   description: Password user
