@@ -9,7 +9,7 @@ class PenerimaanBarang extends Model
 {
     use SoftDeletes;
     
-    protected $table = 'ref_penerimaan_barang';
+    protected $table = 'trx_penerimaan_barang';
     
     protected $fillable = [
         'id_item_barang',

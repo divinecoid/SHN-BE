@@ -65,3 +65,27 @@ Entity: JenisTransaksiKas
 - Kode  
 - JenisTransaksi  
 
+
+SalesOrder
+nomor_so
+tanggal_so
+tanggal_pengiriman
+syarat_pembayaran
+asal_gudang
+
+nama_pelanggan
+telepon
+email
+alamat
+
+-SalesOrderItem
+panjang
+lebar
+qty
+jenis_barang
+bentuk_barang
+grade_barang
+harga
+satuan
+diskon
+catatan
