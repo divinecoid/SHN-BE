@@ -1,12 +1,7 @@
 openapi: 3.0.0
 info:
   title: Penerimaan Barang API
-  description: API untuk mengelola data penerimaan barang
   version: 1.0.0
-
-servers:
-  - url: http://localhost:8000/api
-    description: Development server
 
 paths:
   /penerimaan-barang:
@@ -51,7 +46,7 @@ paths:
                     $ref: '#/components/schemas/Pagination'
     
     post:
-      summary: Menambah data penerimaan barang baru
+      summary: Menambah penerimaan barang baru
       tags: [Penerimaan Barang]
       security:
         - bearerAuth: []
@@ -60,33 +55,10 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - id_item_barang
-                - id_gudang
-                - id_rak
-                - jumlah_barang
-              properties:
-                id_item_barang:
-                  type: integer
-                  description: ID item barang
-                id_gudang:
-                  type: integer
-                  description: ID gudang
-                id_rak:
-                  type: integer
-                  description: ID rak (harus child dari gudang)
-                jumlah_barang:
-                  type: number
-                  format: float
-                  minimum: 0
-                  description: Jumlah barang yang diterima
-                catatan:
-                  type: string
-                  description: Catatan penerimaan (opsional)
+              $ref: '#/components/schemas/PenerimaanBarangRequest'
       responses:
         '200':
-          description: Berhasil menambah data
+          description: Berhasil mendapatkan data
           content:
             application/json:
               schema:
@@ -117,7 +89,7 @@ paths:
           required: true
           schema:
             type: integer
-          description: ID penerimaan barang
+          description: ID data
       responses:
         '200':
           description: Berhasil mendapatkan data
@@ -130,11 +102,17 @@ paths:
                     type: boolean
                   data:
                     $ref: '#/components/schemas/PenerimaanBarang'
+                  message:
+                    type: string
         '404':
           description: Data tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     
     put:
-      summary: Mengupdate data penerimaan barang
+      summary: Mengupdate penerimaan barang
       tags: [Penerimaan Barang]
       security:
         - bearerAuth: []
@@ -144,39 +122,16 @@ paths:
           required: true
           schema:
             type: integer
-          description: ID penerimaan barang
+          description: ID data
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - id_item_barang
-                - id_gudang
-                - id_rak
-                - jumlah_barang
-              properties:
-                id_item_barang:
-                  type: integer
-                  description: ID item barang
-                id_gudang:
-                  type: integer
-                  description: ID gudang
-                id_rak:
-                  type: integer
-                  description: ID rak (harus child dari gudang)
-                jumlah_barang:
-                  type: number
-                  format: float
-                  minimum: 0
-                  description: Jumlah barang yang diterima
-                catatan:
-                  type: string
-                  description: Catatan penerimaan (opsional)
+              $ref: '#/components/schemas/PenerimaanBarangRequest'
       responses:
         '200':
-          description: Berhasil mengupdate data
+          description: Berhasil mendapatkan data
           content:
             application/json:
               schema:
@@ -190,134 +145,21 @@ paths:
                     type: string
         '404':
           description: Data tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '422':
           description: Validasi gagal
-
-  /penerimaan-barang/by-item-barang/{idItemBarang}:
-    get:
-      summary: Mendapatkan penerimaan barang berdasarkan item barang
-      tags: [Penerimaan Barang]
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: idItemBarang
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: ID item barang
-        - name: per_page
-          in: query
-          schema:
-            type: integer
-            default: 10
-        - name: page
-          in: query
-          schema:
-            type: integer
-            default: 1
-      responses:
-        '200':
-          description: Berhasil mendapatkan data
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/PenerimaanBarang'
-                  pagination:
-                    $ref: '#/components/schemas/Pagination'
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /penerimaan-barang/by-gudang/{idGudang}:
-    get:
-      summary: Mendapatkan penerimaan barang berdasarkan gudang
-      tags: [Penerimaan Barang]
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: idGudang
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: ID gudang
-        - name: per_page
-          in: query
-          schema:
-            type: integer
-            default: 10
-        - name: page
-          in: query
-          schema:
-            type: integer
-            default: 1
-      responses:
-        '200':
-          description: Berhasil mendapatkan data
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/PenerimaanBarang'
-                  pagination:
-                    $ref: '#/components/schemas/Pagination'
-
-  /penerimaan-barang/by-rak/{idRak}:
-    get:
-      summary: Mendapatkan penerimaan barang berdasarkan rak
-      tags: [Penerimaan Barang]
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: idRak
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: ID rak
-        - name: per_page
-          in: query
-          schema:
-            type: integer
-            default: 10
-        - name: page
-          in: query
-          schema:
-            type: integer
-            default: 1
-      responses:
-        '200':
-          description: Berhasil mendapatkan data
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/PenerimaanBarang'
-                  pagination:
-                    $ref: '#/components/schemas/Pagination'
-
-  # Admin routes
-  /penerimaan-barang/{id}/soft:
+  /penerimaan-barang/{id}/soft-delete:
     delete:
-      summary: Soft delete penerimaan barang (Admin only)
-      tags: [Penerimaan Barang - Admin]
+      summary: Soft delete penerimaan barang
+      tags: [Penerimaan Barang]
       security:
         - bearerAuth: []
       parameters:
@@ -326,10 +168,10 @@ paths:
           required: true
           schema:
             type: integer
-          description: ID penerimaan barang
+          description: ID data
       responses:
         '200':
-          description: Berhasil soft delete
+          description: Berhasil soft delete data
           content:
             application/json:
               schema:
@@ -341,11 +183,15 @@ paths:
                     type: string
         '404':
           description: Data tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /penerimaan-barang/{id}/restore:
-    patch:
-      summary: Restore penerimaan barang yang di-soft delete (Admin only)
-      tags: [Penerimaan Barang - Admin]
+    post:
+      summary: Restore penerimaan barang yang sudah di-soft delete
+      tags: [Penerimaan Barang]
       security:
         - bearerAuth: []
       parameters:
@@ -354,10 +200,10 @@ paths:
           required: true
           schema:
             type: integer
-          description: ID penerimaan barang
+          description: ID data
       responses:
         '200':
-          description: Berhasil restore
+          description: Berhasil restore data
           content:
             application/json:
               schema:
@@ -371,11 +217,15 @@ paths:
                     type: string
         '404':
           description: Data tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /penerimaan-barang/{id}/force:
+  /penerimaan-barang/{id}/force-delete:
     delete:
-      summary: Force delete penerimaan barang (Admin only)
-      tags: [Penerimaan Barang - Admin]
+      summary: Force delete penerimaan barang (permanen)
+      tags: [Penerimaan Barang]
       security:
         - bearerAuth: []
       parameters:
@@ -384,10 +234,10 @@ paths:
           required: true
           schema:
             type: integer
-          description: ID penerimaan barang
+          description: ID data
       responses:
         '200':
-          description: Berhasil force delete
+          description: Berhasil force delete data
           content:
             application/json:
               schema:
@@ -399,74 +249,10 @@ paths:
                     type: string
         '404':
           description: Data tidak ditemukan
-
-  /penerimaan-barang/with-trashed/all:
-    get:
-      summary: Mendapatkan semua data termasuk yang di-soft delete (Admin only)
-      tags: [Penerimaan Barang - Admin]
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: per_page
-          in: query
-          schema:
-            type: integer
-            default: 10
-        - name: page
-          in: query
-          schema:
-            type: integer
-            default: 1
-      responses:
-        '200':
-          description: Berhasil mendapatkan data
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/PenerimaanBarang'
-                  pagination:
-                    $ref: '#/components/schemas/Pagination'
-
-  /penerimaan-barang/with-trashed/trashed:
-    get:
-      summary: Mendapatkan data yang di-soft delete saja (Admin only)
-      tags: [Penerimaan Barang - Admin]
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: per_page
-          in: query
-          schema:
-            type: integer
-            default: 10
-        - name: page
-          in: query
-          schema:
-            type: integer
-            default: 1
-      responses:
-        '200':
-          description: Berhasil mendapatkan data
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/PenerimaanBarang'
-                  pagination:
-                    $ref: '#/components/schemas/Pagination'
+                $ref: '#/components/schemas/ErrorResponse'
 
 components:
   securitySchemes:
@@ -476,6 +262,32 @@ components:
       bearerFormat: JWT
 
   schemas:
+    PenerimaanBarangRequest:
+      type: object
+      required:
+        - id_item_barang
+        - id_gudang
+        - id_rak
+        - jumlah_barang
+      properties:
+        id_item_barang:
+          type: integer
+          description: ID item barang
+        id_gudang:
+          type: integer
+          description: ID gudang
+        id_rak:
+          type: integer
+          description: ID rak (harus child dari gudang)
+        jumlah_barang:
+          type: number
+          format: float
+          minimum: 0
+          description: Jumlah barang yang diterima
+        catatan:
+          type: string
+          description: Catatan penerimaan (opsional)
+
     PenerimaanBarang:
       type: object
       properties:
@@ -600,5 +412,3 @@ components:
 tags:
   - name: Penerimaan Barang
     description: Operasi CRUD untuk penerimaan barang
-  - name: Penerimaan Barang - Admin
-    description: Operasi admin untuk penerimaan barang 

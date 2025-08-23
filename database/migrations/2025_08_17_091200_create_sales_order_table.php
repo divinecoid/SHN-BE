@@ -18,10 +18,7 @@ return new class extends Migration
             $table->date('tanggal_pengiriman');
             $table->string('syarat_pembayaran');
             $table->string('asal_gudang');
-            $table->string('nama_pelanggan');
-            $table->string('telepon');
-            $table->string('email');
-            $table->text('alamat');
+            $table->foreignId('id_pelanggan')->constrained('ref_pelanggan')->onDelete('restrict');
             $table->timestamps();
             $table->softDeletes();
         });

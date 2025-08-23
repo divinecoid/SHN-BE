@@ -25,7 +25,7 @@ class SupplierController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'kode' => 'required|string|unique:supplier,kode',
+            'kode' => 'required|string|unique:ref_supplier,kode',
             'nama_supplier' => 'required|string',
             'kota' => 'required|string',
             'telepon_hp' => 'required|string',
@@ -54,7 +54,7 @@ class SupplierController extends Controller
             return $this->errorResponse('Data tidak ditemukan', 404);
         }
         $validator = Validator::make($request->all(), [
-            'kode' => 'required|string|unique:supplier,kode,' . $data->id,
+            'kode' => 'required|string|unique:ref_supplier,kode,' . $data->id,
             'nama_supplier' => 'required|string',
             'kota' => 'required|string',
             'telepon_hp' => 'required|string',

@@ -1,0 +1,948 @@
+openapi: 3.0.0
+info:
+  title: Master Data API
+  version: 1.0.0
+
+paths:
+  # Master Data - Jenis Barang
+  /jenis-barang:
+    get:
+      summary: Mendapatkan daftar jenis barang
+      tags: [Master Data - Jenis Barang]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Search'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataList'
+    post:
+      summary: Menambah jenis barang baru
+      tags: [Master Data - Jenis Barang]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JenisBarangRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /jenis-barang/{id}:
+    get:
+      summary: Mendapatkan detail jenis barang
+      tags: [Master Data - Jenis Barang]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Mengupdate jenis barang
+      tags: [Master Data - Jenis Barang]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JenisBarangRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  # Master Data - Bentuk Barang
+  /bentuk-barang:
+    get:
+      summary: Mendapatkan daftar bentuk barang
+      tags: [Master Data - Bentuk Barang]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Search'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataList'
+    post:
+      summary: Menambah bentuk barang baru
+      tags: [Master Data - Bentuk Barang]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BentukBarangRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /bentuk-barang/{id}:
+    get:
+      summary: Mendapatkan detail bentuk barang
+      tags: [Master Data - Bentuk Barang]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Mengupdate bentuk barang
+      tags: [Master Data - Bentuk Barang]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BentukBarangRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  # Master Data - Grade Barang
+  /grade-barang:
+    get:
+      summary: Mendapatkan daftar grade barang
+      tags: [Master Data - Grade Barang]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Search'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataList'
+    post:
+      summary: Menambah grade barang baru
+      tags: [Master Data - Grade Barang]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GradeBarangRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /grade-barang/{id}:
+    get:
+      summary: Mendapatkan detail grade barang
+      tags: [Master Data - Grade Barang]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Mengupdate grade barang
+      tags: [Master Data - Grade Barang]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GradeBarangRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  # Master Data - Item Barang
+  /item-barang:
+    get:
+      summary: Mendapatkan daftar item barang
+      tags: [Master Data - Item Barang]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Search'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataList'
+    post:
+      summary: Menambah item barang baru
+      tags: [Master Data - Item Barang]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ItemBarangRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /item-barang/{id}:
+    get:
+      summary: Mendapatkan detail item barang
+      tags: [Master Data - Item Barang]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Mengupdate item barang
+      tags: [Master Data - Item Barang]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ItemBarangRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  # Master Data - Gudang
+  /gudang:
+    get:
+      summary: Mendapatkan daftar gudang
+      tags: [Master Data - Gudang]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Search'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataList'
+    post:
+      summary: Menambah gudang baru
+      tags: [Master Data - Gudang]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GudangRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /gudang/{id}:
+    get:
+      summary: Mendapatkan detail gudang
+      tags: [Master Data - Gudang]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Mengupdate gudang
+      tags: [Master Data - Gudang]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GudangRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  # Master Data - Supplier
+  /supplier:
+    get:
+      summary: Mendapatkan daftar supplier
+      tags: [Master Data - Supplier]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Search'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataList'
+    post:
+      summary: Menambah supplier baru
+      tags: [Master Data - Supplier]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SupplierRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /supplier/{id}:
+    get:
+      summary: Mendapatkan detail supplier
+      tags: [Master Data - Supplier]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Mengupdate supplier
+      tags: [Master Data - Supplier]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SupplierRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  # Master Data - Pelanggan
+  /pelanggan:
+    get:
+      summary: Mendapatkan daftar pelanggan
+      tags: [Master Data - Pelanggan]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Search'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataList'
+    post:
+      summary: Menambah pelanggan baru
+      tags: [Master Data - Pelanggan]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PelangganRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /pelanggan/{id}:
+    get:
+      summary: Mendapatkan detail pelanggan
+      tags: [Master Data - Pelanggan]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Mengupdate pelanggan
+      tags: [Master Data - Pelanggan]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PelangganRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  # Master Data - Pelaksana
+  /pelaksana:
+    get:
+      summary: Mendapatkan daftar pelaksana
+      tags: [Master Data - Pelaksana]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Search'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataList'
+    post:
+      summary: Menambah pelaksana baru
+      tags: [Master Data - Pelaksana]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PelaksanaRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /pelaksana/{id}:
+    get:
+      summary: Mendapatkan detail pelaksana
+      tags: [Master Data - Pelaksana]
+    
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Mengupdate pelaksana
+      tags: [Master Data - Pelaksana]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PelaksanaRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  # Master Data - Jenis Biaya
+  /jenis-biaya:
+    get:
+      summary: Mendapatkan daftar jenis biaya
+      tags: [Master Data - Jenis Biaya]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Search'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataList'
+    post:
+      summary: Menambah jenis biaya baru
+      tags: [Master Data - Jenis Biaya]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JenisBiayaRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /jenis-biaya/{id}:
+    get:
+      summary: Mendapatkan detail jenis biaya
+      tags: [Master Data - Jenis Biaya]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Mengupdate jenis biaya
+      tags: [Master Data - Jenis Biaya]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JenisBiayaRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  # Master Data - Jenis Mutasi Stock
+  /jenis-mutasi-stock:
+    get:
+      summary: Mendapatkan daftar jenis mutasi stock
+      tags: [Master Data - Jenis Mutasi Stock]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Search'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataList'
+    post:
+      summary: Menambah jenis mutasi stock baru
+      tags: [Master Data - Jenis Mutasi Stock]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JenisMutasiStockRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /jenis-mutasi-stock/{id}:
+    get:
+      summary: Mendapatkan detail jenis mutasi stock
+      tags: [Master Data - Jenis Mutasi Stock]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Mengupdate jenis mutasi stock
+      tags: [Master Data - Jenis Mutasi Stock]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JenisMutasiStockRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  # Master Data - Jenis Transaksi Kas
+  /jenis-transaksi-kas:
+    get:
+      summary: Mendapatkan daftar jenis transaksi kas
+      tags: [Master Data - Jenis Transaksi Kas]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Search'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataList'
+    post:
+      summary: Menambah jenis transaksi kas baru
+      tags: [Master Data - Jenis Transaksi Kas]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JenisTransaksiKasRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /jenis-transaksi-kas/{id}:
+    get:
+      summary: Mendapatkan detail jenis transaksi kas
+      tags: [Master Data - Jenis Transaksi Kas]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Mengupdate jenis transaksi kas
+      tags: [Master Data - Jenis Transaksi Kas]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JenisTransaksiKasRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    PerPage:
+      name: per_page
+      in: query
+      description: Jumlah data per halaman
+      schema:
+        type: integer
+        default: 10
+    Page:
+      name: page
+      in: query
+      description: Nomor halaman
+      schema:
+        type: integer
+        default: 1
+    Search:
+      name: search
+      in: query
+      description: Pencarian
+      schema:
+        type: string
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: ID data
+
+  responses:
+    DataList:
+      description: Berhasil mendapatkan data
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              data:
+                type: array
+                items:
+                  type: object
+              pagination:
+                $ref: '#/components/schemas/Pagination'
+    DataSingle:
+      description: Berhasil mendapatkan data
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              data:
+                type: object
+              message:
+                type: string
+    NotFound:
+      description: Data tidak ditemukan
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ValidationError:
+      description: Validasi gagal
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    Pagination:
+      type: object
+      properties:
+        current_page:
+          type: integer
+        data:
+          type: array
+        first_page_url:
+          type: string
+        from:
+          type: integer
+        last_page:
+          type: integer
+        last_page_url:
+          type: string
+        next_page_url:
+          type: string
+          nullable: true
+        path:
+          type: string
+        per_page:
+          type: integer
+        prev_page_url:
+          type: string
+          nullable: true
+        to:
+          type: integer
+        total:
+          type: integer
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Validasi gagal"
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+
+    JenisBarangRequest:
+      type: object
+      required:
+        - nama_jenis_barang
+      properties:
+        nama_jenis_barang:
+          type: string
+          description: Nama jenis barang
+    BentukBarangRequest:
+      type: object
+      required:
+        - nama_bentuk_barang
+      properties:
+        nama_bentuk_barang:
+          type: string
+          description: Nama bentuk barang
+    GradeBarangRequest:
+      type: object
+      required:
+        - nama_grade_barang
+      properties:
+        nama_grade_barang:
+          type: string
+          description: Nama grade barang
+    ItemBarangRequest:
+      type: object
+      required:
+        - kode_barang
+        - nama_item_barang
+      properties:
+        kode_barang:
+          type: string
+        nama_item_barang:
+          type: string
+        jenis_barang_id:
+          type: integer
+        bentuk_barang_id:
+          type: integer
+        grade_barang_id:
+          type: integer
+    GudangRequest:
+      type: object
+      required:
+        - kode
+        - nama_gudang
+      properties:
+        kode:
+          type: string
+        nama_gudang:
+          type: string
+        tipe_gudang:
+          type: string
+        parent_id:
+          type: integer
+          nullable: true
+        telepon_hp:
+          type: string
+        kapasitas:
+          type: number
+          format: float
+          nullable: true
+    SupplierRequest:
+      type: object
+      required:
+        - nama_supplier
+      properties:
+        nama_supplier:
+          type: string
+        alamat:
+          type: string
+        telepon:
+          type: string
+    PelangganRequest:
+      type: object
+      required:
+        - nama_pelanggan
+      properties:
+        nama_pelanggan:
+          type: string
+        alamat:
+          type: string
+        telepon:
+          type: string
+    PelaksanaRequest:
+      type: object
+      required:
+        - nama_pelaksana
+      properties:
+        nama_pelaksana:
+          type: string
+        jabatan:
+          type: string
+    JenisBiayaRequest:
+      type: object
+      required:
+        - nama_jenis_biaya
+      properties:
+        nama_jenis_biaya:
+          type: string
+    JenisMutasiStockRequest:
+      type: object
+      required:
+        - nama_jenis_mutasi_stock
+      properties:
+        nama_jenis_mutasi_stock:
+          type: string
+    JenisTransaksiKasRequest:
+      type: object
+      required:
+        - nama_jenis_transaksi_kas
+      properties:
+        nama_jenis_transaksi_kas:
+          type: string

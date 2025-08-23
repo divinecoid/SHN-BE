@@ -18,6 +18,17 @@ Route::get('/', function () {
 });
 
 // Swagger UI Route
-Route::get('/swagger', function () {
-    return view('swagger');
+// Route::get('/swagger', function () {
+//     return view('swagger');
+// });
+
+// Serve YAML specs from storage/api-docs for Swagger $ref resolution
+Route::get('/api-docs/{filename}', function ($filename) {
+    $path = storage_path('api-docs/' . $filename);
+    if (!file_exists($path)) {
+        abort(404);
+    }
+    return response()->make(file_get_contents($path), 200, [
+        'Content-Type' => 'application/yaml'
+    ]);
 });

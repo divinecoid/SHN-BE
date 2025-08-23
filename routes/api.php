@@ -19,6 +19,7 @@ use App\Http\Controllers\MasterData\PelaksanaController;
 use App\Http\Controllers\MasterData\PelangganController;
 use App\Http\Controllers\MasterData\SupplierController;
 use App\Http\Controllers\MasterData\PenerimaanBarangController;
+use App\Http\Controllers\MasterData\SalesOrderController;
 use App\Http\Controllers\SysSettingController;
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -53,7 +54,7 @@ Route::middleware('checkrole:admin')->group(function () {
 });
 
 // Login route
-Route::post('/login', [LoginController::class, 'login']);
+Route::post('/auth/login', [LoginController::class, 'login']);
 // Roles route
 Route::get('/roles', [RoleController::class, 'index']);
 
@@ -272,4 +273,18 @@ Route::prefix('sys-setting')->middleware('checkrole')->group(function () {
     
     // Get value by key (with cache)
     Route::get('value/{key}', [SysSettingController::class, 'getValueByKey']);
+});
+
+// SalesOrder routes
+Route::prefix('sales-order')->middleware('checkrole')->group(function () {
+    Route::get('/', [SalesOrderController::class, 'index']);
+    Route::get('{id}', [SalesOrderController::class, 'show']);
+    Route::post('/', [SalesOrderController::class, 'store']);
+    Route::put('{id}', [SalesOrderController::class, 'update']);
+    Route::patch('{id}', [SalesOrderController::class, 'update']);
+});
+Route::prefix('sales-order')->middleware('checkrole:admin')->group(function () {
+    Route::delete('{id}/soft', [SalesOrderController::class, 'softDelete']);
+    Route::patch('{id}/restore', [SalesOrderController::class, 'restore']);
+    Route::delete('{id}/force', [SalesOrderController::class, 'forceDelete']);
 });

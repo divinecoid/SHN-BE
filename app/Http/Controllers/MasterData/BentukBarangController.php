@@ -25,7 +25,7 @@ class BentukBarangController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'kode' => 'required|string|unique:bentuk_barang,kode',
+            'kode' => 'required|string|unique:ref_bentuk_barang,kode',
             'nama_bentuk' => 'required|string',
         ]);
         if ($validator->fails()) {
@@ -51,7 +51,7 @@ class BentukBarangController extends Controller
             return $this->errorResponse('Data tidak ditemukan', 404);
         }
         $validator = Validator::make($request->all(), [
-            'kode' => 'required|string|unique:bentuk_barang,kode,' . $data->id,
+            'kode' => 'required|string|unique:ref_bentuk_barang,kode,' . $data->id,
             'nama_bentuk' => 'required|string',
         ]);
         if ($validator->fails()) {

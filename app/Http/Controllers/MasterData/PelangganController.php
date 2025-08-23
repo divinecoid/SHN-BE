@@ -25,7 +25,7 @@ class PelangganController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'kode' => 'required|string|unique:pelanggan,kode',
+            'kode' => 'required|string|unique:ref_pelanggan,kode',
             'nama_pelanggan' => 'required|string',
             'kota' => 'required|string',
             'telepon_hp' => 'required|string',
@@ -54,7 +54,7 @@ class PelangganController extends Controller
             return $this->errorResponse('Data tidak ditemukan', 404);
         }
         $validator = Validator::make($request->all(), [
-            'kode' => 'required|string|unique:pelanggan,kode,' . $data->id,
+            'kode' => 'required|string|unique:ref_pelanggan,kode,' . $data->id,
             'nama_pelanggan' => 'required|string',
             'kota' => 'required|string',
             'telepon_hp' => 'required|string',

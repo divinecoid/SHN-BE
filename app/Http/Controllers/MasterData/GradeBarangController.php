@@ -25,7 +25,7 @@ class GradeBarangController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'kode' => 'required|string|unique:grade_barang,kode',
+            'kode' => 'required|string|unique:ref_grade_barang,kode',
             'nama' => 'required|string',
         ]);
         if ($validator->fails()) {
@@ -51,7 +51,7 @@ class GradeBarangController extends Controller
             return $this->errorResponse('Data tidak ditemukan', 404);
         }
         $validator = Validator::make($request->all(), [
-            'kode' => 'required|string|unique:grade_barang,kode,' . $data->id,
+            'kode' => 'required|string|unique:ref_grade_barang,kode,' . $data->id,
             'nama' => 'required|string',
         ]);
         if ($validator->fails()) {

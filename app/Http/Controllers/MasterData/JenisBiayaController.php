@@ -25,7 +25,7 @@ class JenisBiayaController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'kode' => 'required|string|unique:jenis_biaya,kode',
+            'kode' => 'required|string|unique:ref_jenis_biaya,kode',
             'jenis_biaya' => 'required|string',
         ]);
         if ($validator->fails()) {
@@ -51,7 +51,7 @@ class JenisBiayaController extends Controller
             return $this->errorResponse('Data tidak ditemukan', 404);
         }
         $validator = Validator::make($request->all(), [
-            'kode' => 'required|string|unique:jenis_biaya,kode,' . $data->id,
+            'kode' => 'required|string|unique:ref_jenis_biaya,kode,' . $data->id,
             'jenis_biaya' => 'required|string',
         ]);
         if ($validator->fails()) {
