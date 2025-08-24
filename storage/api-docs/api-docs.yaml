@@ -91,6 +91,8 @@ paths:
   # Import: Authentication
   /auth/login:
     $ref: 'http://localhost:8000/api-docs/auth.yaml#/paths/~1auth~1login'
+  /auth/refresh:
+    $ref: 'http://localhost:8000/api-docs/auth.yaml#/paths/~1auth~1refresh'
   /auth/register:
     $ref: 'http://localhost:8000/api-docs/auth.yaml#/paths/~1auth~1register'
 

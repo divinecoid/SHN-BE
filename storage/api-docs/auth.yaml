@@ -15,13 +15,12 @@ paths:
             schema:
               type: object
               required:
-                - email
+                - username
                 - password
               properties:
-                email:
+                username:
                   type: string
-                  format: email
-                  description: Email user
+                  description: Username user
                 password:
                   type: string
                   description: Password user
@@ -35,27 +34,61 @@ paths:
                 properties:
                   success:
                     type: boolean
-                  data:
-                    type: object
-                    properties:
-                      token:
-                        type: string
-                        description: JWT token
-                      user:
-                        type: object
-                        properties:
-                          id:
-                            type: integer
-                          name:
-                            type: string
-                          email:
-                            type: string
-                          username:
-                            type: string
+                    example: true
                   message:
                     type: string
+                    example: "Login berhasil"
+                  token:
+                    type: string
+                    description: JWT token
+                  token_type:
+                    type: string
+                    example: "Bearer"
         '401':
           description: Login gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/refresh:
+    post:
+      summary: Refresh JWT token
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refresh_token
+              properties:
+                refresh_token:
+                  type: string
+                  description: Refresh token untuk mendapatkan token baru
+      responses:
+        '200':
+          description: Token berhasil di-refresh
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Token berhasil di-refresh"
+                  token:
+                    type: string
+                    description: JWT token baru
+                  token_type:
+                    type: string
+                    example: "Bearer"
+        '401':
+          description: Refresh token tidak valid atau expired
           content:
             application/json:
               schema:

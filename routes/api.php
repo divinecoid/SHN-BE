@@ -53,8 +53,9 @@ Route::middleware('checkrole:admin')->group(function () {
     
 });
 
-// Login route
+// Auth routes
 Route::post('/auth/login', [LoginController::class, 'login']);
+Route::post('/auth/refresh', [LoginController::class, 'refresh']);
 // Roles route
 Route::get('/roles', [RoleController::class, 'index']);
 

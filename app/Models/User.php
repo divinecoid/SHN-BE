@@ -91,9 +91,13 @@ class User extends Authenticatable implements JWTSubject
      */
     public function getJWTCustomClaims(): array
     {
+        // Get role names for JWT payload
+        $roleNames = $this->roles->pluck('name')->toArray();
+        
         return [
             'username' => $this->username,
             'name' => $this->name,
+            'roles' => $roleNames,
         ];
     }
 }
