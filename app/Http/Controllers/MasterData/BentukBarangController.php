@@ -58,7 +58,7 @@ class BentukBarangController extends Controller
             return $this->errorResponse($validator->errors()->first(), 422);
         }
         $data->update($request->only(['kode', 'nama_bentuk']));
-        return $this->successResponse($data, 'Data berhasil diupdate');
+        return $this->successResponse($data, 'Data berhasil diperbarui');
     }
 
     public function softDelete($id)
@@ -68,7 +68,7 @@ class BentukBarangController extends Controller
             return $this->errorResponse('Data tidak ditemukan', 404);
         }
         $data->delete();
-        return $this->successResponse(null, 'Data berhasil di-soft delete');
+        return $this->successResponse(null, 'Data berhasil dihapus');
     }
 
     public function restore($id)

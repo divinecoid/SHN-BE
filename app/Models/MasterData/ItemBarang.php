@@ -15,6 +15,12 @@ class ItemBarang extends Model
         'bentuk_barang_id',
         'grade_barang_id',
         'nama_item_barang',
+        'panjang',
+        'lebar',
+        'tebal',
+        'quantity',
+        'quantity_tebal_sama',
+        'jenis_potongan',
     ];
 
     protected $hidden = [

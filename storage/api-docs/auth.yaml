@@ -40,7 +40,11 @@ paths:
                     example: "Login berhasil"
                   token:
                     type: string
-                    description: JWT token
+                    description: JWT access token (short-lived)
+                  refresh_token:
+                    type: string
+                    format: uuid
+                    description: UUID refresh token (long-lived, 30 hari)
                   token_type:
                     type: string
                     example: "Bearer"
@@ -53,7 +57,7 @@ paths:
 
   /auth/refresh:
     post:
-      summary: Refresh JWT token
+      summary: Refresh JWT access token menggunakan refresh token
       tags: [Authentication]
       requestBody:
         required: true
@@ -66,7 +70,8 @@ paths:
               properties:
                 refresh_token:
                   type: string
-                  description: Refresh token untuk mendapatkan token baru
+                  format: uuid
+                  description: UUID refresh token yang didapat dari login/register
       responses:
         '200':
           description: Token berhasil di-refresh
@@ -83,12 +88,50 @@ paths:
                     example: "Token berhasil di-refresh"
                   token:
                     type: string
-                    description: JWT token baru
+                    description: JWT access token baru
                   token_type:
                     type: string
                     example: "Bearer"
         '401':
-          description: Refresh token tidak valid atau expired
+          description: Refresh token tidak valid, expired, atau revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/logout:
+    post:
+      summary: Logout user dan revoke refresh token
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refresh_token
+              properties:
+                refresh_token:
+                  type: string
+                  format: uuid
+                  description: UUID refresh token yang akan di-revoke
+      responses:
+        '200':
+          description: Logout berhasil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Logout berhasil"
+        '500':
+          description: Terjadi kesalahan saat logout
           content:
             application/json:
               schema:
@@ -143,7 +186,11 @@ paths:
                     properties:
                       token:
                         type: string
-                        description: JWT token
+                        description: JWT access token (short-lived)
+                      refresh_token:
+                        type: string
+                        format: uuid
+                        description: UUID refresh token (long-lived, 30 hari)
                       user:
                         type: object
                         properties:

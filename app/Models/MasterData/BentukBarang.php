@@ -13,6 +13,7 @@ class BentukBarang extends Model
     protected $fillable = [
         'kode',
         'nama_bentuk',
+        'dimensi',
     ];
 
     protected $hidden = ['deleted_at'];

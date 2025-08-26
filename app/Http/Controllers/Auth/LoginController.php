@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\RefreshToken;
 use Illuminate\Http\Request;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Log;
@@ -24,14 +25,35 @@ class LoginController extends Controller
                 'data' => null,
             ], 401);
         }
-        $token = JWTAuth::fromUser($user);
-        $payload = JWTAuth::setToken($token)->getPayload();
+        
+        // Cleanup expired tokens first
+        $user->refreshTokens()->where('expires_at', '<', now())->delete();
+        
+        // Optional: Limit active tokens per user (e.g., max 5 devices)
+        $maxTokens = 5;
+        $activeTokens = $user->refreshTokens()->where('revoked', false)->count();
+        if ($activeTokens >= $maxTokens) {
+            // Remove oldest token
+            $oldestToken = $user->refreshTokens()->where('revoked', false)->oldest()->first();
+            if ($oldestToken) {
+                $oldestToken->delete();
+            }
+        }
+        
+        // Generate access token (short-lived)
+        $accessToken = JWTAuth::fromUser($user);
+        
+        // Generate refresh token (UUID-based)
+        $refreshToken = RefreshToken::createToken($user);
+        
+        $payload = JWTAuth::setToken($accessToken)->getPayload();
         Log::info('JWT Payload:', $payload->toArray());
         
         return response()->json([
             'success' => true,
             'message' => 'Login berhasil',
-            'token' => $token,
+            'token' => $accessToken,
+            'refresh_token' => $refreshToken->token,
             'token_type' => 'Bearer',
         ]);
     }
@@ -43,21 +65,21 @@ class LoginController extends Controller
         ]);
 
         try {
-            // Set the refresh token
-            JWTAuth::setToken($request->refresh_token);
+            // Find refresh token in database
+            $refreshToken = RefreshToken::findByToken($request->refresh_token);
             
-            // Get the user from the token
-            $user = JWTAuth::authenticate();
-            
-            if (!$user) {
+            if (!$refreshToken || !$refreshToken->isValid()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Refresh token tidak valid',
+                    'message' => 'Refresh token tidak valid atau expired',
                     'data' => null,
                 ], 401);
             }
 
-            // Generate new token
+            // Get user from refresh token
+            $user = $refreshToken->user;
+            
+            // Generate new access token
             $newToken = JWTAuth::fromUser($user);
             
             return response()->json([
@@ -75,6 +97,44 @@ class LoginController extends Controller
                 'message' => 'Refresh token tidak valid atau expired',
                 'data' => null,
             ], 401);
+        }
+    }
+
+    public function logout(Request $request)
+    {
+        $request->validate([
+            'refresh_token' => 'required|string',
+        ]);
+
+        try {
+            // Find and revoke the refresh token
+            $refreshToken = RefreshToken::findByToken($request->refresh_token);
+            
+            if ($refreshToken) {
+                $refreshToken->revoke();
+                
+                // Log logout activity
+                Log::info('User logged out', [
+                    'user_id' => $refreshToken->user_id,
+                    'username' => $refreshToken->user->username,
+                    'token_id' => $refreshToken->id,
+                    'logout_time' => now()
+                ]);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Logout berhasil',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Logout error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat logout',
+                'data' => null,
+            ], 500);
         }
     }
 }

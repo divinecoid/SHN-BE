@@ -184,11 +184,11 @@ class SalesOrderController extends Controller
             // Load the updated data with relationships
             $salesOrder->load('salesOrderItems');
 
-            return $this->successResponse($salesOrder, 'Sales Order berhasil diupdate');
+            return $this->successResponse($salesOrder, 'Sales Order berhasil diperbarui');
 
         } catch (\Exception $e) {
             DB::rollback();
-            return $this->errorResponse('Gagal mengupdate Sales Order: ' . $e->getMessage(), 500);
+            return $this->errorResponse('Gagal memperbarui Sales Order: ' . $e->getMessage(), 500);
         }
     }
 
@@ -199,17 +199,17 @@ class SalesOrderController extends Controller
             return $this->errorResponse('Data tidak ditemukan', 404);
         }
         $data->delete();
-        return $this->successResponse(null, 'Data berhasil di-soft delete');
+        return $this->successResponse(null, 'Data berhasil dihapus');
     }
 
     public function restore($id)
     {
         $data = SalesOrder::onlyTrashed()->find($id);
         if (!$data) {
-            return $this->errorResponse('Data tidak ditemukan atau tidak soft deleted', 404);
+            return $this->errorResponse('Data tidak ditemukan atau tidak dihapus', 404);
         }
         $data->restore();
-        return $this->successResponse($data, 'Data berhasil di-restore');
+        return $this->successResponse($data, 'Data berhasil dipulihkan');
     }
 
     public function forceDelete($id)
@@ -219,6 +219,6 @@ class SalesOrderController extends Controller
             return $this->errorResponse('Data tidak ditemukan', 404);
         }
         $data->forceDelete();
-        return $this->successResponse(null, 'Data berhasil di-force delete');
+        return $this->successResponse(null, 'Data berhasil dihapus permanen');
     }
 }

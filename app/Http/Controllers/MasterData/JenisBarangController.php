@@ -58,7 +58,7 @@ class JenisBarangController extends Controller
             return $this->errorResponse($validator->errors()->first(), 422);
         }
         $data->update($request->only(['kode', 'nama_jenis']));
-        return $this->successResponse($data, 'Data berhasil diupdate');
+        return $this->successResponse($data, 'Data berhasil diperbarui');
     }
 
     public function softDelete($id)
@@ -68,17 +68,17 @@ class JenisBarangController extends Controller
             return $this->errorResponse('Data tidak ditemukan', 404);
         }
         $data->delete();
-        return $this->successResponse(null, 'Data berhasil di-soft delete');
+        return $this->successResponse(null, 'Data berhasil dihapus');
     }
 
     public function restore($id)
     {
         $data = JenisBarang::onlyTrashed()->find($id);
         if (!$data) {
-            return $this->errorResponse('Data tidak ditemukan atau tidak soft deleted', 404);
+            return $this->errorResponse('Data tidak ditemukan atau tidak dihapus', 404);
         }
         $data->restore();
-        return $this->successResponse($data, 'Data berhasil di-restore');
+        return $this->successResponse($data, 'Data berhasil dipulihkan');
     }
 
     public function forceDelete($id)
@@ -88,7 +88,7 @@ class JenisBarangController extends Controller
             return $this->errorResponse('Data tidak ditemukan', 404);
         }
         $data->forceDelete();
-        return $this->successResponse(null, 'Data berhasil di-force delete');
+        return $this->successResponse(null, 'Data berhasil dihapus permanen');
     }
 
     public function indexWithTrashed(Request $request)

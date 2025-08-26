@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Models\User;
 use App\Models\Role;
+use App\Models\RefreshToken;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -38,9 +39,13 @@ class RegisterController extends Controller
         // Assign role from request
         $user->roles()->attach($validated['role_id']);
 
-        // Generate Sanctum token
-        $token = JWTAuth::fromUser($user);
-        $payload = JWTAuth::setToken($token)->getPayload();
+        // Generate access token (short-lived)
+        $accessToken = JWTAuth::fromUser($user);
+        
+        // Generate refresh token (UUID-based)
+        $refreshToken = RefreshToken::createToken($user);
+        
+        $payload = JWTAuth::setToken($accessToken)->getPayload();
 
         // Log ke console Laravel
         Log::info('JWT Payload:', $payload->toArray());
@@ -55,7 +60,8 @@ class RegisterController extends Controller
                 'created_at' => $user->created_at,
                 'roles' => $user->roles->pluck('name')
             ],
-            'token' => $token,
+            'token' => $accessToken,
+            'refresh_token' => $refreshToken->token,
             'token_type' => 'Bearer'
         ], 201);
     }

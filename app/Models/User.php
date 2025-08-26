@@ -59,6 +59,14 @@ class User extends Authenticatable implements JWTSubject
     }
 
     /**
+     * Get the refresh tokens that belong to this user.
+     */
+    public function refreshTokens()
+    {
+        return $this->hasMany(RefreshToken::class);
+    }
+
+    /**
      * Check if user has a specific role.
      */
     public function hasRole(string $roleName): bool
