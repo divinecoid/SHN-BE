@@ -709,6 +709,121 @@ paths:
         '422':
           $ref: '#/components/responses/ValidationError'
 
+  # Master Data - Menu
+  /menu:
+    get:
+      summary: Mendapatkan daftar menu
+      tags: [Master Data - Menu]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Search'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataList'
+    post:
+      summary: Menambah menu baru
+      tags: [Master Data - Menu]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MenuRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /menu/{id}:
+    get:
+      summary: Mendapatkan detail menu
+      tags: [Master Data - Menu]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Mengupdate menu
+      tags: [Master Data - Menu]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MenuRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    patch:
+      summary: Mengupdate menu (partial)
+      tags: [Master Data - Menu]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MenuRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  # Menu with Permissions for Role Mapping
+  /menu-with-permissions:
+    get:
+      summary: Mendapatkan semua menu dengan permission untuk mapping role
+      description: Endpoint untuk mendapatkan semua menu beserta permission yang tersedia untuk keperluan mapping role-menu-permission
+      tags: [Master Data - Menu]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Berhasil mendapatkan data menu dengan permission
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Data menu dengan permission berhasil diambil"
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MenuWithPermissions'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -782,6 +897,18 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
     ValidationError:
       description: Validasi gagal
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Tidak terautentikasi
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Tidak memiliki akses
       content:
         application/json:
           schema:
@@ -946,3 +1073,48 @@ components:
       properties:
         nama_jenis_transaksi_kas:
           type: string
+    MenuRequest:
+      type: object
+      required:
+        - kode
+        - nama_menu
+      properties:
+        kode:
+          type: string
+          description: Kode menu (unique)
+          example: "MENU001"
+        nama_menu:
+          type: string
+          description: Nama menu
+          example: "Dashboard"
+    MenuWithPermissions:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ID menu
+          example: 1
+        kode:
+          type: string
+          description: Kode menu
+          example: "MENU001"
+        nama_menu:
+          type: string
+          description: Nama menu
+          example: "Dashboard"
+        available_permissions:
+          type: array
+          description: Daftar permission yang tersedia
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                description: ID permission
+                example: 1
+              nama_permission:
+                type: string
+                description: Nama permission
+                example: "Create"
+
+

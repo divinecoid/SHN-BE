@@ -1,0 +1,512 @@
+openapi: 3.0.0
+info:
+  title: Role Menu Permission API
+  version: 1.0.0
+
+paths:
+  # Role Menu Permission - List
+  /role-menu-permission:
+    get:
+      summary: Mendapatkan daftar role-menu-permission mappings
+      tags: [Role Menu Permission]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Search'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataList'
+    post:
+      summary: Menambah role-menu-permission mapping baru
+      tags: [Role Menu Permission]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleMenuPermissionRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  # Role Menu Permission - Detail
+  /role-menu-permission/{id}:
+    get:
+      summary: Mendapatkan detail role-menu-permission mapping
+      tags: [Role Menu Permission]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Mengupdate role-menu-permission mapping
+      tags: [Role Menu Permission]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleMenuPermissionRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    patch:
+      summary: Mengupdate role-menu-permission mapping (partial)
+      tags: [Role Menu Permission]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleMenuPermissionRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      summary: Menghapus role-menu-permission mapping
+      tags: [Role Menu Permission]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # Role Menu Permission - By Role
+  /role-menu-permission/by-role/{roleId}:
+    get:
+      summary: Mendapatkan role-menu-permission mappings berdasarkan role ID
+      tags: [Role Menu Permission]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID role
+      responses:
+        '200':
+          description: Berhasil mendapatkan data role-menu-permission mapping
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Data role-menu-permission mapping berhasil diambil"
+                  data:
+                    type: object
+                    properties:
+                      role:
+                        $ref: '#/components/schemas/Role'
+                      mappings:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/RoleMenuPermission'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Menghapus semua role-menu-permission mappings untuk role tertentu
+      tags: [Role Menu Permission]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID role
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # Role Menu Permission - By Menu
+  /role-menu-permission/by-menu/{menuId}:
+    get:
+      summary: Mendapatkan role-menu-permission mappings berdasarkan menu ID
+      tags: [Role Menu Permission]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: menuId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID menu
+      responses:
+        '200':
+          description: Berhasil mendapatkan data role-menu-permission mapping
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Data role-menu-permission mapping berhasil diambil"
+                  data:
+                    type: object
+                    properties:
+                      menu:
+                        $ref: '#/components/schemas/Menu'
+                      mappings:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/RoleMenuPermission'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Menghapus semua role-menu-permission mappings untuk menu tertentu
+      tags: [Role Menu Permission]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: menuId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID menu
+      responses:
+        '200':
+          $ref: '#/components/responses/DataSingle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # Role Menu Permission - Bulk Create
+  /role-menu-permission/bulk:
+    post:
+      summary: Membuat multiple role-menu-permission mappings sekaligus
+      tags: [Role Menu Permission]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleMenuPermissionBulkRequest'
+      responses:
+        '200':
+          description: Berhasil membuat bulk role-menu-permission mappings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Bulk role-menu-permission mapping berhasil diproses"
+                  data:
+                    type: object
+                    properties:
+                      created:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/RoleMenuPermission'
+                      errors:
+                        type: array
+                        items:
+                          type: string
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    PerPage:
+      name: per_page
+      in: query
+      description: Jumlah data per halaman
+      schema:
+        type: integer
+        default: 10
+    Page:
+      name: page
+      in: query
+      description: Nomor halaman
+      schema:
+        type: integer
+        default: 1
+    Search:
+      name: search
+      in: query
+      description: Pencarian
+      schema:
+        type: string
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: ID data
+
+  responses:
+    DataList:
+      description: Berhasil mendapatkan data
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              data:
+                type: array
+                items:
+                  type: object
+              pagination:
+                $ref: '#/components/schemas/Pagination'
+    DataSingle:
+      description: Berhasil mendapatkan data
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              data:
+                type: object
+              message:
+                type: string
+    NotFound:
+      description: Data tidak ditemukan
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ValidationError:
+      description: Validasi gagal
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Tidak terautentikasi
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Tidak memiliki akses
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    Pagination:
+      type: object
+      properties:
+        current_page:
+          type: integer
+        data:
+          type: array
+        first_page_url:
+          type: string
+        from:
+          type: integer
+        last_page:
+          type: integer
+        last_page_url:
+          type: string
+        next_page_url:
+          type: string
+          nullable: true
+        path:
+          type: string
+        per_page:
+          type: integer
+        prev_page_url:
+          type: string
+          nullable: true
+        to:
+          type: integer
+        total:
+          type: integer
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Validasi gagal"
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+
+    Role:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ID role
+          example: 1
+        name:
+          type: string
+          description: Nama role
+          example: "Admin"
+        description:
+          type: string
+          description: Deskripsi role
+          example: "Administrator with full access"
+
+    Menu:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ID menu
+          example: 1
+        kode:
+          type: string
+          description: Kode menu
+          example: "MENU001"
+        nama_menu:
+          type: string
+          description: Nama menu
+          example: "Dashboard"
+
+    Permission:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ID permission
+          example: 1
+        nama_permission:
+          type: string
+          description: Nama permission
+          example: "Create"
+
+    RoleMenuPermission:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ID role-menu-permission mapping
+          example: 1
+        role_id:
+          type: integer
+          description: ID role
+          example: 1
+        menu_id:
+          type: integer
+          description: ID menu
+          example: 1
+        permission_id:
+          type: integer
+          description: ID permission
+          example: 1
+        role:
+          $ref: '#/components/schemas/Role'
+        menu:
+          $ref: '#/components/schemas/Menu'
+        permission:
+          $ref: '#/components/schemas/Permission'
+
+    RoleMenuPermissionRequest:
+      type: object
+      required:
+        - role_id
+        - menu_id
+        - permission_id
+      properties:
+        role_id:
+          type: integer
+          description: ID role
+          example: 1
+        menu_id:
+          type: integer
+          description: ID menu
+          example: 1
+        permission_id:
+          type: integer
+          description: ID permission
+          example: 1
+
+    RoleMenuPermissionBulkRequest:
+      type: object
+      required:
+        - role_id
+        - mappings
+      properties:
+        role_id:
+          type: integer
+          description: ID role
+          example: 1
+        mappings:
+          type: array
+          description: Array of menu-permission mappings
+          items:
+            type: object
+            required:
+              - menu_id
+              - permission_id
+            properties:
+              menu_id:
+                type: integer
+                description: ID menu
+                example: 1
+              permission_id:
+                type: integer
+                description: ID permission
+                example: 1

@@ -49,9 +49,13 @@ class RoleMiddleware
                 }
             }
             if (!$hasRole) {
+                // Get current user roles
+                $userRoles = $user->roles()->pluck('name')->implode(', ');
+                $userRoles = $userRoles ?: 'Tidak ada role';
+                
                 return response()->json([
                     'success' => false,
-                    'message' => 'Akses hanya untuk role: ' . $roles,
+                    'message' => 'Akses hanya untuk role: ' . $roles . '. Role Anda: ' . $userRoles,
                     'data' => null,
                 ], 403);
             }

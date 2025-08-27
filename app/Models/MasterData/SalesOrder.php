@@ -4,10 +4,11 @@ namespace App\Models\MasterData;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Traits\HideTimestampsInRelations;
 
 class SalesOrder extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, HideTimestampsInRelations;
     
     protected $table = 'trx_sales_order';
     

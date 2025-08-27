@@ -20,9 +20,12 @@ use App\Http\Controllers\MasterData\PelangganController;
 use App\Http\Controllers\MasterData\SupplierController;
 use App\Http\Controllers\MasterData\PenerimaanBarangController;
 use App\Http\Controllers\MasterData\SalesOrderController;
+use App\Http\Controllers\MasterData\MenuController;
 use App\Http\Controllers\SysSettingController;
+use App\Http\Controllers\PermissionController;
+use App\Http\Controllers\RoleMenuPermissionController;
 Route::get('/user', function (Request $request) {
-    return $request->user();
+    return $request->user()->load('roles');
 });
 
 Route::get('/test', function (Request $request) {
@@ -43,6 +46,7 @@ Route::middleware('checkrole')->group(function () {
 Route::middleware('checkrole:admin')->group(function () {
     Route::get('users-with-trashed/all', [UserController::class, 'indexWithTrashed']);
     Route::get('users-with-trashed/trashed', [UserController::class, 'indexTrashed']);
+    Route::post('users', [UserController::class, 'store']);
     Route::put('users/{id}', [UserController::class, 'update']);
     Route::patch('users/{id}', [UserController::class, 'update']);
     Route::patch('users/{id}/restore', [UserController::class, 'restore']);
@@ -57,8 +61,62 @@ Route::middleware('checkrole:admin')->group(function () {
 Route::post('/auth/login', [LoginController::class, 'login']);
 Route::post('/auth/refresh', [LoginController::class, 'refresh']);
 Route::post('/auth/logout', [LoginController::class, 'logout']);
-// Roles route
-Route::get('/roles', [RoleController::class, 'index']);
+// Roles routes
+Route::middleware('checkrole')->group(function () {
+    Route::get('/roles', [RoleController::class, 'index']);
+    Route::get('/roles/{id}', [RoleController::class, 'show']);
+});
+
+Route::middleware('checkrole:admin')->group(function () {
+    Route::post('/roles', [RoleController::class, 'store']);
+    Route::put('/roles/{id}', [RoleController::class, 'update']);
+    Route::delete('/roles/{id}', [RoleController::class, 'destroy']);
+});
+
+// Menu with permissions for role mapping
+Route::middleware('checkrole')->group(function () {
+    Route::get('/menu-with-permissions', [MenuController::class, 'getMenuWithPermissions']);
+});
+
+// Permissions route
+Route::middleware('checkrole')->group(function () {
+    Route::get('/permissions', [PermissionController::class, 'index']);
+    Route::get('/permissions/{id}', [PermissionController::class, 'show']);
+});
+
+// Menu routes
+Route::prefix('menu')->middleware('checkrole')->group(function () {
+    Route::get('/', [MenuController::class, 'index']);
+    Route::get('{id}', [MenuController::class, 'show']);
+    Route::post('/', [MenuController::class, 'store']);
+    Route::put('{id}', [MenuController::class, 'update']);
+    Route::patch('{id}', [MenuController::class, 'update']);
+});
+Route::prefix('menu')->middleware('checkrole:admin')->group(function () {
+    Route::delete('{id}/soft', [MenuController::class, 'softDelete']);
+    Route::patch('{id}/restore', [MenuController::class, 'restore']);
+    Route::delete('{id}/force', [MenuController::class, 'forceDelete']);
+    Route::get('with-trashed/all', [MenuController::class, 'indexWithTrashed']);
+    Route::get('with-trashed/trashed', [MenuController::class, 'indexTrashed']);
+});
+
+// Role Menu Permission routes
+Route::prefix('role-menu-permission')->middleware('checkrole')->group(function () {
+    Route::get('/', [RoleMenuPermissionController::class, 'index']);
+    Route::get('{id}', [RoleMenuPermissionController::class, 'show']);
+    Route::get('by-role/{roleId}', [RoleMenuPermissionController::class, 'getByRole']);
+    Route::get('by-menu/{menuId}', [RoleMenuPermissionController::class, 'getByMenu']);
+});
+
+Route::prefix('role-menu-permission')->middleware('checkrole:admin')->group(function () {
+    Route::post('/', [RoleMenuPermissionController::class, 'store']);
+    Route::put('{id}', [RoleMenuPermissionController::class, 'update']);
+    Route::patch('{id}', [RoleMenuPermissionController::class, 'update']);
+    Route::delete('{id}', [RoleMenuPermissionController::class, 'destroy']);
+    Route::post('bulk', [RoleMenuPermissionController::class, 'bulkStore']);
+    Route::delete('by-role/{roleId}', [RoleMenuPermissionController::class, 'deleteByRole']);
+    Route::delete('by-menu/{menuId}', [RoleMenuPermissionController::class, 'deleteByMenu']);
+});
 
 // JenisBarang routes
 Route::prefix('jenis-barang')->middleware('checkrole')->group(function () {

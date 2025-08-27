@@ -64,6 +64,26 @@ paths:
   /jenis-transaksi-kas/{id}:
     $ref: 'http://localhost:8000/api-docs/master-data.yaml#/paths/~1jenis-transaksi-kas~1{id}'
 
+  # Menu endpoints
+  /menu:
+    $ref: 'http://localhost:8000/api-docs/master-data.yaml#/paths/~1menu'
+  /menu/{id}:
+    $ref: 'http://localhost:8000/api-docs/master-data.yaml#/paths/~1menu~1{id}'
+  /menu-with-permissions:
+    $ref: 'http://localhost:8000/api-docs/master-data.yaml#/paths/~1menu-with-permissions'
+
+  # Import: Role Menu Permission
+  /role-menu-permission:
+    $ref: 'http://localhost:8000/api-docs/role-menu-permission.yaml#/paths/~1role-menu-permission'
+  /role-menu-permission/{id}:
+    $ref: 'http://localhost:8000/api-docs/role-menu-permission.yaml#/paths/~1role-menu-permission~1{id}'
+  /role-menu-permission/by-role/{roleId}:
+    $ref: 'http://localhost:8000/api-docs/role-menu-permission.yaml#/paths/~1role-menu-permission~1by-role~1{roleId}'
+  /role-menu-permission/by-menu/{menuId}:
+    $ref: 'http://localhost:8000/api-docs/role-menu-permission.yaml#/paths/~1role-menu-permission~1by-menu~1{menuId}'
+  /role-menu-permission/bulk:
+    $ref: 'http://localhost:8000/api-docs/role-menu-permission.yaml#/paths/~1role-menu-permission~1bulk'
+
   # Import: Sales Order
   /sales-order:
     $ref: 'http://localhost:8000/api-docs/swagger-sales-order.yaml#/paths/~1sales-order'
@@ -756,6 +776,8 @@ tags:
     description: Operasi CRUD untuk jenis mutasi stock
   - name: Master Data - Jenis Transaksi Kas
     description: Operasi CRUD untuk jenis transaksi kas
+  - name: Master Data - Menu
+    description: Operasi CRUD untuk menu dan mapping permission
   - name: Penerimaan Barang
     description: Operasi CRUD untuk penerimaan barang
   - name: Sales Order

@@ -18,28 +18,11 @@ trait HideTimestampsInRelations
 
     protected function shouldHideTimestamps()
     {
-        // Cek apakah request ada dan sedang di API
         if (!request()) {
             return false;
         }
 
-        // Cek URL pattern untuk API yang menggunakan relasi
-        $path = request()->path();
-        
-        // Untuk JenisBarang, BentukBarang, GradeBarang
-        if (in_array(get_class($this), [
-            \App\Models\MasterData\JenisBarang::class,
-            \App\Models\MasterData\BentukBarang::class,
-            \App\Models\MasterData\GradeBarang::class
-        ])) {
-            return str_contains($path, 'item-barang');
-        }
-        
-        // Untuk JenisBiaya
-        if (get_class($this) === \App\Models\MasterData\JenisBiaya::class) {
-            return str_contains($path, 'jenis-transaksi-kas');
-        }
-        
-        return false;
+        // Selalu hide timestamps untuk semua model yang menggunakan trait ini
+        return true;
     }
 } 

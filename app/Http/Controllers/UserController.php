@@ -63,6 +63,50 @@ class UserController extends Controller
     }
 
     /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'username' => 'required|string|unique:users,username',
+            'name' => 'required|string|max:255',
+            'email' => 'nullable|email|unique:users,email',
+            'password' => 'required|string|min:8',
+            'role_id' => 'required|exists:roles,id',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->errorResponse($validator->errors()->first(), 422);
+        }
+
+        $user = User::create([
+            'username' => $request->username,
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+        ]);
+
+        // Attach role
+        $user->roles()->attach($request->role_id);
+
+        // Load roles for response
+        $user->load('roles');
+
+        return $this->successResponse([
+            'id' => $user->id,
+            'name' => $user->name,
+            'username' => $user->username,
+            'email' => $user->email,
+            'roles' => $user->roles->map(function ($role) {
+                return [
+                    'id' => $role->id,
+                    'name' => $role->name
+                ];
+            })
+        ], 'User berhasil dibuat', 201);
+    }
+
+    /**
      * Update the specified resource in storage.
      */
     public function update(Request $request, $id)

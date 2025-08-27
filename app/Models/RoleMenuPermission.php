@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Traits\HideTimestampsInRelations;
 
 class RoleMenuPermission extends Model
 {
-    use HasFactory;
+    use HasFactory, HideTimestampsInRelations;
 
     protected $table = 'ref_role_menu_permission';
 
