@@ -17,8 +17,8 @@ class SalesOrderController extends Controller
     public function index(Request $request)
     {
         $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
-        $query = SalesOrder::with(['salesOrderItems']);
-        $query = $this->applyFilter($query, $request, ['nomor_so', 'nama_pelanggan', 'syarat_pembayaran']);
+        $query = SalesOrder::with(['salesOrderItems.jenisBarang', 'salesOrderItems.bentukBarang', 'salesOrderItems.gradeBarang', 'pelanggan', 'gudang']);
+        $query = $this->applyFilter($query, $request, ['nomor_so', 'syarat_pembayaran']);
         $data = $query->paginate($perPage);
         $items = collect($data->items());
         return response()->json($this->paginateResponse($data, $items));
@@ -32,20 +32,24 @@ class SalesOrderController extends Controller
             'tanggal_so' => 'required|date',
             'tanggal_pengiriman' => 'required|date',
             'syarat_pembayaran' => 'required|string',
-            'asal_gudang' => 'required|string',
-            'nama_pelanggan' => 'required|string',
-            'telepon' => 'required|string',
-            'email' => 'required|email',
-            'alamat' => 'required|string',
+            'gudang_id' => 'required|exists:ref_gudang,id',
+            'pelanggan_id' => 'required|exists:ref_pelanggan,id',
+            
+            // Summary validation
+            'subtotal' => 'required|numeric|min:0',
+            'total_diskon' => 'required|numeric|min:0',
+            'ppn_percent' => 'required|numeric|min:0|max:100',
+            'ppn_amount' => 'required|numeric|min:0',
+            'total_harga_so' => 'required|numeric|min:0',
             
             // Items validation
             'items' => 'required|array|min:1',
             'items.*.panjang' => 'required|numeric|min:0',
             'items.*.lebar' => 'required|numeric|min:0',
             'items.*.qty' => 'required|integer|min:1',
-            'items.*.jenis_barang' => 'required|string',
-            'items.*.bentuk_barang' => 'required|string',
-            'items.*.grade_barang' => 'required|string',
+            'items.*.jenis_barang_id' => 'required|exists:ref_jenis_barang,id',
+            'items.*.bentuk_barang_id' => 'required|exists:ref_bentuk_barang,id',
+            'items.*.grade_barang_id' => 'required|exists:ref_grade_barang,id',
             'items.*.harga' => 'required|numeric|min:0',
             'items.*.satuan' => 'required|string',
             'items.*.diskon' => 'nullable|numeric|min:0|max:100',
@@ -64,11 +68,13 @@ class SalesOrderController extends Controller
                 'tanggal_so',
                 'tanggal_pengiriman',
                 'syarat_pembayaran',
-                'asal_gudang',
-                'nama_pelanggan',
-                'telepon',
-                'email',
-                'alamat'
+                'gudang_id',
+                'pelanggan_id',
+                'subtotal',
+                'total_diskon',
+                'ppn_percent',
+                'ppn_amount',
+                'total_harga_so'
             ]));
 
             // Create sales order items
@@ -77,9 +83,9 @@ class SalesOrderController extends Controller
                     'panjang' => $item['panjang'],
                     'lebar' => $item['lebar'],
                     'qty' => $item['qty'],
-                    'jenis_barang' => $item['jenis_barang'],
-                    'bentuk_barang' => $item['bentuk_barang'],
-                    'grade_barang' => $item['grade_barang'],
+                    'jenis_barang_id' => $item['jenis_barang_id'],
+                    'bentuk_barang_id' => $item['bentuk_barang_id'],
+                    'grade_barang_id' => $item['grade_barang_id'],
                     'harga' => $item['harga'],
                     'satuan' => $item['satuan'],
                     'diskon' => $item['diskon'] ?? 0,
@@ -90,7 +96,7 @@ class SalesOrderController extends Controller
             DB::commit();
 
             // Load the created data with relationships
-            $salesOrder->load('salesOrderItems');
+            $salesOrder->load('salesOrderItems', 'pelanggan', 'gudang');
 
             return $this->successResponse($salesOrder, 'Sales Order berhasil ditambahkan');
 
@@ -102,7 +108,7 @@ class SalesOrderController extends Controller
 
     public function show($id)
     {
-        $data = SalesOrder::with(['salesOrderItems'])->find($id);
+        $data = SalesOrder::with(['salesOrderItems.jenisBarang', 'salesOrderItems.bentukBarang', 'salesOrderItems.gradeBarang', 'pelanggan', 'gudang'])->find($id);
         if (!$data) {
             return $this->errorResponse('Data tidak ditemukan', 404);
         }
@@ -122,20 +128,24 @@ class SalesOrderController extends Controller
             'tanggal_so' => 'required|date',
             'tanggal_pengiriman' => 'required|date',
             'syarat_pembayaran' => 'required|string',
-            'asal_gudang' => 'required|string',
-            'nama_pelanggan' => 'required|string',
-            'telepon' => 'required|string',
-            'email' => 'required|email',
-            'alamat' => 'required|string',
+            'gudang_id' => 'required|exists:ref_gudang,id',
+            'pelanggan_id' => 'required|exists:ref_pelanggan,id',
+            
+            // Summary validation
+            'subtotal' => 'required|numeric|min:0',
+            'total_diskon' => 'required|numeric|min:0',
+            'ppn_percent' => 'required|numeric|min:0|max:100',
+            'ppn_amount' => 'required|numeric|min:0',
+            'total_harga_so' => 'required|numeric|min:0',
             
             // Items validation
             'items' => 'required|array|min:1',
             'items.*.panjang' => 'required|numeric|min:0',
             'items.*.lebar' => 'required|numeric|min:0',
             'items.*.qty' => 'required|integer|min:1',
-            'items.*.jenis_barang' => 'required|string',
-            'items.*.bentuk_barang' => 'required|string',
-            'items.*.grade_barang' => 'required|string',
+            'items.*.jenis_barang_id' => 'required|exists:ref_jenis_barang,id',
+            'items.*.bentuk_barang_id' => 'required|exists:ref_bentuk_barang,id',
+            'items.*.grade_barang_id' => 'required|exists:ref_grade_barang,id',
             'items.*.harga' => 'required|numeric|min:0',
             'items.*.satuan' => 'required|string',
             'items.*.diskon' => 'nullable|numeric|min:0|max:100',
@@ -154,11 +164,13 @@ class SalesOrderController extends Controller
                 'tanggal_so',
                 'tanggal_pengiriman',
                 'syarat_pembayaran',
-                'asal_gudang',
-                'nama_pelanggan',
-                'telepon',
-                'email',
-                'alamat'
+                'gudang_id',
+                'pelanggan_id',
+                'subtotal',
+                'total_diskon',
+                'ppn_percent',
+                'ppn_amount',
+                'total_harga_so'
             ]));
 
             // Delete existing items and create new ones
@@ -169,9 +181,9 @@ class SalesOrderController extends Controller
                     'panjang' => $item['panjang'],
                     'lebar' => $item['lebar'],
                     'qty' => $item['qty'],
-                    'jenis_barang' => $item['jenis_barang'],
-                    'bentuk_barang' => $item['bentuk_barang'],
-                    'grade_barang' => $item['grade_barang'],
+                    'jenis_barang_id' => $item['jenis_barang_id'],
+                    'bentuk_barang_id' => $item['bentuk_barang_id'],
+                    'grade_barang_id' => $item['grade_barang_id'],
                     'harga' => $item['harga'],
                     'satuan' => $item['satuan'],
                     'diskon' => $item['diskon'] ?? 0,
@@ -182,7 +194,7 @@ class SalesOrderController extends Controller
             DB::commit();
 
             // Load the updated data with relationships
-            $salesOrder->load('salesOrderItems');
+            $salesOrder->load('salesOrderItems', 'pelanggan', 'gudang');
 
             return $this->successResponse($salesOrder, 'Sales Order berhasil diperbarui');
 

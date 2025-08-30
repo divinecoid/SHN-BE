@@ -200,29 +200,5 @@ class GudangController extends Controller
         return $this->successResponse($rootGudang, 'Data hierarki gudang berhasil diambil');
     }
 
-    public function getTipeGudang()
-    {
-        $tipeGudang = [
-            [
-                'id' => 1,
-                'kode' => 'Gudang',
-                'nama' => 'Gudang',
-                'deskripsi' => 'Gudang utama XXX'
-            ],
-            [
-                'id' => 2,
-                'kode' => 'Rack',
-                'nama' => 'Rack',
-                'deskripsi' => 'Gudang untuk XXX'
-            ],
-            [
-                'id' => 3,
-                'kode' => 'BIN',
-                'nama' => 'BIN',
-                'deskripsi' => 'Gudang untuk XXX'
-            ]
-        ];
 
-        return $this->successResponse($tipeGudang, 'Data tipe gudang berhasil diambil');
-    }
 }

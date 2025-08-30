@@ -17,11 +17,13 @@ class SalesOrder extends Model
         'tanggal_so',
         'tanggal_pengiriman',
         'syarat_pembayaran',
-        'asal_gudang',
-        'nama_pelanggan',
-        'telepon',
-        'email',
-        'alamat',
+        'gudang_id',
+        'pelanggan_id',
+        'subtotal',
+        'total_diskon',
+        'ppn_percent',
+        'ppn_amount',
+        'total_harga_so',
     ];
     
     protected $hidden = ['deleted_at'];
@@ -29,6 +31,11 @@ class SalesOrder extends Model
     protected $casts = [
         'tanggal_so' => 'date',
         'tanggal_pengiriman' => 'date',
+        'subtotal' => 'decimal:2',
+        'total_diskon' => 'decimal:2',
+        'ppn_percent' => 'decimal:2',
+        'ppn_amount' => 'decimal:2',
+        'total_harga_so' => 'decimal:2',
     ];
     
     /**
@@ -37,5 +44,21 @@ class SalesOrder extends Model
     public function salesOrderItems()
     {
         return $this->hasMany(SalesOrderItem::class);
+    }
+    
+    /**
+     * Get the pelanggan
+     */
+    public function pelanggan()
+    {
+        return $this->belongsTo(Pelanggan::class, 'pelanggan_id');
+    }
+    
+    /**
+     * Get the gudang
+     */
+    public function gudang()
+    {
+        return $this->belongsTo(Gudang::class, 'gudang_id');
     }
 }

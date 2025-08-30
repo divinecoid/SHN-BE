@@ -17,9 +17,9 @@ class SalesOrderItem extends Model
         'panjang',
         'lebar',
         'qty',
-        'jenis_barang',
-        'bentuk_barang',
-        'grade_barang',
+        'jenis_barang_id',
+        'bentuk_barang_id',
+        'grade_barang_id',
         'harga',
         'satuan',
         'diskon',
@@ -42,5 +42,29 @@ class SalesOrderItem extends Model
     public function salesOrder()
     {
         return $this->belongsTo(SalesOrder::class);
+    }
+    
+    /**
+     * Get the jenis barang
+     */
+    public function jenisBarang()
+    {
+        return $this->belongsTo(JenisBarang::class, 'jenis_barang_id');
+    }
+    
+    /**
+     * Get the bentuk barang
+     */
+    public function bentukBarang()
+    {
+        return $this->belongsTo(BentukBarang::class, 'bentuk_barang_id');
+    }
+    
+    /**
+     * Get the grade barang
+     */
+    public function gradeBarang()
+    {
+        return $this->belongsTo(GradeBarang::class, 'grade_barang_id');
     }
 }

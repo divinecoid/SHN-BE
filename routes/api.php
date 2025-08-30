@@ -24,6 +24,7 @@ use App\Http\Controllers\MasterData\MenuController;
 use App\Http\Controllers\SysSettingController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RoleMenuPermissionController;
+use App\Http\Controllers\StaticDataController;
 Route::get('/user', function (Request $request) {
     return $request->user()->load('roles');
 });
@@ -61,6 +62,12 @@ Route::middleware('checkrole:admin')->group(function () {
 Route::post('/auth/login', [LoginController::class, 'login']);
 Route::post('/auth/refresh', [LoginController::class, 'refresh']);
 Route::post('/auth/logout', [LoginController::class, 'logout']);
+
+// Static Data routes (no authentication required)
+Route::get('/static/tipe-gudang', [StaticDataController::class, 'getTipeGudang']);
+Route::get('/static/status-order', [StaticDataController::class, 'getStatusOrder']);
+Route::get('/static/satuan', [StaticDataController::class, 'getSatuan']);
+Route::get('/static/term-of-payment', [StaticDataController::class, 'getTermOfPayment']);
 // Roles routes
 Route::middleware('checkrole')->group(function () {
     Route::get('/roles', [RoleController::class, 'index']);
@@ -204,7 +211,7 @@ Route::prefix('jenis-transaksi-kas')->middleware('checkrole:admin')->group(funct
 // Gudang routes
 Route::prefix('gudang')->middleware('checkrole')->group(function () {
     Route::get('/', [GudangController::class, 'index']);
-    Route::get('tipe', [GudangController::class, 'getTipeGudang']);
+
     Route::get('hierarchy', [GudangController::class, 'getHierarchy']);
     Route::get('{id}', [GudangController::class, 'show']);
     Route::get('{id}/parent', [GudangController::class, 'getParent']);
