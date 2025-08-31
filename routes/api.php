@@ -348,3 +348,7 @@ Route::prefix('sales-order')->middleware('checkrole:admin')->group(function () {
     Route::patch('{id}/restore', [SalesOrderController::class, 'restore']);
     Route::delete('{id}/force', [SalesOrderController::class, 'forceDelete']);
 });
+
+Route::prefix('purchase-order')->middleware('checkrole:admin')->group(function () {
+    
+});

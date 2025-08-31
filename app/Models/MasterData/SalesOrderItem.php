@@ -16,6 +16,7 @@ class SalesOrderItem extends Model
         'sales_order_id',
         'panjang',
         'lebar',
+        'tebal',
         'qty',
         'jenis_barang',
         'bentuk_barang',
@@ -31,6 +32,7 @@ class SalesOrderItem extends Model
     protected $casts = [
         'panjang' => 'decimal:2',
         'lebar' => 'decimal:2',
+        'tebal' => 'decimal:2',
         'qty' => 'integer',
         'harga' => 'decimal:2',
         'diskon' => 'decimal:2',
