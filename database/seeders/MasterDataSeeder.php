@@ -27,11 +27,11 @@ class MasterDataSeeder extends Seeder
         $jenisBarang5 = JenisBarang::create(['kode' => 'J005', 'nama_jenis' => 'Olahraga']);
 
         // Bentuk Barang
-        $bentukBarang1 = BentukBarang::create(['kode' => 'B001', 'nama_bentuk' => 'Kotak', 'dimensi' => '3D']);
-        $bentukBarang2 = BentukBarang::create(['kode' => 'B002', 'nama_bentuk' => 'Silinder', 'dimensi' => '3D']);
+        $bentukBarang1 = BentukBarang::create(['kode' => 'B001', 'nama_bentuk' => 'Kotak', 'dimensi' => '2D']);
+        $bentukBarang2 = BentukBarang::create(['kode' => 'B002', 'nama_bentuk' => 'Silinder', 'dimensi' => '2D']);
         $bentukBarang3 = BentukBarang::create(['kode' => 'B003', 'nama_bentuk' => 'Persegi Panjang', 'dimensi' => '2D']);
-        $bentukBarang4 = BentukBarang::create(['kode' => 'B004', 'nama_bentuk' => 'Bundar', 'dimensi' => '2D']);
-        $bentukBarang5 = BentukBarang::create(['kode' => 'B005', 'nama_bentuk' => 'Segitiga', 'dimensi' => '2D']);
+        $bentukBarang4 = BentukBarang::create(['kode' => 'B004', 'nama_bentuk' => 'Bundar', 'dimensi' => '1D']);
+        $bentukBarang5 = BentukBarang::create(['kode' => 'B005', 'nama_bentuk' => 'Segitiga', 'dimensi' => '1D']);
 
         // Grade Barang
         $gradeBarang1 = GradeBarang::create(['kode' => 'G001', 'nama' => 'A']);

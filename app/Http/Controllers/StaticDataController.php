@@ -110,21 +110,51 @@ class StaticDataController extends Controller
             ],
             [
                 'id' => 3,
+                'kode' => 'TON',
+                'nama' => 'Ton',
+                'deskripsi' => 'Satuan per ton'
+            ],
+            [
+                'id' => 4,
                 'kode' => 'M',
                 'nama' => 'Meter',
                 'deskripsi' => 'Satuan per meter'
             ],
             [
-                'id' => 4,
+                'id' => 5,
                 'kode' => 'M2',
                 'nama' => 'Meter Persegi',
                 'deskripsi' => 'Satuan per meter persegi'
             ],
             [
-                'id' => 5,
+                'id' => 6,
+                'kode' => 'M3',
+                'nama' => 'Meter Kubik',
+                'deskripsi' => 'Satuan per meter kubik'
+            ],
+            [
+                'id' => 7,
                 'kode' => 'LITER',
                 'nama' => 'Liter',
                 'deskripsi' => 'Satuan per liter'
+            ],
+            [
+                'id' => 8,
+                'kode' => 'CM',
+                'nama' => 'Centimeter',
+                'deskripsi' => 'Satuan per centimeter'
+            ],
+            [
+                'id' => 9,
+                'kode' => 'MM',
+                'nama' => 'Millimeter',
+                'deskripsi' => 'Satuan per millimeter'
+            ],
+            [
+                'id' => 10,
+                'kode' => 'PER_DIMENSI',
+                'nama' => 'Per Dimensi',
+                'deskripsi' => 'Satuan berdasarkan dimensi (panjang x lebar x tebal)'
             ]
         ];
 

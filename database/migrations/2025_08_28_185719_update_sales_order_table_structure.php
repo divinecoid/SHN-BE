@@ -13,12 +13,7 @@ return new class extends Migration
     {
         Schema::table('trx_sales_order', function (Blueprint $table) {
             // Drop redundant columns
-            $table->dropColumn([
-                'nama_pelanggan',
-                'telepon', 
-                'email',
-                'alamat'
-            ]);
+     
             
             // Change asal_gudang to foreign key
             $table->dropColumn('asal_gudang');

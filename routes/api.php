@@ -345,8 +345,9 @@ Route::prefix('sys-setting')->middleware('checkrole')->group(function () {
 // SalesOrder routes
 Route::prefix('sales-order')->middleware('checkrole')->group(function () {
     Route::get('/', [SalesOrderController::class, 'index']);
-    Route::get('{id}', [SalesOrderController::class, 'show']);
     Route::post('/', [SalesOrderController::class, 'store']);
+    Route::get('{id}', [SalesOrderController::class, 'show']);
+  
     Route::put('{id}', [SalesOrderController::class, 'update']);
     Route::patch('{id}', [SalesOrderController::class, 'update']);
 });

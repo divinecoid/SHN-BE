@@ -46,6 +46,7 @@ class SalesOrderController extends Controller
             'items' => 'required|array|min:1',
             'items.*.panjang' => 'required|numeric|min:0',
             'items.*.lebar' => 'required|numeric|min:0',
+            'items.*.tebal' => 'nullable|numeric|min:0',
             'items.*.qty' => 'required|integer|min:1',
             'items.*.jenis_barang_id' => 'required|exists:ref_jenis_barang,id',
             'items.*.bentuk_barang_id' => 'required|exists:ref_bentuk_barang,id',
@@ -82,6 +83,7 @@ class SalesOrderController extends Controller
                 $salesOrder->salesOrderItems()->create([
                     'panjang' => $item['panjang'],
                     'lebar' => $item['lebar'],
+                    'tebal' => $item['tebal'] ?? null,
                     'qty' => $item['qty'],
                     'jenis_barang_id' => $item['jenis_barang_id'],
                     'bentuk_barang_id' => $item['bentuk_barang_id'],
@@ -96,7 +98,7 @@ class SalesOrderController extends Controller
             DB::commit();
 
             // Load the created data with relationships
-            $salesOrder->load('salesOrderItems', 'pelanggan', 'gudang');
+            $salesOrder->load('salesOrderItems.jenisBarang', 'salesOrderItems.bentukBarang', 'salesOrderItems.gradeBarang', 'pelanggan', 'gudang');
 
             return $this->successResponse($salesOrder, 'Sales Order berhasil ditambahkan');
 
@@ -142,6 +144,7 @@ class SalesOrderController extends Controller
             'items' => 'required|array|min:1',
             'items.*.panjang' => 'required|numeric|min:0',
             'items.*.lebar' => 'required|numeric|min:0',
+            'items.*.tebal' => 'nullable|numeric|min:0',
             'items.*.qty' => 'required|integer|min:1',
             'items.*.jenis_barang_id' => 'required|exists:ref_jenis_barang,id',
             'items.*.bentuk_barang_id' => 'required|exists:ref_bentuk_barang,id',
@@ -180,6 +183,7 @@ class SalesOrderController extends Controller
                 $salesOrder->salesOrderItems()->create([
                     'panjang' => $item['panjang'],
                     'lebar' => $item['lebar'],
+                    'tebal' => $item['tebal'] ?? null,
                     'qty' => $item['qty'],
                     'jenis_barang_id' => $item['jenis_barang_id'],
                     'bentuk_barang_id' => $item['bentuk_barang_id'],
@@ -194,7 +198,7 @@ class SalesOrderController extends Controller
             DB::commit();
 
             // Load the updated data with relationships
-            $salesOrder->load('salesOrderItems', 'pelanggan', 'gudang');
+            $salesOrder->load('salesOrderItems.jenisBarang', 'salesOrderItems.bentukBarang', 'salesOrderItems.gradeBarang', 'pelanggan', 'gudang');
 
             return $this->successResponse($salesOrder, 'Sales Order berhasil diperbarui');
 
