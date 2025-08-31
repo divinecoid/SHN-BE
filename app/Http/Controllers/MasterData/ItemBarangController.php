@@ -30,11 +30,12 @@ class ItemBarangController extends Controller
             'bentuk_barang_id' => 'required|exists:ref_bentuk_barang,id',
             'grade_barang_id' => 'required|exists:ref_grade_barang,id',
             'nama_item_barang' => 'required|string',
+            'sisa_luas' => 'nullable|numeric|min:0',
         ]);
         if ($validator->fails()) {
             return $this->errorResponse($validator->errors()->first(), 422);
         }
-        $data = ItemBarang::create($request->only(['kode_barang', 'jenis_barang_id', 'bentuk_barang_id', 'grade_barang_id', 'nama_item_barang']));
+        $data = ItemBarang::create($request->only(['kode_barang', 'jenis_barang_id', 'bentuk_barang_id', 'grade_barang_id', 'nama_item_barang', 'sisa_luas']));
         $data->load(['jenisBarang', 'bentukBarang', 'gradeBarang']);
         return $this->successResponse($data, 'Data berhasil ditambahkan');
     }
@@ -60,11 +61,12 @@ class ItemBarangController extends Controller
             'bentuk_barang_id' => 'required|exists:ref_bentuk_barang,id',
             'grade_barang_id' => 'required|exists:ref_grade_barang,id',
             'nama_item_barang' => 'required|string',
+            'sisa_luas' => 'nullable|numeric|min:0',
         ]);
         if ($validator->fails()) {
             return $this->errorResponse($validator->errors()->first(), 422);
         }
-        $data->update($request->only(['kode_barang', 'jenis_barang_id', 'bentuk_barang_id', 'grade_barang_id', 'nama_item_barang']));
+        $data->update($request->only(['kode_barang', 'jenis_barang_id', 'bentuk_barang_id', 'grade_barang_id', 'nama_item_barang', 'sisa_luas']));
         $data->load(['jenisBarang', 'bentukBarang', 'gradeBarang']);
         return $this->successResponse($data, 'Data berhasil diperbarui');
     }

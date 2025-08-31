@@ -22,7 +22,7 @@ class UserSeeder extends Seeder
             'email' => 'admin@example.com',
             'password' => Hash::make('password123'),
         ]);
-        $adminRole = Role::where('name', 'Admin')->first();
+        $adminRole = Role::where('name', 'admin')->first();
         if ($adminRole) {
             $admin->roles()->attach($adminRole->id);
         }

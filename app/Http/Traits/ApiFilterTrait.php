@@ -40,9 +40,9 @@ trait ApiFilterTrait
     {
         return [
             'success' => true,
-            'message' => $items->count() ? 'Data ditemukan' : 'Data tidak ditemukan',
+            'message' => $items->count() ? 'Data ditemukan' : 'Tidak ada data yang ditemukan',
             'data' => $items,
-            'meta' => [
+            'pagination' => [
                 'current_page' => $data->currentPage(),
                 'per_page' => $data->perPage(),
                 'last_page' => $data->lastPage(),

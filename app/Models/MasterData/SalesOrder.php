@@ -24,6 +24,13 @@ class SalesOrder extends Model
         'ppn_percent',
         'ppn_amount',
         'total_harga_so',
+        'status',
+        'delete_requested_by',
+        'delete_requested_at',
+        'delete_approved_by',
+        'delete_approved_at',
+        'delete_reason',
+        'delete_rejection_reason',
     ];
     
     protected $hidden = ['deleted_at'];
@@ -36,6 +43,8 @@ class SalesOrder extends Model
         'ppn_percent' => 'decimal:2',
         'ppn_amount' => 'decimal:2',
         'total_harga_so' => 'decimal:2',
+        'delete_requested_at' => 'datetime',
+        'delete_approved_at' => 'datetime',
     ];
     
     /**
@@ -60,5 +69,37 @@ class SalesOrder extends Model
     public function gudang()
     {
         return $this->belongsTo(Gudang::class, 'gudang_id');
+    }
+    
+    /**
+     * Get the user who requested deletion
+     */
+    public function deleteRequestedBy()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'delete_requested_by');
+    }
+    
+    /**
+     * Get the admin who approved deletion
+     */
+    public function deleteApprovedBy()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'delete_approved_by');
+    }
+    
+    /**
+     * Scope to get only active sales orders
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
+    }
+    
+    /**
+     * Scope to get only delete requested sales orders
+     */
+    public function scopeDeleteRequested($query)
+    {
+        return $query->where('status', 'delete_requested');
     }
 }

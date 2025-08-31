@@ -17,8 +17,8 @@ class SalesOrderController extends Controller
     public function index(Request $request)
     {
         $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
-        $query = SalesOrder::with(['salesOrderItems.jenisBarang', 'salesOrderItems.bentukBarang', 'salesOrderItems.gradeBarang', 'pelanggan', 'gudang']);
-        $query = $this->applyFilter($query, $request, ['nomor_so', 'syarat_pembayaran']);
+        $query = SalesOrder::with(['salesOrderItems.jenisBarang', 'salesOrderItems.bentukBarang', 'salesOrderItems.gradeBarang', 'pelanggan', 'gudang', 'deleteRequestedBy', 'deleteApprovedBy']);
+        $query = $this->applyFilter($query, $request, ['nomor_so', 'syarat_pembayaran', 'status']);
         $data = $query->paginate($perPage);
         $items = collect($data->items());
         return response()->json($this->paginateResponse($data, $items));
@@ -236,5 +236,139 @@ class SalesOrderController extends Controller
         }
         $data->forceDelete();
         return $this->successResponse(null, 'Data berhasil dihapus permanen');
+    }
+
+    /**
+     * Request delete sales order (user)
+     */
+    public function requestDelete(Request $request, $id)
+    {
+        $validator = Validator::make($request->all(), [
+            'delete_reason' => 'required|string|max:500',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->errorResponse($validator->errors()->first(), 422);
+        }
+
+        $salesOrder = SalesOrder::find($id);
+        if (!$salesOrder) {
+            return $this->errorResponse('Sales Order tidak ditemukan', 404);
+        }
+
+        if ($salesOrder->status !== 'active') {
+            return $this->errorResponse('Sales Order tidak dapat dihapus', 400);
+        }
+
+        $salesOrder->update([
+            'status' => 'delete_requested',
+            'delete_requested_by' => auth()->id(),
+            'delete_requested_at' => now(),
+            'delete_reason' => $request->delete_reason,
+        ]);
+
+        return $this->successResponse($salesOrder, 'Request penghapusan Sales Order berhasil dikirim');
+    }
+
+    /**
+     * Approve delete request (admin)
+     */
+    public function approveDelete($id)
+    {
+        $salesOrder = SalesOrder::where('status', 'delete_requested')->find($id);
+        if (!$salesOrder) {
+            return $this->errorResponse('Request penghapusan tidak ditemukan', 404);
+        }
+
+        $salesOrder->update([
+            'status' => 'deleted',
+            'delete_approved_by' => auth()->id(),
+            'delete_approved_at' => now(),
+        ]);
+
+        // Soft delete the sales order
+        $salesOrder->delete();
+
+        return $this->successResponse(null, 'Request penghapusan Sales Order berhasil disetujui');
+    }
+
+    /**
+     * Reject delete request (admin)
+     */
+    public function rejectDelete(Request $request, $id)
+    {
+        $validator = Validator::make($request->all(), [
+            'rejection_reason' => 'required|string|max:500',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->errorResponse($validator->errors()->first(), 422);
+        }
+
+        $salesOrder = SalesOrder::where('status', 'delete_requested')->find($id);
+        if (!$salesOrder) {
+            return $this->errorResponse('Request penghapusan tidak ditemukan', 404);
+        }
+
+        $salesOrder->update([
+            'status' => 'active',
+            'delete_rejection_reason' => $request->rejection_reason,
+            'delete_requested_by' => null,
+            'delete_requested_at' => null,
+            'delete_reason' => null,
+        ]);
+
+        return $this->successResponse($salesOrder, 'Request penghapusan Sales Order berhasil ditolak');
+    }
+
+    /**
+     * Get pending delete requests for approval (admin)
+     */
+    public function getPendingDeleteRequests(Request $request)
+    {
+        $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
+        $query = SalesOrder::where('status', 'delete_requested')
+            ->with(['salesOrderItems.jenisBarang', 'salesOrderItems.bentukBarang', 'salesOrderItems.gradeBarang', 'pelanggan', 'gudang', 'deleteRequestedBy'])
+            ->orderBy('delete_requested_at', 'desc');
+        
+        // Apply search filter
+        $query = $this->applyFilter($query, $request, ['nomor_so', 'syarat_pembayaran']);
+        
+        // Filter by date range for delete requests
+        if ($request->has('delete_requested_from')) {
+            $query->where('delete_requested_at', '>=', $request->input('delete_requested_from'));
+        }
+        
+        if ($request->has('delete_requested_to')) {
+            $query->where('delete_requested_at', '<=', $request->input('delete_requested_to'));
+        }
+        
+        $data = $query->paginate($perPage);
+        $items = collect($data->items());
+        
+        return response()->json($this->paginateResponse($data, $items));
+    }
+
+    /**
+     * Cancel delete request (user)
+     */
+    public function cancelDeleteRequest($id)
+    {
+        $salesOrder = SalesOrder::where('status', 'delete_requested')
+            ->where('delete_requested_by', auth()->id())
+            ->find($id);
+
+        if (!$salesOrder) {
+            return $this->errorResponse('Request penghapusan tidak ditemukan', 404);
+        }
+
+        $salesOrder->update([
+            'status' => 'active',
+            'delete_requested_by' => null,
+            'delete_requested_at' => null,
+            'delete_reason' => null,
+        ]);
+
+        return $this->successResponse($salesOrder, 'Request penghapusan berhasil dibatalkan');
     }
 }

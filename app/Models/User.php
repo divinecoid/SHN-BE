@@ -71,7 +71,7 @@ class User extends Authenticatable implements JWTSubject
      */
     public function hasRole(string $roleName): bool
     {
-        return $this->roles()->where('name', $roleName)->exists();
+        return $this->roles()->whereRaw('LOWER(name) = ?', [strtolower($roleName)])->exists();
     }
 
     /**

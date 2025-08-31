@@ -342,20 +342,30 @@ Route::prefix('sys-setting')->middleware('checkrole')->group(function () {
     Route::get('value/{key}', [SysSettingController::class, 'getValueByKey']);
 });
 
+Route::prefix('sales-order')->middleware('checkrole:admin')->group(function () {
+    // Specific routes must come before parameterized routes
+    Route::get('pending-delete-requests', [SalesOrderController::class, 'getPendingDeleteRequests']);
+    Route::delete('{id}/soft', [SalesOrderController::class, 'softDelete']);
+    Route::patch('{id}/restore', [SalesOrderController::class, 'restore']);
+    Route::delete('{id}/force', [SalesOrderController::class, 'forceDelete']);
+    Route::patch('{id}/approve-delete', [SalesOrderController::class, 'approveDelete']);
+    Route::patch('{id}/reject-delete', [SalesOrderController::class, 'rejectDelete']);
+});
 // SalesOrder routes
 Route::prefix('sales-order')->middleware('checkrole')->group(function () {
     Route::get('/', [SalesOrderController::class, 'index']);
     Route::post('/', [SalesOrderController::class, 'store']);
+    
+    // Delete request routes (user)
+    Route::post('{id}/request-delete', [SalesOrderController::class, 'requestDelete']);
+    Route::patch('{id}/cancel-delete-request', [SalesOrderController::class, 'cancelDeleteRequest']);
+    
+    // Specific routes must come before parameterized routes
     Route::get('{id}', [SalesOrderController::class, 'show']);
-  
     Route::put('{id}', [SalesOrderController::class, 'update']);
     Route::patch('{id}', [SalesOrderController::class, 'update']);
 });
-Route::prefix('sales-order')->middleware('checkrole:admin')->group(function () {
-    Route::delete('{id}/soft', [SalesOrderController::class, 'softDelete']);
-    Route::patch('{id}/restore', [SalesOrderController::class, 'restore']);
-    Route::delete('{id}/force', [SalesOrderController::class, 'forceDelete']);
-});
+
 
 Route::prefix('purchase-order')->middleware('checkrole:admin')->group(function () {
     
