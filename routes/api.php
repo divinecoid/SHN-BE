@@ -352,3 +352,39 @@ Route::prefix('sales-order')->middleware('checkrole:admin')->group(function () {
 Route::prefix('purchase-order')->middleware('checkrole:admin')->group(function () {
     
 });
+
+// WorkOrderPlanning routes
+Route::prefix('work-order-planning')->middleware('checkrole')->group(function () {
+    Route::get('/', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'index']);
+    Route::get('{id}', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'show']);
+    Route::post('/', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'store']);
+    Route::put('{id}', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'update']);
+    Route::patch('{id}', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'update']);
+    Route::delete('{id}', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'destroy']);
+    Route::patch('{id}/restore', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'restore']);
+    Route::delete('{id}/force', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'forceDelete']);
+    
+    // Item routes
+    Route::get('item/{id}', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'showItem']);
+    Route::put('item/{id}', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'updateItem']);
+    Route::patch('item/{id}', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'updateItem']);
+    
+    // Pelaksana routes untuk item
+    Route::post('item/{itemId}/pelaksana', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'addPelaksana']);
+    Route::put('item/{itemId}/pelaksana/{pelaksanaId}', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'updatePelaksana']);
+    Route::patch('item/{itemId}/pelaksana/{pelaksanaId}', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'updatePelaksana']);
+    Route::delete('item/{itemId}/pelaksana/{pelaksanaId}', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'removePelaksana']);
+    
+    // Utility routes
+    Route::post('saran-plat-dasar', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'setSaranPlatDasar']);
+    Route::get('saran-plat-dasar', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'getSaranPlatDasar']);
+    Route::get('{id}/print-spk', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'printSpkWorkOrder']);
+    
+    // Saran Plat/Shaft Dasar routes untuk item
+    Route::get('item/{itemId}/saran-plat-dasar', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'getSaranPlatDasarByItem']);
+    Route::post('item/{itemId}/saran-plat-dasar', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'addSaranPlatDasar']);
+    Route::put('item/{itemId}/saran-plat-dasar/{saranId}', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'updateSaranPlatDasar']);
+    Route::patch('item/{itemId}/saran-plat-dasar/{saranId}', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'updateSaranPlatDasar']);
+    Route::delete('item/{itemId}/saran-plat-dasar/{saranId}', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'removeSaranPlatDasar']);
+    Route::patch('item/{itemId}/saran-plat-dasar/{saranId}/select', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'setSelectedPlatDasar']);
+});

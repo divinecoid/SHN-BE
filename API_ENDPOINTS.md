@@ -316,3 +316,218 @@
 - The `menu-with-permissions` endpoint is specifically designed for role-menu-permission mapping in the frontend
 - Role-menu-permission endpoints provide full CRUD operations for managing role access to menu permissions
 - Bulk operations are available for efficient role-menu-permission management
+
+## Work Order Planning
+
+### Base URL: `/api/work-order-planning`
+
+#### 1. Get All Work Order Planning
+- **GET** `/api/work-order-planning`
+- **Description**: Mendapatkan semua data work order planning dengan pagination
+- **Query Parameters**:
+  - `per_page`: Jumlah data per halaman (default: 10)
+  - `search`: Pencarian berdasarkan nomor_wo, tanggal_wo, prioritas, status
+- **Response**: List work order planning dengan items dan sales order
+
+#### 2. Get Work Order Planning by ID
+- **GET** `/api/work-order-planning/{id}`
+- **Description**: Mendapatkan detail work order planning berdasarkan ID
+- **Response**: Detail work order planning dengan items dan sales order
+
+#### 3. Create Work Order Planning
+- **POST** `/api/work-order-planning`
+- **Description**: Membuat work order planning baru
+- **Request Body**:
+```json
+{
+  "nomor_wo": "WO-001",
+  "tanggal_wo": "2024-01-01",
+  "id_sales_order": 1,
+  "id_pelanggan": 1,
+  "id_gudang": 1,
+  "id_pelaksana": 1,
+  "prioritas": "HIGH",
+  "status": "DRAFT",
+  "items": [
+    {
+      "qty": 10,
+      "panjang": 100.00,
+      "lebar": 50.00,
+      "tebal": 2.00,
+      "plat_dasar_id": 1,
+      "jenis_barang_id": 1,
+      "bentuk_barang_id": 1,
+      "grade_barang_id": 1,
+      "catatan": "Catatan item"
+    }
+  ]
+}
+```
+
+#### 4. Update Work Order Planning
+- **PUT/PATCH** `/api/work-order-planning/{id}`
+- **Description**: Mengupdate work order planning
+- **Request Body**: Semua field yang ingin diupdate
+
+#### 5. Delete Work Order Planning
+- **DELETE** `/api/work-order-planning/{id}`
+- **Description**: Soft delete work order planning
+
+#### 6. Restore Work Order Planning
+- **PATCH** `/api/work-order-planning/{id}/restore`
+- **Description**: Restore work order planning yang sudah di-soft delete
+
+#### 7. Force Delete Work Order Planning
+- **DELETE** `/api/work-order-planning/{id}/force`
+- **Description**: Hard delete work order planning
+
+### Item Management
+
+#### 8. Get Work Order Planning Item
+- **GET** `/api/work-order-planning/item/{id}`
+- **Description**: Mendapatkan detail item work order planning
+- **Response**: Item dengan relasi jenis barang, bentuk barang, grade barang, dan plat dasar
+
+#### 9. Update Work Order Planning Item
+- **PUT/PATCH** `/api/work-order-planning/item/{id}`
+- **Description**: Mengupdate item work order planning, pelaksana, dan saran plat dasar
+- **Request Body**:
+```json
+{
+  "qty": 15,
+  "panjang": 120.00,
+  "lebar": 60.00,
+  "tebal": 2.50,
+  "jenis_barang_id": 1,
+  "bentuk_barang_id": 1,
+  "grade_barang_id": 1,
+  "catatan": "Update catatan",
+  "pelaksana": [
+    {
+      "pelaksana_id": 1,
+      "qty": 5,
+      "weight": 25.50,
+      "tanggal": "2024-01-01",
+      "jam_mulai": "08:00",
+      "jam_selesai": "12:00",
+      "catatan": "Catatan pelaksana"
+    }
+  ],
+  "saran_plat_dasar": [
+    {
+      "item_barang_id": 1,
+      "is_selected": true
+    },
+    {
+      "item_barang_id": 2,
+      "is_selected": false
+    },
+    {
+      "item_barang_id": 3,
+      "is_selected": false
+    }
+  ]
+}
+```
+
+### Pelaksana Management
+
+#### 10. Add Pelaksana to Item
+- **POST** `/api/work-order-planning/item/{itemId}/pelaksana`
+- **Description**: Menambahkan pelaksana baru ke item work order planning
+- **Request Body**:
+```json
+{
+  "pelaksana_id": 1,
+  "qty": 5,
+  "weight": 25.50,
+  "tanggal": "2024-01-01",
+  "jam_mulai": "08:00",
+  "jam_selesai": "12:00",
+  "catatan": "Catatan pelaksana"
+}
+```
+
+#### 11. Update Pelaksana
+- **PUT/PATCH** `/api/work-order-planning/item/{itemId}/pelaksana/{pelaksanaId}`
+- **Description**: Mengupdate data pelaksana
+- **Request Body**: Field yang ingin diupdate (qty, weight, tanggal, jam_mulai, jam_selesai, catatan)
+
+#### 12. Remove Pelaksana
+- **DELETE** `/api/work-order-planning/item/{itemId}/pelaksana/{pelaksanaId}`
+- **Description**: Menghapus pelaksana dari item
+
+### Utility Endpoints
+
+#### 13. Get Saran Plat Dasar
+- **GET** `/api/work-order-planning/saran-plat-dasar`
+- **Description**: Mendapatkan saran plat dasar berdasarkan jenis, bentuk, grade barang dan tebal
+- **Query Parameters**:
+  - `jenis_barang_id`: ID jenis barang
+  - `bentuk_barang_id`: ID bentuk barang
+  - `grade_barang_id`: ID grade barang
+  - `tebal`: Tebal barang
+
+#### 14. Set Saran Plat Dasar
+- **POST** `/api/work-order-planning/saran-plat-dasar`
+- **Description**: Set plat dasar untuk work order planning item
+- **Request Body**:
+```json
+{
+  "wo_planning_item_id": 1,
+  "plat_dasar_id": 1
+}
+```
+
+#### 15. Print SPK Work Order
+- **GET** `/api/work-order-planning/{id}/print-spk`
+- **Description**: Mendapatkan data untuk print SPK work order
+- **Response**: Data terformat untuk print dengan informasi jenis barang, bentuk barang, grade barang, ukuran, qty, berat, luas, plat dasar, dan pelaksana
+
+### Saran Plat/Shaft Dasar Management
+
+#### 16. Get Saran Plat Dasar by Item
+- **GET** `/api/work-order-planning/item/{itemId}/saran-plat-dasar`
+- **Description**: Mendapatkan semua saran plat/shaft dasar untuk item tertentu
+- **Response**: List saran plat dasar dengan relasi item barang, diurutkan berdasarkan is_selected (true di atas) dan created_at
+
+#### 17. Add Saran Plat Dasar
+- **POST** `/api/work-order-planning/item/{itemId}/saran-plat-dasar`
+- **Description**: Menambahkan saran plat/shaft dasar baru ke item
+- **Request Body**:
+```json
+{
+  "item_barang_id": 1,
+  "is_selected": true
+}
+```
+
+#### 18. Update Saran Plat Dasar
+- **PUT/PATCH** `/api/work-order-planning/item/{itemId}/saran-plat-dasar/{saranId}`
+- **Description**: Mengupdate saran plat/shaft dasar
+- **Request Body**:
+```json
+{
+  "is_selected": true
+}
+```
+
+#### 19. Remove Saran Plat Dasar
+- **DELETE** `/api/work-order-planning/item/{itemId}/saran-plat-dasar/{saranId}`
+- **Description**: Menghapus saran plat/shaft dasar dari item
+
+#### 20. Set Selected Plat Dasar
+- **PATCH** `/api/work-order-planning/item/{itemId}/saran-plat-dasar/{saranId}/select`
+- **Description**: Set saran plat dasar sebagai yang dipilih (is_selected = true)
+- **Note**: Otomatis akan set semua saran lain menjadi false dan update plat_dasar_id di work order planning item
+
+## Notes
+
+- Semua endpoint memerlukan authentication dan authorization (middleware `checkrole`)
+- Field `pelaksana` dalam update item akan mengganti semua pelaksana yang ada dengan yang baru
+- Field `saran_plat_dasar` dalam update item akan mengganti semua saran plat dasar yang ada dengan yang baru
+- Jika tidak ada field `pelaksana` atau `saran_plat_dasar` dalam request, data yang ada tidak akan berubah
+- Hanya satu saran plat dasar yang dapat memiliki `is_selected = true` per item
+- Ketika `is_selected = true` diset, otomatis akan update `plat_dasar_id` di work order planning item
+- Semua operasi pelaksana dan saran plat dasar menggunakan soft delete
+- Relasi yang di-load secara otomatis: jenis barang, bentuk barang, grade barang, plat dasar, pelaksana, dan saran plat dasar
