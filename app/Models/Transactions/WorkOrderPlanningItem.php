@@ -22,6 +22,7 @@ class WorkOrderPlanningItem extends Model
         'bentuk_barang_id',
         'grade_barang_id',
         'catatan',
+        'is_assigned',
     ];
 
     protected $hidden = ['deleted_at'];
@@ -32,6 +33,7 @@ class WorkOrderPlanningItem extends Model
         'tebal' => 'decimal:2',
         'qty' => 'integer',
         'berat' => 'decimal:2',
+        'is_assigned' => 'boolean',
     ];
 
     public function workOrderPlanning()
@@ -54,14 +56,19 @@ class WorkOrderPlanningItem extends Model
     {
         return $this->belongsTo(GradeBarang::class);
     }
-    
-    public function platDasar()
-    {
-        return $this->hasMany(ItemBarang::class);
-    }
 
     public function hasManyPelaksana()
     {
         return $this->hasMany(WorkOrderPlanningPelaksana::class);
+    }
+
+    public function hasManySaranPlatShaftDasar()
+    {
+        return $this->hasMany(SaranPlatShaftDasar::class);
+    }
+
+    public function platDasar()
+    {
+        return $this->belongsTo(\App\Models\MasterData\ItemBarang::class, 'plat_dasar_id');
     }
 }

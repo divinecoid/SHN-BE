@@ -32,8 +32,23 @@ class WorkOrderPlanning extends Model
         return $this->hasMany(WorkOrderPlanningItem::class);
     }
 
+    public function salesOrder()
+    {
+        return $this->belongsTo(\App\Models\MasterData\SalesOrder::class, 'id_sales_order');
+    }
+
     public function pelanggan()
     {
-        return $this->belongsTo(Pelanggan::class);
+        return $this->belongsTo(\App\Models\MasterData\Pelanggan::class, 'id_pelanggan');
+    }
+
+    public function gudang()
+    {
+        return $this->belongsTo(\App\Models\MasterData\Gudang::class, 'id_gudang');
+    }
+
+    public function pelaksana()
+    {
+        return $this->belongsTo(\App\Models\MasterData\Pelaksana::class, 'id_pelaksana');
     }
 }
