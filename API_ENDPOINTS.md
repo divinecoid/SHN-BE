@@ -284,6 +284,21 @@
 - `PATCH /api/sales-order/{id}/restore` - Restore soft deleted sales order (admin only)
 - `DELETE /api/sales-order/{id}/force` - Force delete sales order (admin only)
 
+### Sales Order Header Endpoints (Header Only)
+- `GET /api/sales-order/header` - List all sales order (header attributes only, without item details)
+  - **Description:** Mendapatkan data sales order dengan atribut header saja (tanpa salesOrderItems yang kompleks)
+  - **Query Parameters:**
+    - `per_page`: Jumlah data per halaman (default: 10)
+    - `search`: Pencarian berdasarkan nomor_so, syarat_pembayaran, status
+    - `tanggal_mulai`: Filter tanggal mulai (format: YYYY-MM-DD)
+    - `tanggal_akhir`: Filter tanggal akhir (format: YYYY-MM-DD)
+    - `pelanggan_id`: Filter berdasarkan ID pelanggan
+    - `gudang_id`: Filter berdasarkan ID gudang
+  - **Response:** `{ "data": [{ "id": "int", "nomor_so": "string", "tanggal_so": "date", "tanggal_pengiriman": "date", "syarat_pembayaran": "string", "gudang_id": "int", "pelanggan_id": "int", "subtotal": "decimal", "total_diskon": "decimal", "ppn_percent": "decimal", "ppn_amount": "decimal", "total_harga_so": "decimal", "status": "string", "pelanggan": { "id": "int", "nama_pelanggan": "string" }, "gudang": { "id": "int", "kode": "string", "nama_gudang": "string" } }] }`
+- `GET /api/sales-order/header/{id}` - Get sales order by ID (header attributes only)
+  - **Description:** Mendapatkan detail sales order dengan atribut header saja (tanpa salesOrderItems)
+  - **Response:** `{ "id": "int", "nomor_so": "string", "tanggal_so": "date", "tanggal_pengiriman": "date", "syarat_pembayaran": "string", "gudang_id": "int", "pelanggan_id": "int", "subtotal": "decimal", "total_diskon": "decimal", "ppn_percent": "decimal", "ppn_amount": "decimal", "total_harga_so": "decimal", "status": "string", "created_at": "datetime", "updated_at": "datetime", "pelanggan": { "id": "int", "nama_pelanggan": "string" }, "gudang": { "id": "int", "kode": "string", "nama_gudang": "string" } }`
+
 ## Static Data APIs (Temporary)
 - `GET /api/static/tipe-gudang` - Get tipe gudang data
   - **Response:** `{ "data": [{ "id": "int", "kode": "string", "nama": "string", "deskripsi": "string" }] }`

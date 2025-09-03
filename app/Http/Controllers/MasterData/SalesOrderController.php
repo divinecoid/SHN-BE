@@ -350,6 +350,85 @@ class SalesOrderController extends Controller
     }
 
     /**
+     * Get Sales Order data with header attributes only (without complex relationships)
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getSalesOrderHeader(Request $request)
+    {
+        $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
+        
+        // Query Sales Order with minimal relationships (only pelanggan and gudang for basic info)
+        $query = SalesOrder::with(['pelanggan:id,nama_pelanggan', 'gudang:id,kode,nama_gudang']);
+        
+        // Apply filters
+        $query = $this->applyFilter($query, $request, ['nomor_so', 'syarat_pembayaran', 'status']);
+        
+        // Add date range filter if provided
+        if ($request->filled('tanggal_mulai')) {
+            $query->where('tanggal_so', '>=', $request->tanggal_mulai);
+        }
+        
+        if ($request->filled('tanggal_akhir')) {
+            $query->where('tanggal_so', '<=', $request->tanggal_akhir);
+        }
+        
+        // Add pelanggan filter if provided
+        if ($request->filled('pelanggan_id')) {
+            $query->where('pelanggan_id', $request->pelanggan_id);
+        }
+        
+        // Add gudang filter if provided
+        if ($request->filled('gudang_id')) {
+            $query->where('gudang_id', $request->gudang_id);
+        }
+        
+        // Order by latest first
+        $query->orderBy('tanggal_so', 'desc');
+        
+        $data = $query->paginate($perPage);
+        $items = collect($data->items());
+        
+        return response()->json($this->paginateResponse($data, $items));
+    }
+
+    /**
+     * Get Sales Order by ID with header attributes only (without complex relationships)
+     * 
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getSalesOrderHeaderById($id)
+    {
+        $data = SalesOrder::with(['pelanggan:id,nama_pelanggan', 'gudang:id,kode,nama_gudang'])
+            ->select([
+                'id',
+                'nomor_so',
+                'tanggal_so',
+                'tanggal_pengiriman',
+                'syarat_pembayaran',
+                'gudang_id',
+                'pelanggan_id',
+                'subtotal',
+                'total_diskon',
+                'ppn_percent',
+                'ppn_amount',
+                'total_harga_so',
+                'status',
+                'created_at',
+                'updated_at'
+            ])
+            ->find($id);
+            
+        if (!$data) {
+            return $this->errorResponse('Data tidak ditemukan', 404);
+        }
+        
+        return $this->successResponse($data);
+    }
+
+    /**
      * Cancel delete request (user)
      */
     public function cancelDeleteRequest($id)

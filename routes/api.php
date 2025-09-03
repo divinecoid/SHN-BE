@@ -356,6 +356,10 @@ Route::prefix('sales-order')->middleware('checkrole')->group(function () {
     Route::get('/', [SalesOrderController::class, 'index']);
     Route::post('/', [SalesOrderController::class, 'store']);
     
+    // Sales Order Header routes (header attributes only)
+    Route::get('header', [SalesOrderController::class, 'getSalesOrderHeader']);
+    Route::get('header/{id}', [SalesOrderController::class, 'getSalesOrderHeaderById']);
+    
     // Delete request routes (user)
     Route::post('{id}/request-delete', [SalesOrderController::class, 'requestDelete']);
     Route::patch('{id}/cancel-delete-request', [SalesOrderController::class, 'cancelDeleteRequest']);
