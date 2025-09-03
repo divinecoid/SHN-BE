@@ -398,8 +398,8 @@ Route::prefix('work-order-planning')->middleware('checkrole')->group(function ()
     Route::delete('item/{itemId}/pelaksana/{pelaksanaId}', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'removePelaksana']);
     
     // Utility routes
-    Route::post('saran-plat-dasar', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'setSaranPlatDasar']);
-    Route::get('saran-plat-dasar', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'getSaranPlatDasar']);
+    Route::post('set-saran-plat-dasar', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'setSaranPlatDasar']);
+    Route::post('get-saran-plat-dasar', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'getSaranPlatDasar']);
     Route::get('{id}/print-spk', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'printSpkWorkOrder']);
     
     // Saran Plat/Shaft Dasar routes untuk item
