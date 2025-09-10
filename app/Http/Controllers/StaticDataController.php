@@ -99,8 +99,8 @@ class StaticDataController extends Controller
             [
                 'id' => 1,
                 'kode' => 'PCS',
-                'nama' => 'Pieces',
-                'deskripsi' => 'Satuan per pieces'
+                'nama' => 'Utuh',
+                'deskripsi' => 'Satuan utuh per pieces'
             ],
             [
                 'id' => 2,
@@ -109,51 +109,9 @@ class StaticDataController extends Controller
                 'deskripsi' => 'Satuan per kilogram'
             ],
             [
-                'id' => 3,
-                'kode' => 'TON',
-                'nama' => 'Ton',
-                'deskripsi' => 'Satuan per ton'
-            ],
-            [
-                'id' => 4,
-                'kode' => 'M',
-                'nama' => 'Meter',
-                'deskripsi' => 'Satuan per meter'
-            ],
-            [
-                'id' => 5,
-                'kode' => 'M2',
-                'nama' => 'Meter Persegi',
-                'deskripsi' => 'Satuan per meter persegi'
-            ],
-            [
-                'id' => 6,
-                'kode' => 'M3',
-                'nama' => 'Meter Kubik',
-                'deskripsi' => 'Satuan per meter kubik'
-            ],
-            [
-                'id' => 7,
-                'kode' => 'LITER',
-                'nama' => 'Liter',
-                'deskripsi' => 'Satuan per liter'
-            ],
-            [
-                'id' => 8,
-                'kode' => 'CM',
-                'nama' => 'Centimeter',
-                'deskripsi' => 'Satuan per centimeter'
-            ],
-            [
-                'id' => 9,
-                'kode' => 'MM',
-                'nama' => 'Millimeter',
-                'deskripsi' => 'Satuan per millimeter'
-            ],
-            [
                 'id' => 10,
                 'kode' => 'PER_DIMENSI',
-                'nama' => 'Per Dimensi',
+                'nama' => 'Dimensi',
                 'deskripsi' => 'Satuan berdasarkan dimensi (panjang x lebar x tebal)'
             ]
         ];

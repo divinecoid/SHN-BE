@@ -64,8 +64,10 @@ class WorkOrderPlanningController extends Controller
                         'panjang' => $item['panjang'] ?? 0,
                         'lebar' => $item['lebar'] ?? 0,
                         'tebal' => $item['tebal'] ?? 0,
-                        'plat_dasar_id' => $item['plat_dasar_id'] ?? null,
                         'jenis_barang_id' => $item['jenis_barang_id'] ?? null,
+                        'berat' => $item['berat'] ?? 0,
+                        'satuan' => $item['satuan'] ?? 'PCS',
+                        'diskon' => $item['diskon'] ?? 0,
                         'bentuk_barang_id' => $item['bentuk_barang_id'] ?? null,
                         'grade_barang_id' => $item['grade_barang_id'] ?? null,
                         'catatan' => $item['catatan'] ?? null,
@@ -364,26 +366,34 @@ class WorkOrderPlanningController extends Controller
     yang memiliki jenis barang, bentuk barang, dan grade barang, dan tebal yang sama 
     dengan jenis barang, bentuk barang, dan grade barang, dan tebal yang diinputkan, 
     dan urutkan dari sisa_luas terbesar ke terkecil */
+    /**
+     * Mendapatkan daftar saran plat dasar berdasarkan data yang dikirim melalui body (POST request).
+     * Data yang dibutuhkan: jenis_barang_id, bentuk_barang_id, grade_barang_id, tebal
+     */
     public function getSaranPlatDasar(Request $request)
     {
+        // Validasi input dari body request
         $validator = Validator::make($request->all(), [
             'jenis_barang_id' => 'required|exists:ref_jenis_barang,id',
             'bentuk_barang_id' => 'required|exists:ref_bentuk_barang,id',
             'grade_barang_id' => 'required|exists:ref_grade_barang,id',
             'tebal' => 'required|numeric',
         ]);
+
         if ($validator->fails()) {
             return $this->errorResponse($validator->errors()->first(), 422);
         }
+
+        // Ambil data item barang sesuai kriteria yang dikirim melalui body
         $data = ItemBarang::with(['jenisBarang', 'bentukBarang', 'gradeBarang'])
-        ->where('jenis_barang_id', $request->jenis_barang_id)
-        ->where('bentuk_barang_id', $request->bentuk_barang_id)
-        ->where('grade_barang_id', $request->grade_barang_id)
-        ->where('tebal', $request->tebal)
-        ->orderBy('sisa_luas', 'desc')
-        ->get();
+            ->where('jenis_barang_id', $request->jenis_barang_id)
+            ->where('bentuk_barang_id', $request->bentuk_barang_id)
+            ->where('grade_barang_id', $request->grade_barang_id)
+            ->where('tebal', $request->tebal)
+            ->orderBy('sisa_luas', 'desc')
+            ->get();
 
-
+        // Mapping data untuk response
         $data = $data->map(function ($item) {
             return [
                 'id' => $item->id,
