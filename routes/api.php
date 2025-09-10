@@ -25,6 +25,7 @@ use App\Http\Controllers\SysSettingController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RoleMenuPermissionController;
 use App\Http\Controllers\StaticDataController;
+use App\Http\Controllers\FileController;
 Route::get('/user', function (Request $request) {
     return $request->user()->load('roles');
 });
@@ -409,4 +410,12 @@ Route::prefix('work-order-planning')->middleware('checkrole')->group(function ()
     Route::patch('item/{itemId}/saran-plat-dasar/{saranId}', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'updateSaranPlatDasar']);
     Route::delete('item/{itemId}/saran-plat-dasar/{saranId}', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'removeSaranPlatDasar']);
     Route::patch('item/{itemId}/saran-plat-dasar/{saranId}/select', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'setSelectedPlatDasar']);
+});
+
+// File operations routes (get, show, download only)
+Route::middleware('checkrole')->group(function () {
+    Route::get('files/info', [FileController::class, 'getFileInfo']);
+    Route::get('files/download', [FileController::class, 'downloadFile']);
+    Route::get('files/show', [FileController::class, 'showFile']);
+    Route::get('files/folder', [FileController::class, 'getFilesInFolder']);
 });

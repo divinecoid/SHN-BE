@@ -27,11 +27,8 @@ class MasterDataSeeder extends Seeder
         $jenisBarang5 = JenisBarang::create(['kode' => 'J005', 'nama_jenis' => 'Olahraga']);
 
         // Bentuk Barang
-        $bentukBarang1 = BentukBarang::create(['kode' => 'B001', 'nama_bentuk' => 'Kotak', 'dimensi' => '2D']);
-        $bentukBarang2 = BentukBarang::create(['kode' => 'B002', 'nama_bentuk' => 'Silinder', 'dimensi' => '2D']);
-        $bentukBarang3 = BentukBarang::create(['kode' => 'B003', 'nama_bentuk' => 'Persegi Panjang', 'dimensi' => '2D']);
-        $bentukBarang4 = BentukBarang::create(['kode' => 'B004', 'nama_bentuk' => 'Bundar', 'dimensi' => '1D']);
-        $bentukBarang5 = BentukBarang::create(['kode' => 'B005', 'nama_bentuk' => 'Segitiga', 'dimensi' => '1D']);
+        $bentukBarang1 = BentukBarang::create(['kode' => 'AS', 'nama_bentuk' => 'AS', 'dimensi' => 'Shaft (1D)']);
+        $bentukBarang2 = BentukBarang::create(['kode' => 'CNU', 'nama_bentuk' => 'CANAL U', 'dimensi' => 'Plat (2D)']);
 
         // Grade Barang
         $gradeBarang1 = GradeBarang::create(['kode' => 'G001', 'nama' => 'A']);
@@ -214,7 +211,7 @@ class MasterDataSeeder extends Seeder
         ItemBarang::create([
             'kode_barang' => 'ITM003',
             'jenis_barang_id' => $jenisBarang3->id,
-            'bentuk_barang_id' => $bentukBarang3->id,
+            'bentuk_barang_id' => $bentukBarang1->id,
             'grade_barang_id' => $gradeBarang3->id,
             'nama_item_barang' => 'Kemeja Pria',
             'sisa_luas' => 3500.00,
@@ -228,7 +225,7 @@ class MasterDataSeeder extends Seeder
         ItemBarang::create([
             'kode_barang' => 'ITM004',
             'jenis_barang_id' => $jenisBarang4->id,
-            'bentuk_barang_id' => $bentukBarang4->id,
+            'bentuk_barang_id' => $bentukBarang2->id,
             'grade_barang_id' => $gradeBarang4->id,
             'nama_item_barang' => 'Snack Pack',
             'sisa_luas' => 150.00,
@@ -242,7 +239,7 @@ class MasterDataSeeder extends Seeder
         ItemBarang::create([
             'kode_barang' => 'ITM005',
             'jenis_barang_id' => $jenisBarang5->id,
-            'bentuk_barang_id' => $bentukBarang5->id,
+            'bentuk_barang_id' => $bentukBarang1->id,
             'grade_barang_id' => $gradeBarang5->id,
             'nama_item_barang' => 'Sepatu Olahraga',
             'sisa_luas' => 360.00,
