@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\MasterData;
+namespace App\Models\Transactions;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -21,6 +21,9 @@ class PurchaseOrder extends Model
         'tanggal_penerimaan',
         'tanggal_jatuh_tempo',
         'tanggal_pembayaran',
+        'total_amount',
+        'status',
+        'catatan',
     ];
     
     protected $hidden = ['deleted_at'];

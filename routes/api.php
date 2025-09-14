@@ -371,10 +371,6 @@ Route::prefix('sales-order')->middleware('checkrole')->group(function () {
 });
 
 
-Route::prefix('purchase-order')->middleware('checkrole:admin')->group(function () {
-    
-});
-
 // WorkOrderPlanning routes
 Route::prefix('work-order-planning')->middleware('checkrole')->group(function () {
     Route::get('/', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'index']);
@@ -409,4 +405,20 @@ Route::prefix('work-order-planning')->middleware('checkrole')->group(function ()
     Route::patch('item/{itemId}/saran-plat-dasar/{saranId}', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'updateSaranPlatDasar']);
     Route::delete('item/{itemId}/saran-plat-dasar/{saranId}', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'removeSaranPlatDasar']);
     Route::patch('item/{itemId}/saran-plat-dasar/{saranId}/select', [App\Http\Controllers\Transactions\WorkOrderPlanningController::class, 'setSelectedPlatDasar']);
+
+});
+
+Route::prefix('purchase-order')->middleware('checkrole')->group(function () {
+    Route::get('/', [App\Http\Controllers\Transactions\PurchaseOrderController::class, 'index']);
+    Route::get('{id}', [App\Http\Controllers\Transactions\PurchaseOrderController::class, 'show']);
+    Route::post('/', [App\Http\Controllers\Transactions\PurchaseOrderController::class, 'store']);
+    Route::put('{id}', [App\Http\Controllers\Transactions\PurchaseOrderController::class, 'update']);
+    Route::patch('{id}', [App\Http\Controllers\Transactions\PurchaseOrderController::class, 'update']);
+});
+Route::prefix('purchase-order')->middleware('checkrole:admin')->group(function () {
+    Route::delete('{id}/soft', [App\Http\Controllers\Transactions\PurchaseOrderController::class, 'softDelete']);
+    Route::patch('{id}/restore', [App\Http\Controllers\Transactions\PurchaseOrderController::class, 'restore']);
+    Route::delete('{id}/force', [App\Http\Controllers\Transactions\PurchaseOrderController::class, 'forceDelete']);
+    Route::get('with-trashed/all', [App\Http\Controllers\Transactions\PurchaseOrderController::class, 'indexWithTrashed']);
+    Route::get('with-trashed/trashed', [App\Http\Controllers\Transactions\PurchaseOrderController::class, 'indexTrashed']);
 });
