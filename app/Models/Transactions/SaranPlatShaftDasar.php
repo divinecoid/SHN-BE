@@ -15,6 +15,7 @@ class SaranPlatShaftDasar extends Model
         'wo_planning_item_id',
         'item_barang_id',
         'is_selected',
+        'canvas_file',
     ];
 
     protected $hidden = ['deleted_at'];

@@ -11,6 +11,7 @@ class WorkOrderPlanning extends Model
     protected $table = 'trx_work_order_planning';
 
     protected $fillable = [
+        'wo_unique_id',
         'nomor_wo',
         'tanggal_wo',
         'id_sales_order',

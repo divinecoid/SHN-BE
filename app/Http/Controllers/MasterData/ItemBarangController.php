@@ -31,11 +31,19 @@ class ItemBarangController extends Controller
             'grade_barang_id' => 'required|exists:ref_grade_barang,id',
             'nama_item_barang' => 'required|string',
             'sisa_luas' => 'nullable|numeric|min:0',
+            'panjang' => 'nullable|numeric|min:0',
+            'lebar' => 'nullable|numeric|min:0',
+            'tebal' => 'nullable|numeric|min:0',
+            'quantity' => 'nullable|numeric|min:0',
+            'quantity_tebal_sama' => 'nullable|numeric|min:0',
+            'jenis_potongan' => 'nullable|string',
+            'is_edit' => 'nullable|boolean',
+            'user_id' => 'nullable|exists:users,id',
         ]);
         if ($validator->fails()) {
             return $this->errorResponse($validator->errors()->first(), 422);
         }
-        $data = ItemBarang::create($request->only(['kode_barang', 'jenis_barang_id', 'bentuk_barang_id', 'grade_barang_id', 'nama_item_barang', 'sisa_luas']));
+        $data = ItemBarang::create($request->only(['kode_barang', 'jenis_barang_id', 'bentuk_barang_id', 'grade_barang_id', 'nama_item_barang', 'sisa_luas', 'panjang', 'lebar', 'tebal', 'quantity', 'quantity_tebal_sama', 'jenis_potongan', 'is_edit', 'is_edit_by']));
         $data->load(['jenisBarang', 'bentukBarang', 'gradeBarang']);
         return $this->successResponse($data, 'Data berhasil ditambahkan');
     }
@@ -62,11 +70,23 @@ class ItemBarangController extends Controller
             'grade_barang_id' => 'required|exists:ref_grade_barang,id',
             'nama_item_barang' => 'required|string',
             'sisa_luas' => 'nullable|numeric|min:0',
+            'panjang' => 'nullable|numeric|min:0',
+            'lebar' => 'nullable|numeric|min:0',
+            'tebal' => 'nullable|numeric|min:0',
+            'quantity' => 'nullable|numeric|min:0',
+            'quantity_tebal_sama' => 'nullable|numeric|min:0',
+            'jenis_potongan' => 'nullable|string',
+            'is_edit' => 'nullable|boolean',
+            'user_id' => 'nullable|exists:users,id',
         ]);
         if ($validator->fails()) {
             return $this->errorResponse($validator->errors()->first(), 422);
         }
-        $data->update($request->only(['kode_barang', 'jenis_barang_id', 'bentuk_barang_id', 'grade_barang_id', 'nama_item_barang', 'sisa_luas']));
+        // Hanya update field yang dikirim dalam request
+        $updateData = array_filter($request->only(['kode_barang', 'jenis_barang_id', 'bentuk_barang_id', 'grade_barang_id', 'nama_item_barang', 'sisa_luas', 'panjang', 'lebar', 'tebal', 'quantity', 'quantity_tebal_sama', 'jenis_potongan', 'is_edit', 'user_id']), function($value) {
+            return $value !== null && $value !== '';
+        });
+        $data->update($updateData);
         $data->load(['jenisBarang', 'bentukBarang', 'gradeBarang']);
         return $this->successResponse($data, 'Data berhasil diperbarui');
     }

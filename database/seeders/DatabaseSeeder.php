@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             PermissionSeeder::class,
             MenuSeeder::class,
             GudangSeeder::class,
+            ItemBarangSeeder::class,
         ]);
     }
 }
