@@ -132,9 +132,11 @@
 - `DELETE /api/item-barang/{id}/force` - Force delete item barang
 - `GET /api/item-barang/with-trashed/all` - Get all item barang including deleted
 - `GET /api/item-barang/with-trashed/trashed` - Get only deleted item barang
-- `GET /api/item-barang/{itemBarangId}/canvas` - Get canvas data by item barang ID from saran plat dasar
-  - **Description**: Mendapatkan canvas data berdasarkan item barang ID dari tabel saran plat dasar
+- `GET /api/item-barang/{itemBarangId}/canvas` - Get canvas data by item barang ID
+  - **Description**: Mendapatkan canvas data berdasarkan item barang ID dari tabel saran plat dasar (bukan dari work order planning)
+  - **Note**: API ini ada di endpoint `item-barang`, bukan `work-order-planning`. Canvas data diambil dari tabel `trx_saran_plat_shaft_dasar` berdasarkan `item_barang_id`
   - **Response**: JSON canvas data langsung (tanpa wrapper object)
+  - **Example**: `GET /api/item-barang/1/canvas` akan mengembalikan canvas data untuk item barang ID 1
 
 ## Master Data - Jenis Transaksi Kas
 - `GET /api/jenis-transaksi-kas` - List all jenis transaksi kas

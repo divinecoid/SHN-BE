@@ -487,7 +487,6 @@ class WorkOrderPlanningController extends Controller
             ]);
 
             // Handle canvas data jika ada (setelah saran dibuat)
-            $canvasFilePath = null;
             if ($request->has('canvas_data') && !empty($request->canvas_data)) {
                 // Convert JSON to file
                 $canvasData = $request->canvas_data;
@@ -506,10 +505,7 @@ class WorkOrderPlanningController extends Controller
                 
                 $canvasFilePath = $folderPath . '/' . $fileName;
                 
-                // Update saran dengan canvas file path (hanya path, bukan file)
-                $saranPlatDasar->update(['canvas_file' => $canvasFilePath]);
-                
-                // Update item barang juga dengan canvas file path (hanya path, bukan file)
+                // Update item barang dengan canvas file path (hanya di item barang, tidak di saran)
                 $itemBarang = ItemBarang::find($request->item_barang_id);
                 if ($itemBarang) {
                     $itemBarang->update(['canvas_file' => $canvasFilePath]);
@@ -750,24 +746,21 @@ class WorkOrderPlanningController extends Controller
     }
 
     /**
-     * Get canvas file content berdasarkan item barang ID dari saran plat dasar
+     * Get canvas file content berdasarkan item barang ID
      */
     public function getCanvasByItemId($itemBarangId)
     {
-        // Cari saran plat dasar berdasarkan item_barang_id
-        $saranPlatDasar = SaranPlatShaftDasar::where('item_barang_id', $itemBarangId)
-            ->whereNotNull('canvas_file')
-            ->first();
+        $itemBarang = ItemBarang::find($itemBarangId);
         
-        if (!$saranPlatDasar) {
-            return $this->errorResponse('Data saran plat dasar tidak ditemukan untuk item ini', 404);
+        if (!$itemBarang) {
+            return $this->errorResponse('Data item barang tidak ditemukan', 404);
         }
 
-        if (!$saranPlatDasar->canvas_file) {
-            return $this->errorResponse('File canvas tidak ditemukan untuk saran ini', 404);
+        if (!$itemBarang->canvas_file) {
+            return $this->errorResponse('File canvas tidak ditemukan untuk item ini', 404);
         }
 
-        $filePath = storage_path('app/public/' . $saranPlatDasar->canvas_file);
+        $filePath = storage_path('app/public/' . $itemBarang->canvas_file);
         
         if (!file_exists($filePath)) {
             return $this->errorResponse('File tidak ditemukan di storage', 404);
