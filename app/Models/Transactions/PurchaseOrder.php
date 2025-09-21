@@ -42,4 +42,12 @@ class PurchaseOrder extends Model
     {
         return $this->hasMany(PurchaseOrderItem::class);
     }
+    
+    /**
+     * Get the supplier
+     */
+    public function supplier()
+    {
+        return $this->belongsTo(\App\Models\MasterData\Supplier::class, 'id_supplier');
+    }
 }

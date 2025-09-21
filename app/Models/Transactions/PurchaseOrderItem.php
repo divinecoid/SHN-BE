@@ -17,26 +17,42 @@ class PurchaseOrderItem extends Model
         'panjang' => 'decimal:2',
         'lebar' => 'decimal:2',
         'tebal' => 'decimal:2',
-        'berat' => 'decimal:2',
         'qty' => 'integer',
-        'harga_satuan' => 'decimal:2',
-        'subtotal' => 'decimal:2',
+        'harga' => 'decimal:2',
+        'diskon' => 'decimal:2',
     ];
     protected $fillable = [
         'purchase_order_id',
-        'id_item_barang',
         'qty',
-        'harga_satuan',
-        'subtotal',
         'panjang',
         'lebar',
         'tebal',
-        'berat',
+        'jenis_barang_id',
+        'bentuk_barang_id',
+        'grade_barang_id',
+        'harga',
+        'satuan',
+        'diskon',
         'catatan',
     ];
 
     public function purchaseOrder()
     {
         return $this->belongsTo(PurchaseOrder::class);
+    }
+
+    public function jenisBarang()
+    {
+        return $this->belongsTo(\App\Models\MasterData\JenisBarang::class, 'jenis_barang_id');
+    }
+
+    public function bentukBarang()
+    {
+        return $this->belongsTo(\App\Models\MasterData\BentukBarang::class, 'bentuk_barang_id');
+    }
+
+    public function gradeBarang()
+    {
+        return $this->belongsTo(\App\Models\MasterData\GradeBarang::class, 'grade_barang_id');
     }
 }
