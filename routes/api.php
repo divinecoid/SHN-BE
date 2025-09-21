@@ -27,6 +27,7 @@ use App\Http\Controllers\RoleMenuPermissionController;
 use App\Http\Controllers\StaticDataController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\Transactions\WorkOrderPlanningController;
+use App\Http\Controllers\Transactions\PurchaseOrderController;
 Route::get('/user', function (Request $request) {
     return $request->user()->load('roles');
 });
@@ -371,6 +372,22 @@ Route::prefix('sales-order')->middleware('checkrole')->group(function () {
     Route::get('{id}', [SalesOrderController::class, 'show']);
     Route::put('{id}', [SalesOrderController::class, 'update']);
     Route::patch('{id}', [SalesOrderController::class, 'update']);
+});
+
+
+// Purchase Order routes
+Route::prefix('purchase-order')->middleware('checkrole')->group(function () {
+    Route::get('/', [PurchaseOrderController::class, 'index']);
+    Route::get('{id}', [PurchaseOrderController::class, 'show']);
+    Route::post('/', [PurchaseOrderController::class, 'store']);
+    Route::put('{id}', [PurchaseOrderController::class, 'update']);
+    Route::patch('{id}', [PurchaseOrderController::class, 'update']);
+    Route::delete('{id}', [PurchaseOrderController::class, 'destroy']);
+    Route::delete('{id}/soft', [PurchaseOrderController::class, 'softDelete']);
+    Route::patch('{id}/restore', [PurchaseOrderController::class, 'restore']);
+    Route::delete('{id}/force', [PurchaseOrderController::class, 'forceDelete']);
+    Route::get('with-trashed/all', [PurchaseOrderController::class, 'indexWithTrashed']);
+    Route::get('with-trashed/trashed', [PurchaseOrderController::class, 'indexTrashed']);
 });
 
 
