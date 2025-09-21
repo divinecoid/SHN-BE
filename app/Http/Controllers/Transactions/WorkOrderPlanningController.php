@@ -7,6 +7,7 @@ use App\Models\MasterData\ItemBarang;
 use App\Models\Transactions\WorkOrderPlanning;
 use App\Models\Transactions\WorkOrderPlanningItem;
 use App\Models\Transactions\WorkOrderPlanningPelaksana;
+use App\Models\Transactions\SaranPlatShaftDasar;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
@@ -33,7 +34,7 @@ class WorkOrderPlanningController extends Controller
             'id_sales_order' => 'required|exists:trx_sales_order,id',
             'id_pelanggan' => 'required|exists:ref_pelanggan,id',
             'id_gudang' => 'required|exists:ref_gudang,id',
-            'id_pelaksana' => 'required|exists:ref_pelaksana,id',
+            'id_pelaksana' => 'nullable|exists:ref_pelaksana,id',
             'status' => 'required|string',
             'tanggal_wo' => 'required|date',
             'prioritas' => 'required|string',
@@ -43,22 +44,31 @@ class WorkOrderPlanningController extends Controller
         }
         DB::beginTransaction();
         try {
+            // Generate unique ID untuk work order
+            $woUniqueId = 'WO-' . date('Ymd') . '-' . strtoupper(uniqid());
+            
             // Membuat header Work Order Planning
-            $workOrderPlanning = WorkOrderPlanning::create($request->only([
+            $workOrderPlanning = WorkOrderPlanning::create(array_merge($request->only([
                             'nomor_wo',
             'tanggal_wo',
             'id_sales_order',
             'id_pelanggan',
             'id_gudang',
-            'id_pelaksana',
             'prioritas',
             'status',
+            ]), [
+                'wo_unique_id' => $woUniqueId,
+                'id_pelaksana' => 1 // Hardcode pelaksana ID 1
             ]));
 
             // Jika ada items, simpan items beserta relasi ke ref_jenis_barang, ref_bentuk_barang, ref_grade_barang
             if ($request->has('items') && is_array($request->items)) {
                 foreach ($request->items as $item) {
+                    // Generate unique ID untuk work order item
+                    $woItemUniqueId = 'WOI-' . date('Ymd') . '-' . strtoupper(uniqid());
+                    
                     $workOrderPlanningItem = WorkOrderPlanningItem::create([
+                        'wo_item_unique_id' => $woItemUniqueId,
                         'work_order_planning_id' => $workOrderPlanning->id,
                         'qty' => $item['qty'] ?? 0,
                         'panjang' => $item['panjang'] ?? 0,
@@ -368,7 +378,7 @@ class WorkOrderPlanningController extends Controller
     dan urutkan dari sisa_luas terbesar ke terkecil */
     /**
      * Mendapatkan daftar saran plat dasar berdasarkan data yang dikirim melalui body (POST request).
-     * Data yang dibutuhkan: jenis_barang_id, bentuk_barang_id, grade_barang_id, tebal
+     * Data yang dibutuhkan: jenis_barang_id, bentuk_barang_id, grade_barang_id, tebal, sisa_luas
      */
     public function getSaranPlatDasar(Request $request)
     {
@@ -378,19 +388,29 @@ class WorkOrderPlanningController extends Controller
             'bentuk_barang_id' => 'required|exists:ref_bentuk_barang,id',
             'grade_barang_id' => 'required|exists:ref_grade_barang,id',
             'tebal' => 'required|numeric',
+            'sisa_luas' => 'required|numeric',
         ]);
 
         if ($validator->fails()) {
             return $this->errorResponse($validator->errors()->first(), 422);
         }
 
+        // Ambil user_id dari JWT token
+        $currentUserId = auth()->id();
+        
         // Ambil data item barang sesuai kriteria yang dikirim melalui body
         $data = ItemBarang::with(['jenisBarang', 'bentukBarang', 'gradeBarang'])
             ->where('jenis_barang_id', $request->jenis_barang_id)
             ->where('bentuk_barang_id', $request->bentuk_barang_id)
             ->where('grade_barang_id', $request->grade_barang_id)
             ->where('tebal', $request->tebal)
-            ->orderBy('sisa_luas', 'desc')
+            ->where('sisa_luas', '>', $request->sisa_luas)
+            ->where(function($query) use ($currentUserId) {
+                $query->where('is_edit', false)
+                      ->orWhereNull('is_edit')
+                      ->orWhere('user_id', $currentUserId); // Kalau yang edit user yang sama, tetap return
+            })
+            ->orderBy('sisa_luas', 'asc')
             ->get();
 
         // Mapping data untuk response
@@ -432,18 +452,20 @@ class WorkOrderPlanningController extends Controller
     /**
      * Tambah saran plat/shaft dasar ke work order planning item
      */
-    public function addSaranPlatDasar(Request $request, $itemId)
+    public function addSaranPlatDasar(Request $request)
     {
         $validator = Validator::make($request->all(), [
+            'wo_planning_item_id' => 'required|exists:trx_work_order_planning_item,id',
             'item_barang_id' => 'required|exists:ref_item_barang,id',
             'is_selected' => 'boolean',
+            'canvas_data' => 'nullable|json', // JSON data langsung
         ]);
 
         if ($validator->fails()) {
             return $this->errorResponse($validator->errors()->first(), 422);
         }
 
-        $item = WorkOrderPlanningItem::find($itemId);
+        $item = WorkOrderPlanningItem::find($request->wo_planning_item_id);
         if (!$item) {
             return $this->errorResponse('Data item tidak ditemukan', 404);
         }
@@ -456,12 +478,39 @@ class WorkOrderPlanningController extends Controller
                     ->update(['is_selected' => false]);
             }
 
-            // Tambah saran plat dasar baru
+            // Tambah saran plat dasar baru dulu (tanpa canvas_file)
             $saranPlatDasar = SaranPlatShaftDasar::create([
                 'wo_planning_item_id' => $item->id,
                 'item_barang_id' => $request->item_barang_id,
                 'is_selected' => $request->is_selected ?? false,
+                'canvas_file' => null,
             ]);
+
+            // Handle canvas data jika ada (setelah saran dibuat)
+            if ($request->has('canvas_data') && !empty($request->canvas_data)) {
+                // Convert JSON to file
+                $canvasData = $request->canvas_data;
+                $fileName = 'canvas.json';
+                $folderPath = 'canvas/' . $request->item_barang_id;
+                $fullPath = storage_path('app/public/' . $folderPath);
+                
+                // Buat folder jika belum ada
+                if (!file_exists($fullPath)) {
+                    mkdir($fullPath, 0755, true);
+                }
+                
+                // Tulis JSON ke file
+                $filePath = $fullPath . '/' . $fileName;
+                file_put_contents($filePath, $canvasData);
+                
+                $canvasFilePath = $folderPath . '/' . $fileName;
+                
+                // Update item barang dengan canvas file path (hanya di item barang, tidak di saran)
+                $itemBarang = ItemBarang::find($request->item_barang_id);
+                if ($itemBarang) {
+                    $itemBarang->update(['canvas_file' => $canvasFilePath]);
+                }
+            }
 
             // Load relasi untuk response
             $saranPlatDasar->load('itemBarang');
@@ -477,7 +526,7 @@ class WorkOrderPlanningController extends Controller
     /**
      * Update saran plat/shaft dasar
      */
-    public function updateSaranPlatDasar(Request $request, $itemId, $saranId)
+    public function updateSaranPlatDasar(Request $request, $saranId)
     {
         $validator = Validator::make($request->all(), [
             'is_selected' => 'boolean',
@@ -487,15 +536,7 @@ class WorkOrderPlanningController extends Controller
             return $this->errorResponse($validator->errors()->first(), 422);
         }
 
-        $item = WorkOrderPlanningItem::find($itemId);
-        if (!$item) {
-            return $this->errorResponse('Data item tidak ditemukan', 404);
-        }
-
-        $saranPlatDasar = SaranPlatShaftDasar::where('id', $saranId)
-            ->where('wo_planning_item_id', $item->id)
-            ->first();
-
+        $saranPlatDasar = SaranPlatShaftDasar::find($saranId);
         if (!$saranPlatDasar) {
             return $this->errorResponse('Data saran plat dasar tidak ditemukan', 404);
         }
@@ -504,9 +545,16 @@ class WorkOrderPlanningController extends Controller
         try {
             // Jika is_selected = true, set semua saran lain menjadi false
             if ($request->is_selected) {
-                SaranPlatShaftDasar::where('wo_planning_item_id', $item->id)
+                SaranPlatShaftDasar::where('wo_planning_item_id', $saranPlatDasar->wo_planning_item_id)
                     ->where('id', '!=', $saranId)
                     ->update(['is_selected' => false]);
+                
+                // Update plat_dasar_id di work order planning item
+                $item = WorkOrderPlanningItem::find($saranPlatDasar->wo_planning_item_id);
+                if ($item) {
+                    $item->plat_dasar_id = $saranPlatDasar->item_barang_id;
+                    $item->save();
+                }
             }
 
             // Update saran plat dasar
@@ -526,17 +574,9 @@ class WorkOrderPlanningController extends Controller
     /**
      * Hapus saran plat/shaft dasar
      */
-    public function removeSaranPlatDasar($itemId, $saranId)
+    public function removeSaranPlatDasar($saranId)
     {
-        $item = WorkOrderPlanningItem::find($itemId);
-        if (!$item) {
-            return $this->errorResponse('Data item tidak ditemukan', 404);
-        }
-
-        $saranPlatDasar = SaranPlatShaftDasar::where('wo_planning_item_id', $item->id)
-            ->where('id', $saranId)
-            ->first();
-
+        $saranPlatDasar = SaranPlatShaftDasar::find($saranId);
         if (!$saranPlatDasar) {
             return $this->errorResponse('Data saran plat dasar tidak ditemukan', 404);
         }
@@ -552,19 +592,16 @@ class WorkOrderPlanningController extends Controller
     /**
      * Set saran plat dasar sebagai yang dipilih (is_selected = true)
      */
-    public function setSelectedPlatDasar($itemId, $saranId)
+    public function setSelectedPlatDasar($saranId)
     {
-        $item = WorkOrderPlanningItem::find($itemId);
-        if (!$item) {
-            return $this->errorResponse('Data item tidak ditemukan', 404);
-        }
-
-        $saranPlatDasar = SaranPlatShaftDasar::where('id', $saranId)
-            ->where('wo_planning_item_id', $item->id)
-            ->first();
-
+        $saranPlatDasar = SaranPlatShaftDasar::find($saranId);
         if (!$saranPlatDasar) {
             return $this->errorResponse('Data saran plat dasar tidak ditemukan', 404);
+        }
+
+        $item = WorkOrderPlanningItem::find($saranPlatDasar->wo_planning_item_id);
+        if (!$item) {
+            return $this->errorResponse('Data item tidak ditemukan', 404);
         }
 
         DB::beginTransaction();
@@ -600,14 +637,142 @@ class WorkOrderPlanningController extends Controller
             return $this->errorResponse('Data item tidak ditemukan', 404);
         }
 
+        // Ambil user_id dari JWT token
+        $currentUserId = auth()->id();
+        
         $saranPlatDasar = SaranPlatShaftDasar::with('itemBarang')
             ->where('wo_planning_item_id', $item->id)
+            ->whereHas('itemBarang', function($query) use ($currentUserId) {
+                $query->where(function($q) use ($currentUserId) {
+                    $q->where('is_edit', false)
+                      ->orWhereNull('is_edit')
+                      ->orWhere('user_id', $currentUserId); // Kalau yang edit user yang sama, tetap return
+                });
+            })
             ->orderBy('is_selected', 'desc')
             ->orderBy('created_at', 'asc')
             ->get();
 
         return $this->successResponse($saranPlatDasar);
     }
+
+    /**
+     * Download canvas file untuk saran plat dasar
+     */
+    public function downloadCanvasFile($saranId)
+    {
+        $saranPlatDasar = SaranPlatShaftDasar::find($saranId);
+        
+        if (!$saranPlatDasar) {
+            return $this->errorResponse('Data saran tidak ditemukan', 404);
+        }
+
+        if (!$saranPlatDasar->canvas_file) {
+            return $this->errorResponse('File canvas tidak ditemukan', 404);
+        }
+
+        $filePath = storage_path('app/public/' . $saranPlatDasar->canvas_file);
+        
+        if (!file_exists($filePath)) {
+            return $this->errorResponse('File tidak ditemukan di storage', 404);
+        }
+
+        return response()->download($filePath);
+    }
+
+    /**
+     * Get canvas file content untuk saran plat dasar
+     */
+    public function getCanvasFile($saranId)
+    {
+        $saranPlatDasar = SaranPlatShaftDasar::find($saranId);
+        
+        if (!$saranPlatDasar) {
+            return $this->errorResponse('Data saran tidak ditemukan', 404);
+        }
+
+        if (!$saranPlatDasar->canvas_file) {
+            return $this->errorResponse('File canvas tidak ditemukan', 404);
+        }
+
+        $filePath = storage_path('app/public/' . $saranPlatDasar->canvas_file);
+        
+        if (!file_exists($filePath)) {
+            return $this->errorResponse('File tidak ditemukan di storage', 404);
+        }
+
+        $content = file_get_contents($filePath);
+        
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'canvas_data' => json_decode($content, true),
+                'file_path' => $saranPlatDasar->canvas_file
+            ]
+        ]);
+    }
+
+    /**
+     * Get canvas file content berdasarkan item barang ID
+     */
+    public function getCanvasFileByItemBarang($itemBarangId)
+    {
+        $itemBarang = ItemBarang::find($itemBarangId);
+        
+        if (!$itemBarang) {
+            return $this->errorResponse('Data item barang tidak ditemukan', 404);
+        }
+
+        if (!$itemBarang->canvas_file) {
+            return $this->errorResponse('File canvas tidak ditemukan untuk item ini', 404);
+        }
+
+        $filePath = storage_path('app/public/' . $itemBarang->canvas_file);
+        
+        if (!file_exists($filePath)) {
+            return $this->errorResponse('File tidak ditemukan di storage', 404);
+        }
+
+        $content = file_get_contents($filePath);
+        
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'item_barang_id' => $itemBarangId,
+                'canvas_data' => json_decode($content, true),
+                'file_path' => $itemBarang->canvas_file
+            ]
+        ]);
+    }
+
+    /**
+     * Get canvas file content berdasarkan item barang ID
+     */
+    public function getCanvasByItemId($itemBarangId)
+    {
+        $itemBarang = ItemBarang::find($itemBarangId);
+        
+        if (!$itemBarang) {
+            return $this->errorResponse('Data item barang tidak ditemukan', 404);
+        }
+
+        if (!$itemBarang->canvas_file) {
+            return $this->errorResponse('File canvas tidak ditemukan untuk item ini', 404);
+        }
+
+        $filePath = storage_path('app/public/' . $itemBarang->canvas_file);
+        
+        if (!file_exists($filePath)) {
+            return $this->errorResponse('File tidak ditemukan di storage', 404);
+        }
+
+        $content = file_get_contents($filePath);
+        
+        // Return hanya isi JSON canvas saja
+        return response()->json(json_decode($content, true));
+    }
+
+   
 
     public function printSpkWorkOrder($id)
     {

@@ -23,6 +23,9 @@ class ItemBarang extends Model
         'quantity',
         'quantity_tebal_sama',
         'jenis_potongan',
+        'is_edit',
+        'user_id',
+        'canvas_file',
     ];
 
     protected $hidden = [

@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Helpers\FileHelper;
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -12,7 +13,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Register FileHelper as singleton
+        $this->app->singleton('filehelper', function ($app) {
+            return new FileHelper();
+        });
     }
 
     /**

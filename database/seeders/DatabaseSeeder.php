@@ -19,6 +19,8 @@ class DatabaseSeeder extends Seeder
             MasterDataSeeder::class,
             PermissionSeeder::class,
             MenuSeeder::class,
+            GudangSeeder::class,
+            ItemBarangSeeder::class,
         ]);
     }
 }
