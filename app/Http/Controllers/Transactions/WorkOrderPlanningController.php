@@ -34,10 +34,12 @@ class WorkOrderPlanningController extends Controller
             'id_sales_order' => 'required|exists:trx_sales_order,id',
             'id_pelanggan' => 'required|exists:ref_pelanggan,id',
             'id_gudang' => 'required|exists:ref_gudang,id',
-            'id_pelaksana' => 'nullable|exists:ref_pelaksana,id',
             'status' => 'required|string',
             'tanggal_wo' => 'required|date',
             'prioritas' => 'required|string',
+            'items' => 'required|array',
+            'items.*.id_pelaksana' => 'nullable|array',
+            'items.*.id_pelaksana.*' => 'exists:ref_pelaksana,id',
         ]);
         if ($validator->fails()) {
             return $this->errorResponse($validator->errors()->first(), 422);
@@ -58,8 +60,9 @@ class WorkOrderPlanningController extends Controller
             'status',
             ]), [
                 'wo_unique_id' => $woUniqueId,
-                'id_pelaksana' => 1 // Hardcode pelaksana ID 1
+                'id_pelaksana' => null // Tidak ada pelaksana di level work order
             ]));
+
 
             // Jika ada items, simpan items beserta relasi ke ref_jenis_barang, ref_bentuk_barang, ref_grade_barang
             if ($request->has('items') && is_array($request->items)) {
@@ -82,13 +85,29 @@ class WorkOrderPlanningController extends Controller
                         'grade_barang_id' => $item['grade_barang_id'] ?? null,
                         'catatan' => $item['catatan'] ?? null,
                     ]);
+
+                    // Insert pelaksana ke item jika ada
+                    if (isset($item['id_pelaksana']) && is_array($item['id_pelaksana'])) {
+                        foreach ($item['id_pelaksana'] as $pelaksanaId) {
+                            WorkOrderPlanningPelaksana::create([
+                                'work_order_planning_item_id' => $workOrderPlanningItem->id,
+                                'pelaksana_id' => $pelaksanaId,
+                                'qty' => null,
+                                'weight' => null,
+                                'tanggal' => null,
+                                'jam_mulai' => null,
+                                'jam_selesai' => null,
+                                'catatan' => null,
+                            ]);
+                        }
+                    }
                 }
             }
 
             DB::commit();
 
             // Load relasi setelah simpan
-            $workOrderPlanning->load(['workOrderPlanningItems', 'salesOrder']);
+            $workOrderPlanning->load(['workOrderPlanningItems.hasManyPelaksana.pelaksana', 'salesOrder']);
 
             return $this->successResponse($workOrderPlanning, 'Work Order Planning berhasil ditambahkan');
         } catch (\Exception $e) {
@@ -428,26 +447,6 @@ class WorkOrderPlanningController extends Controller
         return $this->successResponse($data);
     }
 
-    /*
-    Set saran plat dasar ke work order planning item, 1 wo planning item bisa memiliki lebih dari 1 saran plat dasar
-    */
-    public function setSaranPlatDasar(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'wo_planning_item_id' => 'required|exists:trx_work_order_planning_item,id',
-            'plat_dasar_id' => 'required|exists:ref_item_barang,id',
-        ]);
-        if ($validator->fails()) {
-            return $this->errorResponse($validator->errors()->first(), 422);
-        }
-        $workOrderPlanningItem = WorkOrderPlanningItem::find($request->wo_planning_item_id);
-        if (!$workOrderPlanningItem) {
-            return $this->errorResponse('Data tidak ditemukan', 404);
-        }
-        $workOrderPlanningItem->plat_dasar_id = $request->plat_dasar_id;
-        $workOrderPlanningItem->save();
-        return $this->successResponse($workOrderPlanningItem);
-    }
 
     /**
      * Tambah saran plat/shaft dasar ke work order planning item
@@ -523,71 +522,7 @@ class WorkOrderPlanningController extends Controller
         }
     }
 
-    /**
-     * Update saran plat/shaft dasar
-     */
-    public function updateSaranPlatDasar(Request $request, $saranId)
-    {
-        $validator = Validator::make($request->all(), [
-            'is_selected' => 'boolean',
-        ]);
 
-        if ($validator->fails()) {
-            return $this->errorResponse($validator->errors()->first(), 422);
-        }
-
-        $saranPlatDasar = SaranPlatShaftDasar::find($saranId);
-        if (!$saranPlatDasar) {
-            return $this->errorResponse('Data saran plat dasar tidak ditemukan', 404);
-        }
-
-        DB::beginTransaction();
-        try {
-            // Jika is_selected = true, set semua saran lain menjadi false
-            if ($request->is_selected) {
-                SaranPlatShaftDasar::where('wo_planning_item_id', $saranPlatDasar->wo_planning_item_id)
-                    ->where('id', '!=', $saranId)
-                    ->update(['is_selected' => false]);
-                
-                // Update plat_dasar_id di work order planning item
-                $item = WorkOrderPlanningItem::find($saranPlatDasar->wo_planning_item_id);
-                if ($item) {
-                    $item->plat_dasar_id = $saranPlatDasar->item_barang_id;
-                    $item->save();
-                }
-            }
-
-            // Update saran plat dasar
-            $saranPlatDasar->update($request->only(['is_selected']));
-
-            // Load relasi untuk response
-            $saranPlatDasar->load('itemBarang');
-
-            DB::commit();
-            return $this->successResponse($saranPlatDasar, 'Saran plat dasar berhasil diupdate');
-        } catch (\Exception $e) {
-            DB::rollback();
-            return $this->errorResponse('Gagal mengupdate saran plat dasar: ' . $e->getMessage(), 500);
-        }
-    }
-
-    /**
-     * Hapus saran plat/shaft dasar
-     */
-    public function removeSaranPlatDasar($saranId)
-    {
-        $saranPlatDasar = SaranPlatShaftDasar::find($saranId);
-        if (!$saranPlatDasar) {
-            return $this->errorResponse('Data saran plat dasar tidak ditemukan', 404);
-        }
-
-        try {
-            $saranPlatDasar->delete();
-            return $this->successResponse(null, 'Saran plat dasar berhasil dihapus');
-        } catch (\Exception $e) {
-            return $this->errorResponse('Gagal menghapus saran plat dasar: ' . $e->getMessage(), 500);
-        }
-    }
 
     /**
      * Set saran plat dasar sebagai yang dipilih (is_selected = true)
