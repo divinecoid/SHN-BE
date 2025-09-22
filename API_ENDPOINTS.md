@@ -378,7 +378,7 @@
 
 #### 3. Create Work Order Planning
 - **POST** `/api/work-order-planning`
-- **Description**: Membuat work order planning baru
+- **Description**: Membuat work order planning baru dengan support multiple pelaksana per item
 - **Request Body**:
 ```json
 {
@@ -387,7 +387,6 @@
   "id_sales_order": 1,
   "id_pelanggan": 1,
   "id_gudang": 1,
-  "id_pelaksana": 1,
   "prioritas": "HIGH",
   "status": "DRAFT",
   "items": [
@@ -400,11 +399,29 @@
       "jenis_barang_id": 1,
       "bentuk_barang_id": 1,
       "grade_barang_id": 1,
-      "catatan": "Catatan item"
+      "catatan": "Catatan item",
+      "id_pelaksana": [1, 2, 3]
+    },
+    {
+      "qty": 5,
+      "panjang": 80.00,
+      "lebar": 40.00,
+      "tebal": 1.50,
+      "plat_dasar_id": 2,
+      "jenis_barang_id": 2,
+      "bentuk_barang_id": 1,
+      "grade_barang_id": 2,
+      "catatan": "Item kedua",
+      "id_pelaksana": [2, 4]
     }
   ]
 }
 ```
+- **Notes**:
+  - `id_pelaksana` sekarang berada di dalam setiap item dan menerima array of integers (multiple pelaksana per item)
+  - Setiap item bisa memiliki pelaksana yang berbeda
+  - Pelaksana akan ditambahkan ke tabel `trx_work_order_planning_pelaksana` untuk setiap item
+  - Response akan include relasi `workOrderPlanningItems.hasManyPelaksana.pelaksana`
 
 #### 4. Update Work Order Planning
 - **PUT/PATCH** `/api/work-order-planning/{id}`
@@ -527,30 +544,20 @@
 ```
 - **Response**: List item barang yang memenuhi salah satu kriteria dalam array, dengan jenis, bentuk, grade barang yang sama, tebal yang sama, sisa_luas lebih besar dari parameter, dan tidak sedang diedit (is_edit = false atau null), diurutkan berdasarkan sisa_luas (ascending). Duplikasi dihilangkan berdasarkan ID item barang.
 
-#### 14. Set Saran Plat Dasar
-- **POST** `/api/work-order-planning/saran-plat-dasar`
-- **Description**: Set plat dasar untuk work order planning item
-- **Request Body**:
-```json
-{
-  "wo_planning_item_id": 1,
-  "plat_dasar_id": 1
-}
-```
 
-#### 15. Print SPK Work Order
+#### 14. Print SPK Work Order
 - **GET** `/api/work-order-planning/{id}/print-spk`
 - **Description**: Mendapatkan data untuk print SPK work order
 - **Response**: Data terformat untuk print dengan informasi jenis barang, bentuk barang, grade barang, ukuran, qty, berat, luas, plat dasar, dan pelaksana
 
 ### Saran Plat/Shaft Dasar Management
 
-#### 16. Get Saran Plat Dasar by Item
+#### 15. Get Saran Plat Dasar by Item
 - **GET** `/api/work-order-planning/item/{itemId}/saran-plat-dasar`
 - **Description**: Mendapatkan semua saran plat/shaft dasar untuk item tertentu
 - **Response**: List saran plat dasar dengan relasi item barang, diurutkan berdasarkan is_selected (true di atas) dan created_at
 
-#### 17. Add Saran Plat Dasar
+#### 16. Add Saran Plat Dasar
 - **POST** `/api/work-order-planning/saran-plat-dasar`
 - **Description**: Menambahkan saran plat/shaft dasar baru ke item dengan canvas file
 - **Request Body**:
@@ -568,21 +575,8 @@
   - `is_selected` (optional, boolean): Apakah saran ini dipilih (default: false)
   - `canvas_data` (optional, json): Data canvas dalam format JSON string (bebas, bisa berisi shapes, coordinates, annotations, dll)
 
-#### 18. Update Saran Plat Dasar
-- **PATCH** `/api/work-order-planning/saran-plat-dasar/{saranId}`
-- **Description**: Mengupdate saran plat/shaft dasar
-- **Request Body**:
-```json
-{
-  "is_selected": true
-}
-```
 
-#### 19. Remove Saran Plat Dasar
-- **DELETE** `/api/work-order-planning/saran-plat-dasar/{saranId}`
-- **Description**: Menghapus saran plat/shaft dasar dari item
-
-#### 20. Set Selected Plat Dasar
+#### 17. Set Selected Plat Dasar
 - **PATCH** `/api/work-order-planning/saran-plat-dasar/{saranId}/select`
 - **Description**: Set saran plat dasar sebagai yang dipilih (is_selected = true)
 - **Note**: Otomatis akan set semua saran lain menjadi false dan update plat_dasar_id di work order planning item
@@ -591,6 +585,7 @@
 ## Notes
 
 - Semua endpoint memerlukan authentication dan authorization (middleware `checkrole`)
+- **Multiple Pelaksana Support**: Field `id_pelaksana` dalam create work order sekarang berada di dalam setiap item dan menerima array of integers untuk multiple pelaksana per item
 - Field `pelaksana` dalam update item akan mengganti semua pelaksana yang ada dengan yang baru
 - Field `saran_plat_dasar` dalam update item akan mengganti semua saran plat dasar yang ada dengan yang baru
 - Jika tidak ada field `pelaksana` atau `saran_plat_dasar` dalam request, data yang ada tidak akan berubah
@@ -598,6 +593,7 @@
 - Ketika `is_selected = true` diset, otomatis akan update `plat_dasar_id` di work order planning item
 - Semua operasi pelaksana dan saran plat dasar menggunakan soft delete
 - Relasi yang di-load secara otomatis: jenis barang, bentuk barang, grade barang, plat dasar, pelaksana, dan saran plat dasar
+- **Pelaksana Assignment**: Setiap item dapat memiliki pelaksana yang berbeda melalui field `id_pelaksana` di dalam item
 
 ### Canvas File Notes
 
