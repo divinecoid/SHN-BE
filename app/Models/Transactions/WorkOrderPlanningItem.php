@@ -60,7 +60,7 @@ class WorkOrderPlanningItem extends Model
 
     public function hasManyPelaksana()
     {
-        return $this->hasMany(WorkOrderPlanningPelaksana::class);
+        return $this->hasMany(WorkOrderPlanningPelaksana::class, 'wo_plan_item_id', 'id');
     }
 
     public function hasManySaranPlatShaftDasar()

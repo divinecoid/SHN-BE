@@ -20,7 +20,19 @@ class WorkOrderPlanningController extends Controller
     public function index(Request $request)
     {
         $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
-        $query = WorkOrderPlanning::with(['workOrderPlanningItems', 'salesOrder']);
+        $query = WorkOrderPlanning::query()
+            ->leftJoin('ref_pelanggan', 'trx_work_order_planning.id_pelanggan', '=', 'ref_pelanggan.id')
+            ->leftJoin('ref_gudang', 'trx_work_order_planning.id_gudang', '=', 'ref_gudang.id')
+            ->leftJoin('trx_sales_order', 'trx_work_order_planning.id_sales_order', '=', 'trx_sales_order.id')
+            ->leftJoin('trx_work_order_planning_item', 'trx_work_order_planning.id', '=', 'trx_work_order_planning_item.work_order_planning_id')
+            ->addSelect([
+                'trx_work_order_planning.*',
+                'ref_pelanggan.nama_pelanggan',
+                'ref_gudang.nama_gudang',
+                'trx_sales_order.nomor_so',
+                DB::raw('COUNT(trx_work_order_planning_item.id) as count')
+            ])
+            ->groupBy('trx_work_order_planning.id');
         $query = $this->applyFilter($query, $request, ['sales_order.nomor_so', 'nomor_wo', 'tanggal_wo', 'prioritas', 'status']);
         $data = $query->paginate($perPage);
         $items = collect($data->items());
@@ -38,8 +50,14 @@ class WorkOrderPlanningController extends Controller
             'tanggal_wo' => 'required|date',
             'prioritas' => 'required|string',
             'items' => 'required|array',
-            'items.*.id_pelaksana' => 'nullable|array',
-            'items.*.id_pelaksana.*' => 'exists:ref_pelaksana,id',
+            'items.*.pelaksana' => 'nullable|array',
+            'items.*.pelaksana.*.pelaksana_id' => 'required|exists:ref_pelaksana,id',
+            'items.*.pelaksana.*.qty' => 'nullable|integer|min:0',
+            'items.*.pelaksana.*.weight' => 'nullable|numeric|min:0',
+            'items.*.pelaksana.*.tanggal' => 'nullable|date',
+            'items.*.pelaksana.*.jam_mulai' => 'nullable|date_format:H:i',
+            'items.*.pelaksana.*.jam_selesai' => 'nullable|date_format:H:i',
+            'items.*.pelaksana.*.catatan' => 'nullable|string|max:500',
         ]);
         if ($validator->fails()) {
             return $this->errorResponse($validator->errors()->first(), 422);
@@ -60,7 +78,6 @@ class WorkOrderPlanningController extends Controller
             'status',
             ]), [
                 'wo_unique_id' => $woUniqueId,
-                'id_pelaksana' => null // Tidak ada pelaksana di level work order
             ]));
 
 
@@ -87,17 +104,17 @@ class WorkOrderPlanningController extends Controller
                     ]);
 
                     // Insert pelaksana ke item jika ada
-                    if (isset($item['id_pelaksana']) && is_array($item['id_pelaksana'])) {
-                        foreach ($item['id_pelaksana'] as $pelaksanaId) {
+                    if (isset($item['pelaksana']) && is_array($item['pelaksana'])) {
+                        foreach ($item['pelaksana'] as $pelaksanaData) {
                             WorkOrderPlanningPelaksana::create([
-                                'work_order_planning_item_id' => $workOrderPlanningItem->id,
-                                'pelaksana_id' => $pelaksanaId,
-                                'qty' => null,
-                                'weight' => null,
-                                'tanggal' => null,
-                                'jam_mulai' => null,
-                                'jam_selesai' => null,
-                                'catatan' => null,
+                                'wo_plan_item_id' => $workOrderPlanningItem->id,
+                                'pelaksana_id' => $pelaksanaData['pelaksana_id'],
+                                'qty' => $pelaksanaData['qty'] ?? null,
+                                'weight' => $pelaksanaData['weight'] ?? null,
+                                'tanggal' => $pelaksanaData['tanggal'] ?? null,
+                                'jam_mulai' => $pelaksanaData['jam_mulai'] ?? null,
+                                'jam_selesai' => $pelaksanaData['jam_selesai'] ?? null,
+                                'catatan' => $pelaksanaData['catatan'] ?? null,
                             ]);
                         }
                     }
@@ -178,7 +195,7 @@ class WorkOrderPlanningController extends Controller
                 foreach ($request->pelaksana as $pelaksanaData) {
                     if (!empty($pelaksanaData['pelaksana_id'])) {
                         WorkOrderPlanningPelaksana::create([
-                            'work_order_planning_item_id' => $data->id,
+                            'wo_plan_item_id' => $data->id,
                             'pelaksana_id' => $pelaksanaData['pelaksana_id'],
                             'qty' => $pelaksanaData['qty'] ?? null,
                             'weight' => $pelaksanaData['weight'] ?? null,
@@ -252,7 +269,7 @@ class WorkOrderPlanningController extends Controller
 
         try {
             $pelaksana = WorkOrderPlanningPelaksana::create([
-                'work_order_planning_item_id' => $item->id,
+                'wo_plan_item_id' => $item->id,
                 'pelaksana_id' => $request->pelaksana_id,
                 'qty' => $request->qty,
                 'weight' => $request->weight,
@@ -280,7 +297,7 @@ class WorkOrderPlanningController extends Controller
         }
 
         $pelaksana = WorkOrderPlanningPelaksana::where('id', $pelaksanaId)
-            ->where('work_order_planning_item_id', $item->id)
+            ->where('wo_plan_item_id', $item->id)
             ->first();
 
         if (!$pelaksana) {
@@ -319,7 +336,7 @@ class WorkOrderPlanningController extends Controller
         }
 
         $pelaksana = WorkOrderPlanningPelaksana::where('id', $pelaksanaId)
-            ->where('work_order_planning_item_id', $item->id)
+            ->where('wo_plan_item_id', $item->id)
             ->first();
 
         if (!$pelaksana) {

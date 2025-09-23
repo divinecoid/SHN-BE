@@ -11,7 +11,7 @@ class WorkOrderPlanningPelaksana extends Model
     protected $table = 'trx_work_order_planning_pelaksana';
 
     protected $fillable = [
-        'work_order_planning_item_id',
+        'wo_plan_item_id',
         'pelaksana_id',
         'qty',
         'weight',
@@ -25,19 +25,19 @@ class WorkOrderPlanningPelaksana extends Model
 
     protected $casts = [
         'tanggal' => 'date',
-        'jam_mulai' => 'time',
-        'jam_selesai' => 'time',
+        'jam_mulai' => 'datetime:H:i:s',
+        'jam_selesai' => 'datetime:H:i:s',
         'qty' => 'integer',
         'weight' => 'decimal:2',
     ];  
 
     public function workOrderPlanningItem()
     {
-        return $this->belongsTo(WorkOrderPlanningItem::class);
+        return $this->belongsTo(WorkOrderPlanningItem::class, 'wo_plan_item_id', 'id');
     }
 
     public function pelaksana()
     {
-        return $this->belongsTo(Pelaksana::class);
+        return $this->belongsTo(\App\Models\MasterData\Pelaksana::class);
     }
 }

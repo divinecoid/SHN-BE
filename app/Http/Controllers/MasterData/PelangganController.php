@@ -38,6 +38,20 @@ class PelangganController extends Controller
         return $this->successResponse($data, 'Data berhasil ditambahkan');
     }
 
+    public function storeWithoutValidation(Request $request)
+    {
+        //only validate kode and nama_pelanggan
+        $validator = Validator::make($request->all(), [
+            'kode' => 'required|string|unique:ref_pelanggan,kode',
+            'nama_pelanggan' => 'required|string',
+        ]);
+        if ($validator->fails()) {
+            return $this->errorResponse($validator->errors()->first(), 422);
+        }
+        $data = Pelanggan::create($request->only(['kode', 'nama_pelanggan', 'kota', 'telepon_hp', 'contact_person']));
+        return $this->successResponse($data, 'Data berhasil ditambahkan');
+    }
+
     public function show($id)
     {
         $data = Pelanggan::find($id);

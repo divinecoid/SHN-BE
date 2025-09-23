@@ -287,6 +287,7 @@ Route::prefix('pelanggan')->middleware('checkrole')->group(function () {
     Route::get('/', [PelangganController::class, 'index']);
     Route::get('{id}', [PelangganController::class, 'show']);
     Route::post('/', [PelangganController::class, 'store']);
+    Route::post('/without-validation', [PelangganController::class, 'storeWithoutValidation']);
     Route::put('{id}', [PelangganController::class, 'update']);
     Route::patch('{id}', [PelangganController::class, 'update']);
 });
