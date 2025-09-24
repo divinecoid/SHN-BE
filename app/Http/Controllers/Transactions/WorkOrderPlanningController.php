@@ -136,12 +136,23 @@ class WorkOrderPlanningController extends Controller
     public function show($id)
     {
         $data = WorkOrderPlanning::with([
-            'workOrderPlanningItems', 
-            'salesOrder'
+            'workOrderPlanningItems.hasManyPelaksana.pelaksana',
+            'workOrderPlanningItems.jenisBarang',
+            'workOrderPlanningItems.bentukBarang',
+            'workOrderPlanningItems.gradeBarang'
         ])->find($id);
         if (!$data) {
             return $this->errorResponse('Data tidak ditemukan', 404);
         }
+        
+        // Ambil nomor_so dari sales order tanpa memuat object salesOrder
+        $nomorSo = \DB::table('trx_sales_order')
+            ->where('id', $data->id_sales_order)
+            ->value('nomor_so');
+        
+        // Tambahkan nomor_so ke object utama
+        $data->nomor_so = $nomorSo;
+        
         return $this->successResponse($data);
     }
 

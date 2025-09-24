@@ -5,6 +5,13 @@ namespace App\Models\Transactions;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Traits\HideTimestampsInRelations;
+use App\Models\MasterData\JenisBarang;
+use App\Models\MasterData\BentukBarang;
+use App\Models\MasterData\GradeBarang;
+use App\Models\MasterData\ItemBarang;
+use App\Models\Transactions\WorkOrderPlanningPelaksana;
+use App\Models\Transactions\SaranPlatShaftDasar;
+
 class WorkOrderPlanningItem extends Model
 {
     use SoftDeletes, HideTimestampsInRelations;
