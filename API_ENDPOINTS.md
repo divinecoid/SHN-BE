@@ -382,6 +382,7 @@
 - **Request Body**:
 ```json
 {
+  "wo_unique_id": "WO-20240101-ABC123",
   "nomor_wo": "WO-001",
   "tanggal_wo": "2024-01-01",
   "id_sales_order": 1,
@@ -391,6 +392,7 @@
   "status": "DRAFT",
   "items": [
     {
+      "wo_item_unique_id": "WOI-20240101-DEF456",
       "qty": 10,
       "panjang": 100.00,
       "lebar": 50.00,
@@ -403,6 +405,7 @@
       "id_pelaksana": [1, 2, 3]
     },
     {
+      "wo_item_unique_id": "WOI-20240101-GHI789",
       "qty": 5,
       "panjang": 80.00,
       "lebar": 40.00,
@@ -417,7 +420,29 @@
   ]
 }
 ```
+- **Parameters**:
+  - `wo_unique_id` (required): Unique identifier untuk work order planning
+  - `nomor_wo` (required): Nomor work order
+  - `tanggal_wo` (required): Tanggal work order
+  - `id_sales_order` (required): ID sales order
+  - `id_pelanggan` (required): ID pelanggan
+  - `id_gudang` (required): ID gudang
+  - `prioritas` (required): Prioritas work order
+  - `status` (required): Status work order
+  - `items` (required, array): Array items work order
+  - `items.*.wo_item_unique_id` (required): Unique identifier untuk setiap item
+  - `items.*.qty` (optional): Quantity item
+  - `items.*.panjang` (optional): Panjang item
+  - `items.*.lebar` (optional): Lebar item
+  - `items.*.tebal` (optional): Tebal item
+  - `items.*.plat_dasar_id` (optional): ID plat dasar
+  - `items.*.jenis_barang_id` (optional): ID jenis barang
+  - `items.*.bentuk_barang_id` (optional): ID bentuk barang
+  - `items.*.grade_barang_id` (optional): ID grade barang
+  - `items.*.catatan` (optional): Catatan item
+  - `items.*.id_pelaksana` (optional, array): Array ID pelaksana untuk item
 - **Notes**:
+  - `wo_unique_id` dan `wo_item_unique_id` harus unik dan disediakan dari request
   - `id_pelaksana` sekarang berada di dalam setiap item dan menerima array of integers (multiple pelaksana per item)
   - Setiap item bisa memiliki pelaksana yang berbeda
   - Pelaksana akan ditambahkan ke tabel `trx_work_order_planning_pelaksana` untuk setiap item
@@ -559,18 +584,18 @@
 
 #### 16. Add Saran Plat Dasar
 - **POST** `/api/work-order-planning/saran-plat-dasar`
-- **Description**: Menambahkan saran plat/shaft dasar baru ke item dengan canvas file
+- **Description**: Menambahkan saran plat/shaft dasar baru ke item dengan canvas file. Mendukung multiple items dalam satu request.
 - **Request Body**:
 ```json
 {
-  "wo_planning_item_id": 123,
+  "wo_planning_item_id": ["WOI-20240101-DEF456", "WOI-20240101-GHI789", "WOI-20240101-JKL012"],
   "item_barang_id": 1,
   "is_selected": true,
   "canvas_data": "{\"shapes\":[{\"type\":\"rectangle\",\"x\":10,\"y\":20,\"width\":100,\"height\":50}]}"
 }
 ```
 - **Parameters**:
-  - `wo_planning_item_id` (required): ID work order planning item
+  - `wo_planning_item_id` (required, array of strings): Array wo_item_unique_id work order planning items
   - `item_barang_id` (required): ID item barang yang akan dijadikan saran
   - `is_selected` (optional, boolean): Apakah saran ini dipilih (default: false)
   - `canvas_data` (optional, json): Data canvas dalam format JSON string (bebas, bisa berisi shapes, coordinates, annotations, dll)
@@ -578,7 +603,15 @@
 
 #### 17. Set Selected Plat Dasar
 - **PATCH** `/api/work-order-planning/saran-plat-dasar/{saranId}/select`
-- **Description**: Set saran plat dasar sebagai yang dipilih (is_selected = true)
+- **Description**: Set saran plat dasar sebagai yang dipilih (is_selected = true) menggunakan wo_item_unique_id
+- **Request Body**:
+```json
+{
+  "wo_item_unique_id": "WOI-20240101-DEF456"
+}
+```
+- **Parameters**:
+  - `wo_item_unique_id` (required, string): Unique identifier work order planning item
 - **Note**: Otomatis akan set semua saran lain menjadi false dan update plat_dasar_id di work order planning item
 
 
