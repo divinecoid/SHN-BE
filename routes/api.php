@@ -27,6 +27,7 @@ use App\Http\Controllers\RoleMenuPermissionController;
 use App\Http\Controllers\StaticDataController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\Transactions\WorkOrderPlanningController;
+use App\Http\Controllers\Transactions\WorkOrderActualController;
 use App\Http\Controllers\Transactions\PurchaseOrderController;
 Route::get('/user', function (Request $request) {
     return $request->user()->load('roles');
@@ -399,6 +400,7 @@ Route::prefix('work-order-planning')->middleware('checkrole')->group(function ()
     Route::post('/', [WorkOrderPlanningController::class, 'store']);
     Route::put('{id}', [WorkOrderPlanningController::class, 'update']);
     Route::patch('{id}', [WorkOrderPlanningController::class, 'update']);
+    Route::patch('{id}/status', [WorkOrderPlanningController::class, 'updateStatus']);
     Route::delete('{id}', [WorkOrderPlanningController::class, 'destroy']);
     Route::patch('{id}/restore', [WorkOrderPlanningController::class, 'restore']);
     Route::delete('{id}/force', [WorkOrderPlanningController::class, 'forceDelete']);
@@ -424,7 +426,35 @@ Route::prefix('work-order-planning')->middleware('checkrole')->group(function ()
     Route::delete('saran-plat-dasar/{saranId}', [WorkOrderPlanningController::class, 'removeSaranPlatDasar']);
   });
 
-// File operations routes (get, show, download only)
+// WorkOrderActual routes
+Route::prefix('work-order-actual')->middleware('checkrole')->group(function () {
+    Route::get('/', [WorkOrderActualController::class, 'index']);
+    Route::get('{id}', [WorkOrderActualController::class, 'show']);
+    Route::post('/', [WorkOrderActualController::class, 'store']);
+    Route::put('{id}', [WorkOrderActualController::class, 'update']);
+    Route::patch('{id}', [WorkOrderActualController::class, 'update']);
+
+    // Item routes
+    Route::get('item/{id}', [WorkOrderActualController::class, 'showItem']);
+    Route::put('item/{id}', [WorkOrderActualController::class, 'updateItem']);
+    Route::patch('item/{id}', [WorkOrderActualController::class, 'updateItem']);
+
+    // Pelaksana routes untuk item
+    Route::post('item/{itemId}/pelaksana', [WorkOrderActualController::class, 'addPelaksana']);
+    Route::put('item/{itemId}/pelaksana/{pelaksanaId}', [WorkOrderActualController::class, 'updatePelaksana']);
+    Route::patch('item/{itemId}/pelaksana/{pelaksanaId}', [WorkOrderActualController::class, 'updatePelaksana']);
+    Route::delete('item/{itemId}/pelaksana/{pelaksanaId}', [WorkOrderActualController::class, 'removePelaksana']);
+});
+Route::prefix('work-order-actual')->middleware('checkrole:admin')->group(function () {
+    Route::delete('{id}/soft', [WorkOrderActualController::class, 'softDelete']);
+    Route::patch('{id}/restore', [WorkOrderActualController::class, 'restore']);
+    Route::delete('{id}/force', [WorkOrderActualController::class, 'forceDelete']);
+    Route::get('with-trashed/all', [WorkOrderActualController::class, 'indexWithTrashed']);
+    Route::get('with-trashed/trashed', [WorkOrderActualController::class, 'indexTrashed']);
+});
+
+
+  // File operations routes (get, show, download only)
 Route::middleware('checkrole')->group(function () {
     Route::get('files/info', [FileController::class, 'getFileInfo']);
     Route::get('files/download', [FileController::class, 'downloadFile']);

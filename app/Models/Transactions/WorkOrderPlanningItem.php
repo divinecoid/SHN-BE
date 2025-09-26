@@ -72,7 +72,7 @@ class WorkOrderPlanningItem extends Model
 
     public function hasManySaranPlatShaftDasar()
     {
-        return $this->hasMany(SaranPlatShaftDasar::class);
+        return $this->hasMany(SaranPlatShaftDasar::class, 'wo_planning_item_id', 'id');
     }
 
     public function platDasar()

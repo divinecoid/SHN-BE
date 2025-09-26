@@ -13,10 +13,12 @@ class WorkOrderActualItem extends Model
 
     protected $fillable = [
         'work_order_actual_id',
+        'wo_plan_item_id',
         'panjang_actual',
         'lebar_actual',
         'tebal_actual',
         'qty_actual',
+        'berat_actual',
         'jenis_barang_id',
         'bentuk_barang_id',
         'grade_barang_id',
@@ -33,6 +35,7 @@ class WorkOrderActualItem extends Model
         'lebar_actual' => 'decimal:2',
         'tebal_actual' => 'decimal:2',  
         'qty_actual' => 'integer',
+        'berat_actual' => 'decimal:2',
         'diskon' => 'decimal:2',
     ];
 

@@ -4,12 +4,16 @@ namespace App\Http\Controllers\Transactions;
 
 use Illuminate\Http\Request;
 use App\Models\MasterData\ItemBarang;
+use App\Models\MasterData\SalesOrder;
+use App\Models\Transactions\WorkOrderActual;
 use App\Models\Transactions\WorkOrderPlanning;
 use App\Models\Transactions\WorkOrderPlanningItem;
+use App\Models\Transactions\WorkOrderActualItem;
 use App\Models\Transactions\WorkOrderPlanningPelaksana;
 use App\Models\Transactions\SaranPlatShaftDasar;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\ApiFilterTrait;
 
@@ -133,7 +137,7 @@ class WorkOrderPlanningController extends Controller
         }
     }
 
-    public function show($id)
+    public function show($id, Request $request)
     {
         $data = WorkOrderPlanning::with([
             'workOrderPlanningItems.hasManyPelaksana.pelaksana',
@@ -146,19 +150,108 @@ class WorkOrderPlanningController extends Controller
         }
         
         // Ambil nomor_so dari sales order tanpa memuat object salesOrder
-        $nomorSo = \DB::table('trx_sales_order')
-            ->where('id', $data->id_sales_order)
-            ->value('nomor_so');
+        $nomorSo = SalesOrder::where('id', $data->id_sales_order)->value('nomor_so');
         
         // Tambahkan nomor_so ke object utama
         $data->nomor_so = $nomorSo;
         
+        // Cek apakah perlu membuat WorkOrderActual
+        $createActual = $request->boolean('create_actual', false);
+        if ($createActual) {
+            DB::beginTransaction();
+            try {
+                // Cek apakah sudah ada WorkOrderActual untuk WorkOrderPlanning ini
+                $existingActual = WorkOrderActual::where('work_order_planning_id', $id)->first();
+                
+                if (!$existingActual) {
+                    // Buat WorkOrderActual baru
+                    $workOrderActual = WorkOrderActual::create([
+                        'work_order_planning_id' => $id,
+                        'tanggal_actual' => now(),
+                        'status' => 'On Progress',
+                        'catatan' => 'Dibuat otomatis dari Work Order Planning'
+                    ]);
+                    
+                    // Update status work order planning menjadi 'On Progress'
+                    $workOrderPlanningUpdated = WorkOrderPlanning::where('id', $id)->update(['status' => 'On Progress']);
+                    Log::info("Work Order Planning update result: " . ($workOrderPlanningUpdated ? 'success' : 'failed'));
+                    
+                    // Commit transaction
+                    DB::commit();
+                    
+                    // Tambahkan informasi WorkOrderActual ke response
+                    $data->work_order_actual = $workOrderActual;
+                } else {
+                    // Jika sudah ada, tambahkan informasi yang sudah ada
+                    $data->work_order_actual = $existingActual;
+                }
+            } catch (\Exception $e) {
+                // Rollback transaction jika ada error
+                DB::rollback();
+                Log::error('Gagal membuat WorkOrderActual: ' . $e->getMessage());
+                return $this->errorResponse('Gagal membuat Work Order Actual: ' . $e->getMessage(), 500);
+            }
+        }
+        
         return $this->successResponse($data);
     }
 
-    public function showItem($id)
+    public function showItem($id, Request $request)
     {
         $data = WorkOrderPlanningItem::with(['jenisBarang', 'bentukBarang', 'gradeBarang', 'platDasar', 'hasManySaranPlatShaftDasar.itemBarang'])->find($id);
+        
+        if (!$data) {
+            return $this->errorResponse('Data tidak ditemukan', 404);
+        }
+        
+        // Cek apakah perlu membuat WorkOrderActual
+        $createActual = $request->boolean('create_actual', false);
+        if ($createActual) {
+            // Validasi parameter wo_actual_id
+            $woActualId = $request->input('wo_actual_id');
+            if (!$woActualId) {
+                return $this->errorResponse('Parameter wo_actual_id diperlukan', 400);
+            }
+            
+            DB::beginTransaction();
+            try {
+                // Cek apakah sudah ada WorkOrderActual untuk WorkOrderPlanning ini
+                $existingActual = WorkOrderActualItem::where('wo_plan_item_id', $data->id)->first();
+
+                if (!$existingActual) {
+                    // Buat WorkOrderActualItem baru dengan wo_actual_id dari parameter
+                    $workOrderActualItem = WorkOrderActualItem::create([
+                        'wo_plan_item_id' => $data->id,
+                        'work_order_actual_id' => $woActualId,
+                        'panjang_actual' => $data->panjang,
+                        'lebar_actual' => $data->lebar,
+                        'tebal_actual' => $data->tebal,
+                        'qty_actual' => $data->qty,
+                        'berat_actual' => $data->berat,
+                        'jenis_barang_id' => $data->jenis_barang_id,
+                        'bentuk_barang_id' => $data->bentuk_barang_id,
+                        'grade_barang_id' => $data->grade_barang_id,
+                        'plat_dasar_id' => $data->plat_dasar_id,
+                        'satuan' => $data->satuan,
+                        'catatan' => $data->catatan,
+                    ]);
+                    // Commit transaction
+                    DB::commit();
+                    
+                    // Tambahkan informasi WorkOrderActual ke response
+                    $data->work_order_actual_item = $workOrderActualItem;
+                } else {
+                    // Jika sudah ada, tambahkan informasi yang sudah ada
+                    $data->work_order_actual_item = $existingActual;
+                }
+            } catch (\Exception $e) {
+                // Rollback transaction jika ada error
+                DB::rollback();
+                Log::error('Error creating WorkOrderActual: ' . $e->getMessage());
+                return $this->errorResponse('Gagal membuat Work Order Actual: ' . $e->getMessage(), 500);
+            }
+        }
+        
         return $this->successResponse($data);
     }
 
@@ -374,6 +467,44 @@ class WorkOrderPlanningController extends Controller
         }
         $data->update($request->all());
         return $this->successResponse($data);
+    }
+
+    /**
+     * Update status work order planning
+     */
+    public function updateStatus(Request $request, $id)
+    {
+        $validator = Validator::make($request->all(), [
+            'status' => 'required|string|in:draft,On Progress,completed,cancelled',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->errorResponse($validator->errors()->first(), 422);
+        }
+
+        $workOrderPlanning = WorkOrderPlanning::find($id);
+        if (!$workOrderPlanning) {
+            return $this->errorResponse('Data tidak ditemukan', 404);
+        }
+
+        DB::beginTransaction();
+        try {
+            // Update status work order planning
+            $workOrderPlanning->status = $request->status;
+            $workOrderPlanning->save();
+
+            // Update status sales order jika ada
+            if ($workOrderPlanning->id_sales_order) {
+                SalesOrder::where('id', $workOrderPlanning->id_sales_order)->update(['status' => $request->status]);
+            }
+
+            DB::commit();
+            return $this->successResponse($workOrderPlanning, 'Status berhasil diupdate');
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Gagal update status: ' . $e->getMessage());
+            return $this->errorResponse('Gagal update status: ' . $e->getMessage(), 500);
+        }
     }
 
     public function destroy($id)
