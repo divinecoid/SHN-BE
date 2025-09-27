@@ -79,4 +79,9 @@ class WorkOrderPlanningItem extends Model
     {
         return $this->belongsTo(\App\Models\MasterData\ItemBarang::class, 'plat_dasar_id');
     }
+
+    public function workOrderActualItem()
+    {
+        return $this->hasOne(WorkOrderActualItem::class, 'wo_plan_item_id', 'id');
+    }
 }
