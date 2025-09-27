@@ -64,6 +64,14 @@ class WorkOrderActualController extends Controller
             $actualWorkOrderId = $request->input('actualWorkOrderId');
             $planningWorkOrderId = $request->input('planningWorkOrderId');
 
+            $planningWorkOrder = WorkOrderPlanning::find($planningWorkOrderId);
+            if (!$planningWorkOrder) {
+                throw new \Exception("PlanningWorkOrder dengan ID {$planningWorkOrderId} tidak ditemukan");
+            }
+
+            $planningWorkOrder->status = 'Selesai';
+            $planningWorkOrder->save();
+
             $actualWorkOrder = WorkOrderActual::find($actualWorkOrderId);
             if (!$actualWorkOrder) {
                 throw new \Exception("ActualWorkOrder dengan ID {$actualWorkOrderId} tidak ditemukan");
