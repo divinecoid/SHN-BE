@@ -28,7 +28,7 @@ class SaranPlatShaftDasar extends Model
 
     public function workOrderPlanningItem()
     {
-        return $this->belongsTo(WorkOrderPlanningItem::class);
+        return $this->belongsTo(WorkOrderPlanningItem::class, 'wo_planning_item_id', 'id');
     }
 
     public function itemBarang()

@@ -72,11 +72,16 @@ class WorkOrderPlanningItem extends Model
 
     public function hasManySaranPlatShaftDasar()
     {
-        return $this->hasMany(SaranPlatShaftDasar::class);
+        return $this->hasMany(SaranPlatShaftDasar::class, 'wo_planning_item_id', 'id');
     }
 
     public function platDasar()
     {
         return $this->belongsTo(\App\Models\MasterData\ItemBarang::class, 'plat_dasar_id');
+    }
+
+    public function workOrderActualItem()
+    {
+        return $this->hasOne(WorkOrderActualItem::class, 'wo_plan_item_id', 'id');
     }
 }

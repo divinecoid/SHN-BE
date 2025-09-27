@@ -13,10 +13,12 @@ class WorkOrderActualItem extends Model
 
     protected $fillable = [
         'work_order_actual_id',
+        'wo_plan_item_id',
         'panjang_actual',
         'lebar_actual',
         'tebal_actual',
         'qty_actual',
+        'berat_actual',
         'jenis_barang_id',
         'bentuk_barang_id',
         'grade_barang_id',
@@ -33,6 +35,7 @@ class WorkOrderActualItem extends Model
         'lebar_actual' => 'decimal:2',
         'tebal_actual' => 'decimal:2',  
         'qty_actual' => 'integer',
+        'berat_actual' => 'decimal:2',
         'diskon' => 'decimal:2',
     ];
 
@@ -64,7 +67,26 @@ class WorkOrderActualItem extends Model
     
     public function hasManyPelaksana()
     {
-        return $this->hasMany(WorkOrderActualPelaksana::class);
+        return $this->hasMany(WorkOrderActualPelaksana::class, 'wo_actual_item_id');
+    }
+    
+    /**
+     * Get pelaksana data with related information
+     */
+    public function getPelaksana()
+    {
+        return $this->hasManyPelaksana()->with('pelaksana');
+    }
+    
+    /**
+     * Get pelaksana data with all related information
+     */
+    public function getPelaksanaWithDetails()
+    {
+        return $this->hasManyPelaksana()
+            ->with(['pelaksana'])
+            ->orderBy('tanggal', 'desc')
+            ->orderBy('jam_mulai', 'desc');
     }
     
     
