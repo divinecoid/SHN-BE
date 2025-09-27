@@ -537,10 +537,18 @@ class WorkOrderPlanningController extends Controller
                 
                 $canvasFilePath = $folderPath . '/' . $fileName;
                 
-                // Update item barang dengan canvas file path (hanya di item barang, tidak di saran)
+                // Update item barang dengan canvas file path dan sisa_luas (hanya di item barang, tidak di saran)
                 $itemBarang = ItemBarang::find($request->item_barang_id);
                 if ($itemBarang) {
-                    $itemBarang->update(['canvas_file' => $canvasFilePath]);
+                    $updateData = ['canvas_file' => $canvasFilePath];
+                    
+                    // Update sisa_luas dari totalArea di metadata canvas
+                    $canvasDataDecoded = json_decode($canvasData, true);
+                    if (isset($canvasDataDecoded['metadata']['totalArea'])) {
+                        $updateData['sisa_luas'] = $canvasDataDecoded['metadata']['totalArea'];
+                    }
+                    
+                    $itemBarang->update($updateData);
                 }
             }
 
