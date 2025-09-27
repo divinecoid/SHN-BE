@@ -67,7 +67,26 @@ class WorkOrderActualItem extends Model
     
     public function hasManyPelaksana()
     {
-        return $this->hasMany(WorkOrderActualPelaksana::class);
+        return $this->hasMany(WorkOrderActualPelaksana::class, 'wo_actual_item_id');
+    }
+    
+    /**
+     * Get pelaksana data with related information
+     */
+    public function getPelaksana()
+    {
+        return $this->hasManyPelaksana()->with('pelaksana');
+    }
+    
+    /**
+     * Get pelaksana data with all related information
+     */
+    public function getPelaksanaWithDetails()
+    {
+        return $this->hasManyPelaksana()
+            ->with(['pelaksana'])
+            ->orderBy('tanggal', 'desc')
+            ->orderBy('jam_mulai', 'desc');
     }
     
     

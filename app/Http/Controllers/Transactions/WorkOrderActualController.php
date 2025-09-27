@@ -12,6 +12,7 @@ use App\Models\Transactions\WorkOrderPlanningItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 class WorkOrderActualController extends Controller
 {
@@ -62,6 +63,31 @@ class WorkOrderActualController extends Controller
             $results = [];
             $actualWorkOrderId = $request->input('actualWorkOrderId');
             $planningWorkOrderId = $request->input('planningWorkOrderId');
+
+            $actualWorkOrder = WorkOrderActual::find($actualWorkOrderId);
+            if (!$actualWorkOrder) {
+                throw new \Exception("ActualWorkOrder dengan ID {$actualWorkOrderId} tidak ditemukan");
+            }
+            Log::channel('stderr')->info("ActualWorkOrder ID: {$actualWorkOrderId}");
+            $actualWorkOrderItems = $actualWorkOrder->workOrderActualItems;
+            foreach ($actualWorkOrderItems as $actualWorkOrderItem) {
+                // log actualworkorderitem id
+                Log::channel('stderr')->info("ActualWorkOrderItem ID: {$actualWorkOrderItem->id}");
+                $pelaksanaData = $actualWorkOrderItem->getPelaksanaWithDetails()->get();
+                $pelaksanaData->each(function ($pelaksana) {
+                    Log::channel('stderr')->info("Pelaksana ID: {$pelaksana->id}");
+                    $pelaksana->delete();
+                });
+                
+                // Pastikan semua pelaksana yang terkait sudah di-soft-delete
+                // Gunakan withTrashed() untuk memastikan tidak ada data yang terlewat
+                $remainingPelaksana = $actualWorkOrderItem->hasManyPelaksana()->withTrashed()->get();
+                $remainingPelaksana->each(function ($pelaksana) {
+                    $pelaksana->delete();
+                });
+                $actualWorkOrderItem->delete();
+            }
+
             $items = $request->input('items', []);
 
             foreach ($items as $planItemId => $data) {

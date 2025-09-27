@@ -3,6 +3,7 @@
 namespace App\Models\Transactions;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\MasterData\Pelaksana;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Traits\HideTimestampsInRelations;
 class WorkOrderActualPelaksana extends Model
@@ -25,19 +26,17 @@ class WorkOrderActualPelaksana extends Model
 
     protected $casts = [
         'tanggal' => 'date',
-        'jam_mulai' => 'time',
-        'jam_selesai' => 'time',
         'qty' => 'integer',
         'weight' => 'decimal:2',
     ];
 
     public function workOrderActualItem()
     {
-        return $this->belongsTo(WorkOrderActualItem::class);
+        return $this->belongsTo(WorkOrderActualItem::class, 'wo_actual_item_id');
     }
 
     public function pelaksana()
     {
-        return $this->belongsTo(Pelaksana::class);
+        return $this->belongsTo(Pelaksana::class, 'pelaksana_id');
     }
 }
