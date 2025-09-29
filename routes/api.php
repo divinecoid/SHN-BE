@@ -28,6 +28,7 @@ use App\Http\Controllers\StaticDataController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\Transactions\WorkOrderPlanningController;
 use App\Http\Controllers\Transactions\WorkOrderActualController;
+use App\Http\Controllers\Transactions\DashboardController;
 use App\Http\Controllers\Transactions\PurchaseOrderController;
 Route::get('/user', function (Request $request) {
     return $request->user()->load('roles');
@@ -404,7 +405,7 @@ Route::prefix('work-order-planning')->middleware('checkrole')->group(function ()
     Route::delete('{id}', [WorkOrderPlanningController::class, 'destroy']);
     Route::patch('{id}/restore', [WorkOrderPlanningController::class, 'restore']);
     Route::delete('{id}/force', [WorkOrderPlanningController::class, 'forceDelete']);
-    
+
     // Item routes
     Route::get('item/{id}', [WorkOrderPlanningController::class, 'showItem']);
     Route::put('item/{id}', [WorkOrderPlanningController::class, 'updateItem']);
@@ -439,4 +440,8 @@ Route::middleware('checkrole')->group(function () {
     Route::get('files/download', [FileController::class, 'downloadFile']);
     Route::get('files/show', [FileController::class, 'showFile']);
     Route::get('files/folder', [FileController::class, 'getFilesInFolder']);
+});
+
+Route::prefix('dashboard')->middleware('checkrole')->group(function () {
+    Route::get('/workshop', [DashboardController::class, 'workshop']);
 });

@@ -68,7 +68,7 @@ class WorkOrderActualController extends Controller
             if (!$planningWorkOrder) {
                 throw new \Exception("PlanningWorkOrder dengan ID {$planningWorkOrderId} tidak ditemukan");
             }
-
+            $planningWorkOrder->close_wo_at = now();
             $planningWorkOrder->status = 'Selesai';
             $planningWorkOrder->save();
 
