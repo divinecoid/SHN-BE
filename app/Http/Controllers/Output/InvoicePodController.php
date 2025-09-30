@@ -112,7 +112,7 @@ class InvoicePodController extends Controller
         if (!$workOrderPlanning) {
             return $this->errorResponse('Work order tidak ditemukan', 404);
         }
-        $invoicePod = $workOrderPlanning->invoicePod;
+        $invoicePod = $workOrderPlanning->invoicePod()->with('invoicePodItems')->first();
         if (!$invoicePod) {
             return $this->errorResponse('Invoice belum digenerate', 400);
         }
@@ -140,7 +140,7 @@ class InvoicePodController extends Controller
         if (!$workOrderPlanning) {
             return $this->errorResponse('Work order tidak ditemukan', 404);
         }
-        $invoicePod = $workOrderPlanning->invoicePod;
+        $invoicePod = $workOrderPlanning->invoicePod()->with('invoicePodItems')->first();
         if (!$invoicePod) {
             return $this->errorResponse('Pod tidak ditemukan', 404);
         }
@@ -154,4 +154,53 @@ class InvoicePodController extends Controller
         return $this->successResponse('Pod found', $invoicePod);
     }
 
+    public function eligibleForInvoicePod(Request $request)
+    {
+        $isGenerated = $request->query('is_generated');
+        $isPrintedInvoice = $request->query('is_printed_invoice');
+        $isPrintedPod = $request->query('is_printed_pod');
+
+        $query = WorkOrderPlanning::where('status', 'selesai')
+            ->with(['salesOrder.pelanggan', 'invoicePod']);
+
+        // Filter by is_generated (invoicePod relation existence)
+        if ($isGenerated === 'true' || $isGenerated === true || $isGenerated === 1 || $isGenerated === '1') {
+            $query->whereHas('invoicePod');
+        } elseif ($isGenerated === 'false' || $isGenerated === false || $isGenerated === 0 || $isGenerated === '0') {
+            $query->whereDoesntHave('invoicePod');
+        }
+
+        // Filter by has_generated_invoice
+        if ($isPrintedInvoice === 'true' || $isPrintedInvoice === true || $isPrintedInvoice === 1 || $isPrintedInvoice === '1') {
+            $query->where('has_generated_invoice', true);
+        } elseif ($isPrintedInvoice === 'false' || $isPrintedInvoice === false || $isPrintedInvoice === 0 || $isPrintedInvoice === '0') {
+            $query->where(function($q) {
+                $q->whereNull('has_generated_invoice')->orWhere('has_generated_invoice', false);
+            });
+        }
+
+        // Filter by has_generated_pod
+        if ($isPrintedPod === 'true' || $isPrintedPod === true || $isPrintedPod === 1 || $isPrintedPod === '1') {
+            $query->where('has_generated_pod', true);
+        } elseif ($isPrintedPod === 'false' || $isPrintedPod === false || $isPrintedPod === 0 || $isPrintedPod === '0') {
+            $query->where(function($q) {
+                $q->whereNull('has_generated_pod')->orWhere('has_generated_pod', false);
+            });
+        }
+
+        $workOrderPlanning = $query->get();
+
+        $formattedData = $workOrderPlanning->map(function ($item) {
+            return [
+                'nomor_so' => $item->salesOrder->nomor_so ?? null,
+                'nomor_wo' => $item->nomor_wo,
+                'nama_customer' => $item->salesOrder->pelanggan->nama_pelanggan ?? null,
+                'is_generated' => !is_null($item->invoicePod),
+                'has_generated_invoice' => $item->has_generated_invoice ?? false,
+                'has_generated_pod' => $item->has_generated_pod ?? false,
+            ];
+        });
+
+        return $this->successResponse('Work order order selesai', $formattedData);
+    }
 }

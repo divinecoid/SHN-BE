@@ -448,9 +448,11 @@ Route::middleware('checkrole')->group(function () {
 
 // Invoice Pod routes
 Route::prefix('invoice-pod')->middleware('checkrole')->group(function () {
+    Route::get('/eligible-for-invoice-pod', [InvoicePodController::class, 'eligibleForInvoicePod']);
     Route::post('/generate-invoice-pod', [InvoicePodController::class, 'generateInvoicePod']);
     Route::post('/view-invoice', [InvoicePodController::class, 'viewInvoice']);
     Route::post('/view-pod', [InvoicePodController::class, 'viewPod']);
+    Route::get('/eligible-for-invoice-pod', [InvoicePodController::class, 'eligibleForInvoicePod']);
 });
 
 

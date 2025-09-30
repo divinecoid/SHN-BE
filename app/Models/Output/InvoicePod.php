@@ -84,6 +84,6 @@ class InvoicePod extends Model
      */
     public function invoicePodItems()
     {
-        return $this->hasMany(InvoicePodItem::class, 'invoice_pod_id');
+        return $this->hasMany(InvoicePodItem::class, 'invoicepod_id');
     }
 }

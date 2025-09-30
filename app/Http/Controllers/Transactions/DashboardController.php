@@ -30,7 +30,7 @@ class DashboardController extends Controller
         // Create custom response with only required attributes
         $customResponse = $workOrderPlanning->map(function ($item) {
             $salesOrder = $item->salesOrder()->first(['nomor_so', 'created_at']);
-            
+            $invoicePod = $item->invoicePod()->first(['nomor_invoice', 'tanggal_cetak_invoice']);
             return [
                 'nomor_so' => $salesOrder ? $salesOrder->nomor_so : null,
                 'waktu_so' => $salesOrder ? $salesOrder->created_at : null,
@@ -39,7 +39,8 @@ class DashboardController extends Controller
                 'estimate_selesai' => $item->estimate_done ?? null,
                 'real_selesai' => $item->real_selesai ?? null,
                 'close_wo_at' => $item->close_wo_at ? \Carbon\Carbon::parse($item->close_wo_at)->timezone('Asia/Jakarta')->toDateTimeString() : null,
-                'nomor_inv' => null, // Set to null as requested
+                'nomor_inv' => $invoicePod ? $invoicePod->nomor_invoice : null,
+                'waktu_inv' => $invoicePod ? $invoicePod->tanggal_cetak_invoice : null,
             ];
         })->sortByDesc('waktu_so')->values();
 
