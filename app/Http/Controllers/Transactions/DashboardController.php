@@ -36,7 +36,7 @@ class DashboardController extends Controller
                 'waktu_so' => $salesOrder ? $salesOrder->created_at : null,
                 'nomor_wo' => $item->nomor_wo,
                 'waktu_wo' => $item->created_at,
-                'estimate_selesai' => $item->estimate_selesai ?? null,
+                'estimate_selesai' => $item->estimate_done ?? null,
                 'real_selesai' => $item->real_selesai ?? null,
                 'close_wo_at' => $item->close_wo_at ? \Carbon\Carbon::parse($item->close_wo_at)->timezone('Asia/Jakarta')->toDateTimeString() : null,
                 'nomor_inv' => null, // Set to null as requested

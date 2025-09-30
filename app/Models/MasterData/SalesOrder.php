@@ -24,6 +24,7 @@ class SalesOrder extends Model
         'ppn_percent',
         'ppn_amount',
         'total_harga_so',
+        'handover_method',
         'status',
         'delete_requested_by',
         'delete_requested_at',
@@ -43,6 +44,7 @@ class SalesOrder extends Model
         'ppn_percent' => 'decimal:2',
         'ppn_amount' => 'decimal:2',
         'total_harga_so' => 'decimal:2',
+        'handover_method' => 'string',
         'delete_requested_at' => 'datetime',
         'delete_approved_at' => 'datetime',
     ];

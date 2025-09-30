@@ -20,6 +20,7 @@ class WorkOrderPlanning extends Model
         'id_pelaksana',
         'prioritas',
         'status',
+        'handover_method',
     ];
 
     protected $hidden = ['deleted_at'];

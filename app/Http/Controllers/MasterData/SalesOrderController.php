@@ -34,6 +34,7 @@ class SalesOrderController extends Controller
             'syarat_pembayaran' => 'required|string',
             'gudang_id' => 'required|exists:ref_gudang,id',
             'pelanggan_id' => 'required|exists:ref_pelanggan,id',
+            'handover_method' => 'required|string|in:pickup,delivery',
             
             // Summary validation
             'subtotal' => 'required|numeric|min:0',
@@ -75,7 +76,8 @@ class SalesOrderController extends Controller
                 'total_diskon',
                 'ppn_percent',
                 'ppn_amount',
-                'total_harga_so'
+                'total_harga_so',
+                'handover_method',
             ]));
 
             // Create sales order items
@@ -132,13 +134,14 @@ class SalesOrderController extends Controller
             'syarat_pembayaran' => 'required|string',
             'gudang_id' => 'required|exists:ref_gudang,id',
             'pelanggan_id' => 'required|exists:ref_pelanggan,id',
-            
+            'handover_method' => 'required|string|in:pickup,delivery',
             // Summary validation
             'subtotal' => 'required|numeric|min:0',
             'total_diskon' => 'required|numeric|min:0',
             'ppn_percent' => 'required|numeric|min:0|max:100',
             'ppn_amount' => 'required|numeric|min:0',
             'total_harga_so' => 'required|numeric|min:0',
+            'handover_method' => 'required|string|in:pickup,delivery',
             
             // Items validation
             'items' => 'required|array|min:1',
@@ -173,7 +176,8 @@ class SalesOrderController extends Controller
                 'total_diskon',
                 'ppn_percent',
                 'ppn_amount',
-                'total_harga_so'
+                'total_harga_so',
+                'handover_method',
             ]));
 
             // Delete existing items and create new ones
@@ -415,6 +419,7 @@ class SalesOrderController extends Controller
                 'ppn_percent',
                 'ppn_amount',
                 'total_harga_so',
+                'handover_method',
                 'status',
                 'created_at',
                 'updated_at'

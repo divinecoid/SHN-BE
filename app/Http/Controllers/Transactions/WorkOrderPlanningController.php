@@ -53,6 +53,7 @@ class WorkOrderPlanningController extends Controller
             'status' => 'required|string',
             'tanggal_wo' => 'required|date',
             'prioritas' => 'required|string',
+            'handover_method' => 'required|string|in:pickup,delivery',
             'items' => 'required|array',
             'items.*.pelaksana' => 'nullable|array',
             'items.*.pelaksana.*.pelaksana_id' => 'required|exists:ref_pelaksana,id',
@@ -73,13 +74,14 @@ class WorkOrderPlanningController extends Controller
             
             // Membuat header Work Order Planning
             $workOrderPlanning = WorkOrderPlanning::create(array_merge($request->only([
-                            'nomor_wo',
+            'nomor_wo',
             'tanggal_wo',
             'id_sales_order',
             'id_pelanggan',
             'id_gudang',
             'prioritas',
             'status',
+            'handover_method',
             ]), [
                 'wo_unique_id' => $woUniqueId,
             ]));
