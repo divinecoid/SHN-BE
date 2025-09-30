@@ -30,6 +30,9 @@ use App\Http\Controllers\Transactions\WorkOrderPlanningController;
 use App\Http\Controllers\Transactions\WorkOrderActualController;
 use App\Http\Controllers\Transactions\DashboardController;
 use App\Http\Controllers\Transactions\PurchaseOrderController;
+use App\Http\Controllers\Output\InvoicePodController;
+
+
 Route::get('/user', function (Request $request) {
     return $request->user()->load('roles');
 });
@@ -441,6 +444,15 @@ Route::middleware('checkrole')->group(function () {
     Route::get('files/show', [FileController::class, 'showFile']);
     Route::get('files/folder', [FileController::class, 'getFilesInFolder']);
 });
+
+
+// Invoice Pod routes
+Route::prefix('invoice-pod')->middleware('checkrole')->group(function () {
+    Route::post('/generate-invoice-pod', [InvoicePodController::class, 'generateInvoicePod']);
+    Route::post('/view-invoice', [InvoicePodController::class, 'viewInvoice']);
+    Route::post('/view-pod', [InvoicePodController::class, 'viewPod']);
+});
+
 
 Route::prefix('dashboard')->middleware('checkrole')->group(function () {
     Route::get('/workshop', [DashboardController::class, 'workshop']);

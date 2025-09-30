@@ -15,7 +15,6 @@ class InvoicePodItem extends Model
     
     protected $fillable = [
         'invoicepod_id',
-        'work_order_planning_id',
         'nama_item',
         'unit',
         'dimensi_potong',
@@ -46,8 +45,4 @@ class InvoicePodItem extends Model
     /**
      * Get the work order planning
      */
-    public function workOrderPlanning()
-    {
-        return $this->belongsTo(WorkOrderPlanning::class, 'work_order_planning_id');
-    }
 }

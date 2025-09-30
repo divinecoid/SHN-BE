@@ -5,6 +5,8 @@ namespace App\Models\Transactions;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Traits\HideTimestampsInRelations;
+use App\Models\Output\InvoicePod;
+
 class WorkOrderPlanning extends Model
 {
     use SoftDeletes, HideTimestampsInRelations;
@@ -52,5 +54,10 @@ class WorkOrderPlanning extends Model
     public function pelaksana()
     {
         return $this->belongsTo(\App\Models\MasterData\Pelaksana::class, 'id_pelaksana');
+    }
+
+    public function invoicePod()
+    {
+        return $this->hasOne(InvoicePod::class, 'work_order_planning_id', 'id');
     }
 }

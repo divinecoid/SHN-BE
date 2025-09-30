@@ -44,6 +44,11 @@ class WorkOrderActualItem extends Model
         return $this->belongsTo(WorkOrderActual::class);
     }
 
+    public function workOrderPlanningItem()
+    {
+        return $this->belongsTo(WorkOrderPlanningItem::class, 'wo_plan_item_id', 'id');
+    }
+
     public function jenisBarang()
     {
         return $this->belongsTo(JenisBarang::class);

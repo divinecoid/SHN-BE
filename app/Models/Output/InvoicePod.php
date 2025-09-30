@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Traits\HideTimestampsInRelations;
 use App\Models\Transactions\WorkOrderPlanning;
 use App\Models\MasterData\SalesOrder;
+use App\Models\Transactions\WorkOrderActual;
 
 class InvoicePod extends Model
 {
@@ -16,13 +17,13 @@ class InvoicePod extends Model
     
     protected $fillable = [
         'work_order_planning_id',
+        'work_order_actual_id',
         'sales_order_id',
         'nomor_invoice',
         'tanggal_cetak_invoice',
         'nomor_pod',
         'tanggal_cetak_pod',
         'total_harga_invoice',
-        'diskon_invoice',
         'discount_invoice',
         'biaya_lain',
         'ppn_invoice',
@@ -41,7 +42,6 @@ class InvoicePod extends Model
         'tanggal_cetak_invoice' => 'datetime',
         'tanggal_cetak_pod' => 'datetime',
         'total_harga_invoice' => 'decimal:2',
-        'diskon_invoice' => 'decimal:2',
         'discount_invoice' => 'decimal:2',
         'biaya_lain' => 'decimal:2',
         'ppn_invoice' => 'decimal:2',
@@ -59,6 +59,16 @@ class InvoicePod extends Model
     public function workOrderPlanning()
     {
         return $this->hasOne(WorkOrderPlanning::class, 'id', 'work_order_planning_id');
+    }
+    
+    /**
+     * Get the work order actual
+    /**
+     * Get the work order actual
+     */
+    public function workOrderActual()
+    {
+        return $this->hasOne(WorkOrderActual::class, 'id', 'work_order_actual_id');
     }
     
     /**
