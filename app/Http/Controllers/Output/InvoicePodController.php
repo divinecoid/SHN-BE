@@ -101,14 +101,14 @@ class InvoicePodController extends Controller
     public function viewInvoice(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'work_order_planning_id' => 'required|exists:trx_work_order_planning,id'
+            'nomor_wo' => 'required|exists:trx_work_order_planning,nomor_wo'
         ]);
 
         if ($validator->fails()) {
             return $this->errorResponse($validator->errors()->first(), 422);
         }
 
-        $workOrderPlanning = WorkOrderPlanning::find($request->work_order_planning_id);
+        $workOrderPlanning = WorkOrderPlanning::with(['salesOrder.pelanggan'])->where('nomor_wo', $request->nomor_wo)->first();
         if (!$workOrderPlanning) {
             return $this->errorResponse('Work order tidak ditemukan', 404);
         }
@@ -123,35 +123,64 @@ class InvoicePodController extends Controller
             $invoicePod->update(['tanggal_cetak_invoice' => now()->setTimezone('Asia/Jakarta')]);
         }
 
-        return $this->successResponse('Invoice found', $invoicePod);
+        // Format response with only the requested attributes
+        $responseData = [
+            'nomor_so' => $workOrderPlanning->salesOrder->nomor_so ?? null,
+            'nomor_wo' => $workOrderPlanning->nomor_wo,
+            'nomor_invoice' => $invoicePod->nomor_invoice,
+            'nama_customer' => $workOrderPlanning->salesOrder->pelanggan->nama_pelanggan ?? null,
+            'tanggal_cetak_invoice' => $invoicePod->tanggal_cetak_invoice,
+            'handover_method' => $invoicePod->handover_method,
+            'total_harga_invoice' => $invoicePod->total_harga_invoice,
+            'discount_invoice' => $invoicePod->discount_invoice,
+            'biaya_lain' => $invoicePod->biaya_lain,
+            'ppn_invoice' => $invoicePod->ppn_invoice,
+            'grand_total' => $invoicePod->grand_total,
+            'uang_muka' => $invoicePod->uang_muka,
+            'sisa_bayar' => $invoicePod->sisa_bayar,
+            'invoice_pod_items' => $invoicePod->invoicePodItems
+        ];
+
+        return $this->successResponse($responseData, 'Invoice found');
     }
 
     public function viewPod(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'work_order_planning_id' => 'required|exists:trx_work_order_planning,id'
+            'nomor_wo' => 'required|exists:trx_work_order_planning,nomor_wo'
         ]);
 
         if ($validator->fails()) {
             return $this->errorResponse($validator->errors()->first(), 422);
         }
 
-        $workOrderPlanning = WorkOrderPlanning::find($request->work_order_planning_id);
+        $workOrderPlanning = WorkOrderPlanning::with(['salesOrder.pelanggan'])->where('nomor_wo', $request->nomor_wo)->first();
         if (!$workOrderPlanning) {
             return $this->errorResponse('Work order tidak ditemukan', 404);
         }
-        $invoicePod = $workOrderPlanning->invoicePod()->with('invoicePodItems')->first();
-        if (!$invoicePod) {
+        $podData = $workOrderPlanning->invoicePod()->with('invoicePodItems')->first();
+        if (!$podData) {
             return $this->errorResponse('Pod tidak ditemukan', 404);
         }
 
         $workOrderPlanning->has_generated_pod = true;
         $workOrderPlanning->save();
-        if (is_null($invoicePod->tanggal_cetak_pod)) {
-            $invoicePod->update(['tanggal_cetak_pod' => now()->setTimezone('Asia/Jakarta')]);
+        if (is_null($podData->tanggal_cetak_pod)) {
+            $podData->update(['tanggal_cetak_pod' => now()->setTimezone('Asia/Jakarta')]);
         }
 
-        return $this->successResponse('Pod found', $invoicePod);
+        // Format response with only the requested attributes
+        $responseData = [
+            'nomor_wo' => $workOrderPlanning->nomor_wo,
+            'nomor_so' => $workOrderPlanning->salesOrder->nomor_so ?? null,
+            'nama_customer' => $workOrderPlanning->salesOrder->pelanggan->nama_pelanggan ?? null,
+            'nomor_pod' => $podData->nomor_pod,
+            'tanggal_cetak_pod' => $podData->tanggal_cetak_pod,
+            'handover_method' => $podData->handover_method,
+            'invoice_pod_items' => $podData->invoicePodItems
+        ];
+
+        return $this->successResponse($responseData, 'Pod found');
     }
 
     public function eligibleForInvoicePod(Request $request)
