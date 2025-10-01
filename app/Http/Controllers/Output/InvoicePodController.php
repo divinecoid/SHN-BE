@@ -21,7 +21,7 @@ class InvoicePodController extends Controller
     public function generateInvoicePod(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'work_order_planning_id' => 'required|exists:trx_work_order_planning,id'
+            'nomor_wo' => 'required|exists:trx_work_order_planning,nomor_wo'
         ]);
 
         if ($validator->fails()) {
@@ -30,7 +30,7 @@ class InvoicePodController extends Controller
 
         DB::beginTransaction();
         try {
-            $workOrderPlanning = WorkOrderPlanning::find($request->work_order_planning_id);
+            $workOrderPlanning = WorkOrderPlanning::where('nomor_wo', $request->nomor_wo)->first();
             if (!$workOrderPlanning) {
                 return $this->errorResponse('Work order tidak ditemukan', 404);
             }
@@ -95,7 +95,10 @@ class InvoicePodController extends Controller
             return $this->errorResponse($e->getMessage(), 500);
         }
         DB::commit();
-        return $this->successResponse('Invoice POD created successfully', $invoicePod);
+        return $this->successResponse([
+            'nomor_invoice' => $invoicePod->nomor_invoice,
+            'nomor_pod' => $invoicePod->nomor_pod
+        ], 'Invoice POD created successfully');
     }
 
     public function viewInvoice(Request $request)
