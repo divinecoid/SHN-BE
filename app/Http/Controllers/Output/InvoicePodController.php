@@ -9,6 +9,8 @@ use App\Models\Output\InvoicePod;
 use App\Models\Output\InvoicePodItem;
 use App\Models\MasterData\SalesOrder;
 use App\Models\Transactions\WorkOrderPlanning;
+use App\Models\Transactions\WorkOrderPlanningItem;
+use App\Models\MasterData\SalesOrderItem;
 use App\Models\Transactions\WorkOrderActualItem;
 use App\Models\Transactions\WorkOrderActual;
 use Illuminate\Support\Facades\DB;
@@ -99,9 +101,9 @@ class InvoicePodController extends Controller
                 ]);
                 $invoicePod->total_harga_invoice += $invoicePodItem->total_harga;
             }
-            $invoicePod->ppn_invoice = $invoicePod->total_harga_invoice * $salesOrder->ppn_percent;
+            $invoicePod->ppn_invoice = $invoicePod->total_harga_invoice * $salesOrder->ppn_percent / 100;
             $invoicePod->grand_total = $invoicePod->total_harga_invoice + $invoicePod->ppn_invoice;
-            $invoicePod->uang_muka = $salesOrder->uang_muka;
+            $invoicePod->uang_muka = is_null($salesOrder->uang_muka) ? 0 : $salesOrder->uang_muka;
             $invoicePod->sisa_bayar = $invoicePod->grand_total - $invoicePod->uang_muka;
             $invoicePod->save();
             DB::commit();
