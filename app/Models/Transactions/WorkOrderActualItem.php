@@ -2,6 +2,10 @@
 
 namespace App\Models\Transactions;
 
+use App\Models\MasterData\BentukBarang;
+use App\Models\MasterData\GradeBarang;
+use App\Models\MasterData\ItemBarang;
+use App\Models\MasterData\JenisBarang;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Traits\HideTimestampsInRelations;
