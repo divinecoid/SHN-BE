@@ -31,7 +31,9 @@ class DashboardController extends Controller
         $customResponse = $workOrderPlanning->map(function ($item) {
             $salesOrder = $item->salesOrder()->first(['nomor_so', 'created_at']);
             $invoicePod = $item->invoicePod()->first(['nomor_invoice', 'tanggal_cetak_invoice']);
+            $pelanggan = $item->pelanggan()->first(['nama_pelanggan']);
             return [
+                'nama_customer' => $pelanggan ? $pelanggan->nama_pelanggan : null,
                 'nomor_so' => $salesOrder ? $salesOrder->nomor_so : null,
                 'waktu_so' => $salesOrder ? $salesOrder->created_at : null,
                 'nomor_wo' => $item->nomor_wo,
