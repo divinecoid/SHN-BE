@@ -94,6 +94,7 @@ class WorkOrderPlanningController extends Controller
                     $woItemUniqueId = 'WOI-' . date('Ymd') . '-' . strtoupper(uniqid());
                     
                     $workOrderPlanningItem = WorkOrderPlanningItem::create([
+                        'sales_order_item_id' => $item['sales_order_item_id'] ?? null,
                         'wo_item_unique_id' => $woItemUniqueId,
                         'work_order_planning_id' => $workOrderPlanning->id,
                         'qty' => $item['qty'] ?? 0,

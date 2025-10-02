@@ -18,6 +18,7 @@ class WorkOrderPlanningItem extends Model
     protected $table = 'trx_work_order_planning_item';
 
     protected $fillable = [
+        'sales_order_item_id',
         'wo_item_unique_id',
         'work_order_planning_id',
         'panjang',
@@ -43,6 +44,11 @@ class WorkOrderPlanningItem extends Model
         'berat' => 'decimal:2',
         'is_assigned' => 'boolean',
     ];
+
+    public function salesOrderItem()
+    {
+        return $this->belongsTo(SalesOrderItem::class);
+    }
 
     public function workOrderPlanning()
     {
