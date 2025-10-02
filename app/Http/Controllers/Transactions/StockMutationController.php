@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Transactions;
 
 use App\Http\Controllers\Controller;
 use App\Models\Transactions\StockMutation;
+use Auth;
 use Exception;
 use Illuminate\Http\Request;
 use App\Http\Traits\ApiFilterTrait;
@@ -46,13 +47,14 @@ class StockMutationController extends Controller
     }
     public function store(Request $request)
     {
+
+        $requestor_id = Auth::id();
+
         $validator = Validator::make($request->all(), [
             'gudang_tujuan_id' => 'required|exists:ref_gudang,id',
             'gudang_asal_id' => 'required|exists:ref_gudang,id',
-            'requestor_id' => 'required|exists:ref_users,id',
-            'recipient_id' => 'nullable|exists:ref_users,id',
             'stock_mutation' => 'required|array|min:1',
-            'stock_mutation.*.barang_id' => 'required|exists:ref_item_barang,id',
+            'stock_mutation.*.item_barang_id' => 'required|exists:ref_item_barang,id',
             'stock_mutation.*.unit' => ['required', Rule::in(['single', 'bulk'])],
             'stock_mutation.*.quantity' => 'required|numeric|min:1'
         ]);
@@ -63,22 +65,30 @@ class StockMutationController extends Controller
 
         DB::beginTransaction();
         try {
-            $stockMutation = StockMutation::create($request->only([
-                'gudang_tujuan_id',
-                'gudang_asal_id',
-                'requestor_id',
-                'recipient_id'
-            ]));
+            $stockMutation = StockMutation::create(array_merge(
+                $request->only([
+                    'gudang_tujuan_id',
+                    'gudang_asal_id',
+                    'recipient_id'
+                ]),
+                [
+                    'requestor_id' => $requestor_id,
+                    'status' => 'requested'
+                ]
+            ));
+
 
             foreach ($request->input('stock_mutation') as $item) {
                 $stockMutation->stockMutationItems()->create([
-                    'barang_id' => $item['barang_id'],
+                    'item_barang_id' => $item['item_barang_id'],
                     'unit' => $item['unit'],
                     'quantity' => $item['quantity']
                 ]);
             }
 
             DB::commit();
+
+            $stockMutation->load(['stockMutationItems', 'gudangTujuan', 'gudangAsal', 'requestor', 'recipient']);
 
             return $this->successResponse($stockMutation, 'Stock Mutation berhasil ditambahkan');
 
