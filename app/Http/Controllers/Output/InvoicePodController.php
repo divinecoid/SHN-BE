@@ -61,21 +61,29 @@ class InvoicePodController extends Controller
                 'sales_order_id' => $salesOrder->id,
                 'nomor_invoice' => $nomorInvoice,
                 'nomor_pod' => $nomorPod,
-                'total_harga_invoice' => $workOrderPlanning->total_harga,
-                'discount_invoice' => $workOrderPlanning->diskon,
-                'biaya_lain' => $workOrderPlanning->biaya_lain,
-                'ppn_invoice' => $workOrderPlanning->ppn,
-                'grand_total' => $workOrderPlanning->grand_total,
-                'uang_muka' => $workOrderPlanning->uang_muka,
-                'sisa_bayar' => $workOrderPlanning->sisa_bayar,
+                'total_harga_invoice' => 0, //will be calculated later
+                'discount_invoice' => $salesOrder->total_diskon,
+                'biaya_lain' => 0, //$salesOrder->biaya_lain,
+                'ppn_invoice' => 0, //will be calculated later
+                'grand_total' => 0, //will be calculated later
+                'uang_muka' => 0, //$workOrderPlanning->uang_muka,
+                'sisa_bayar' => 0, // will be calculated later (grand_total - uang_muka)
                 'handover_method' => $workOrderPlanning->handover_method,
             ]);
             foreach ($workOrderActual->workOrderActualItems as $item) {
-                $namaItem = $item->workOrderPlanningItem->bentukBarang->nama_bentuk . ' ' . $item->workOrderPlanningItem->jenisBarang->nama_jenis . ' ' . $item->workOrderPlanningItem->gradeBarang->nama;
+                $workOrderPlanningItem = WorkOrderPlanningItem::find($item->wo_plan_item_id);
+                if (is_null($workOrderPlanningItem)) {
+                    continue;
+                }
+                $salesOrderItem = SalesOrderItem::find($workOrderPlanningItem->sales_order_item_id);
+                if (is_null($salesOrderItem)) {
+                    continue;
+                }
+                $namaItem = $workOrderPlanningItem->bentukBarang->nama_bentuk . ' ' . $workOrderPlanningItem->jenisBarang->nama_jenis . ' ' . $workOrderPlanningItem->gradeBarang->nama;
                 if (is_null($item->lebar_actual)) {
-                    $dimensiPotong = $item->panjang_actual . ' x ' . $item->tebal_actual;
+                    $dimensiPotong = intval($item->panjang_actual) . ' x ' . intval($item->tebal_actual);
                 } else {
-                    $dimensiPotong = $item->panjang_actual . ' x ' . $item->lebar_actual . ' x ' . $item->tebal_actual;
+                    $dimensiPotong = intval($item->panjang_actual) . ' x ' . intval($item->lebar_actual) . ' x ' . intval($item->tebal_actual);
                 }
                 $invoicePodItem = InvoicePodItem::create([
                     'invoicepod_id' => $invoicePod->id,
@@ -84,17 +92,23 @@ class InvoicePodController extends Controller
                     'dimensi_potong' => $dimensiPotong,
                     'qty' => $item->qty_actual,
                     'total_kg' => $item->berat_actual,
-                    'harga_per_unit' => $item->workOrderPlanningItem->harga,
+                    'harga_per_unit' => $salesOrderItem->harga,
                     'total_harga' => ($item->satuan === 'PCS')
-                        ? ($item->workOrderPlanningItem->harga * $item->qty_actual)
-                        : ($item->workOrderPlanningItem->harga * $item->berat_actual),
+                        ? ($salesOrderItem->harga * $item->qty_actual)
+                        : ($salesOrderItem->harga * $item->berat_actual),
                 ]);
+                $invoicePod->total_harga_invoice += $invoicePodItem->total_harga;
             }
+            $invoicePod->ppn_invoice = $invoicePod->total_harga_invoice * $salesOrder->ppn_percent;
+            $invoicePod->grand_total = $invoicePod->total_harga_invoice + $invoicePod->ppn_invoice;
+            $invoicePod->uang_muka = $salesOrder->uang_muka;
+            $invoicePod->sisa_bayar = $invoicePod->grand_total - $invoicePod->uang_muka;
+            $invoicePod->save();
+            DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
             return $this->errorResponse($e->getMessage(), 500);
         }
-        DB::commit();
         return $this->successResponse([
             'nomor_invoice' => $invoicePod->nomor_invoice,
             'nomor_pod' => $invoicePod->nomor_pod
