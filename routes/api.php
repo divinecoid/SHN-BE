@@ -31,6 +31,7 @@ use App\Http\Controllers\Transactions\WorkOrderActualController;
 use App\Http\Controllers\Transactions\DashboardController;
 use App\Http\Controllers\Transactions\PurchaseOrderController;
 use App\Http\Controllers\Output\InvoicePodController;
+use App\Http\Controllers\Transactions\StockMutationController;
 
 
 Route::get('/user', function (Request $request) {
@@ -458,4 +459,19 @@ Route::prefix('invoice-pod')->middleware('checkrole')->group(function () {
 
 Route::prefix('dashboard')->middleware('checkrole')->group(function () {
     Route::get('/workshop', [DashboardController::class, 'workshop']);
+});
+
+// Stock Mutation routes
+Route::prefix('stock-mutation')->middleware('checkrole')->group(function () {
+    Route::get('/', [StockMutationController::class, 'index']);
+    Route::get('{id}', [StockMutationController::class, 'show']);
+    Route::post('/', [StockMutationController::class, 'store']);
+    Route::put('{id}', [StockMutationController::class, 'update']);
+    Route::patch('{id}', [StockMutationController::class, 'update']);
+    Route::delete('{id}', [StockMutationController::class, 'destroy']);
+    Route::delete('{id}/soft', [StockMutationController::class, 'softDelete']);
+    Route::patch('{id}/restore', [StockMutationController::class, 'restore']);
+    Route::delete('{id}/force', [StockMutationController::class, 'forceDelete']);
+    Route::get('with-trashed/all', [StockMutationController::class, 'indexWithTrashed']);
+    Route::get('with-trashed/trashed', [StockMutationController::class, 'indexTrashed']);
 });
