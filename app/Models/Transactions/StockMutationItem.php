@@ -2,6 +2,7 @@
 
 namespace App\Models\Transactions;
 
+use App\Models\MasterData\ItemBarang;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Traits\HideTimestampsInRelations;
@@ -26,5 +27,10 @@ class StockMutationItem extends Model
     {
         return $this->belongsTo(StockMutation::class);
     }
-    
+
+    public function itemBarang()
+    {
+        return $this->belongsTo(ItemBarang::class);
+    }
+
 }

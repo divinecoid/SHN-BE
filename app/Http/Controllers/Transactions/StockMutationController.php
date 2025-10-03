@@ -104,7 +104,7 @@ class StockMutationController extends Controller
 
     public function show($id)
     {
-        $data = StockMutation::with(['stockMutationItems', 'gudangTujuan', 'gudangAsal', 'requestor', 'recipient'])->find($id);
+        $data = StockMutation::with(['stockMutationItems.itemBarang', 'gudangTujuan', 'gudangAsal', 'requestor', 'recipient'])->find($id);
         if (!$data) {
             return $this->errorResponse('Data tidak ditemukan', 404);
         }
