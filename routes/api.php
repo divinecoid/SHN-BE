@@ -459,3 +459,11 @@ Route::prefix('invoice-pod')->middleware('checkrole')->group(function () {
 Route::prefix('dashboard')->middleware('checkrole')->group(function () {
     Route::get('/workshop', [DashboardController::class, 'workshop']);
 });
+
+
+//document sequence routes
+Route::prefix('document-sequence')->middleware('checkrole')->group(function () {
+    Route::get('/', [DocumentSequenceController::class, 'index']);
+    Route::post('/increase-sequence/{type}', [DocumentSequenceController::class, 'increaseSequence']);
+    
+});
