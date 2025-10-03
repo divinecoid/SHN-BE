@@ -6,11 +6,10 @@ use App\Models\MasterData\Gudang;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Models\Traits\HideTimestampsInRelations;
 
 class StockMutation extends Model
 {
-    use SoftDeletes, HideTimestampsInRelations;
+    use SoftDeletes;
 
     protected $table = 'trx_stock_mutation';
 
@@ -26,7 +25,7 @@ class StockMutation extends Model
     protected $hidden = ['deleted_at'];
 
     protected $casts = [
-        'approval_date' => 'date'
+        'approval_date' => 'date',
     ];
     
     public function stockMutationItems()

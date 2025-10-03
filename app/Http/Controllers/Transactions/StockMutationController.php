@@ -11,6 +11,7 @@ use App\Http\Traits\ApiFilterTrait;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Log;
 
 class StockMutationController extends Controller
 {
@@ -20,20 +21,22 @@ class StockMutationController extends Controller
     {
         $perPage = (int) ($request->input('per_page', $this->getPerPageDefault()));
         $query = StockMutation::with(['stockMutationItems', 'gudangTujuan', 'gudangAsal', 'requestor', 'recipient']);
-        $query = $this->applyFilter($query, $request, [
-            'status',
-            'created_at'
-        ]);
-        if ($request->filled('approval_date_from') || $request->filled('approval_date_to')) {
-            $from = $request->input('approval_date_from');
-            $to = $request->input('approval_date_to');
+
+        if ($request->filled('status') && $request->input('status') !== 'all') {
+            $query->where('status', $request->input('status'));
+        }
+
+
+        if ($request->filled('startDate') || $request->filled('endDate')) {
+            $from = $request->input('startDate');
+            $to = $request->input('endDate');
 
             if ($from && $to) {
-                $query->whereBetween('approval_date', [$from, $to]);
+                $query->whereBetween('created_at', [$from, $to]);
             } elseif ($from) {
-                $query->whereDate('approval_date', '>=', $from);
+                $query->whereDate('created_at', '>=', $from);
             } elseif ($to) {
-                $query->whereDate('approval_date', '<=', $to);
+                $query->whereDate('created_at', '<=', $to);
             }
         }
         if ($request->filled('requestor')) {
@@ -96,6 +99,81 @@ class StockMutationController extends Controller
         } catch (Exception $e) {
             DB::rollBack();
             return $this->errorResponse('Gagal menyimpan Mutasi Stock' . $e->getMessage(), 500);
+        }
+    }
+
+    public function show($id)
+    {
+        $data = StockMutation::with(['stockMutationItems', 'gudangTujuan', 'gudangAsal', 'requestor', 'recipient'])->find($id);
+        if (!$data) {
+            return $this->errorResponse('Data tidak ditemukan', 404);
+        }
+        return $this->successResponse($data);
+    }
+
+    public function update(Request $request, $id)
+    {
+
+    }
+
+    public function destroy($id)
+    {
+        $data = StockMutation::with(['stockMutationItems', 'gudangTujuan', 'gudangAsal', 'requestor', 'recipient'])->find($id);
+        if (!$data) {
+            return $this->errorResponse('Data tidak ditemukan', 404);
+        }
+
+        try {
+            // Hapus data (soft delete)
+            $data->delete();
+            return $this->successResponse(null, 'Stock Mutation berhasil dihapus');
+        } catch (Exception $e) {
+            return $this->errorResponse('Gagal menghapus Stock Mutation: ' . $e->getMessage(), 500);
+        }
+    }
+
+    public function restore($id)
+    {
+        $data = StockMutation::with(['stockMutationItems', 'gudangTujuan', 'gudangAsal', 'requestor', 'recipient'])->onlyTrashed()->find($id);
+        if (!$data) {
+            return $this->errorResponse('Data tidak ditemukan', 404);
+        }
+
+        try {
+            $data->restore();
+            return $this->successResponse($data, 'Stock Mutation berhasil direstore');
+        } catch (Exception $e) {
+            return $this->errorResponse('Gagal restore Stock Mutation: ' . $e->getMessage(), 500);
+        }
+    }
+
+    public function forceDelete($id)
+    {
+        $data = StockMutation::with(['stockMutationItems', 'gudangTujuan', 'gudangAsal', 'requestor', 'recipient'])->withTrashed()->find($id);
+        if (!$data) {
+            return $this->errorResponse('Data tidak ditemukan', 404);
+        }
+
+        try {
+            $data->forceDelete();
+            return $this->successResponse(null, 'Stock Mutation berhasil dihapus permanen');
+        } catch (Exception $e) {
+            return $this->errorResponse('Gagal menghapus permanen Stock Mutation: ' . $e->getMessage(), 500);
+        }
+    }
+
+    public function softDelete($id)
+    {
+        $data = StockMutation::with(['stockMutationItems', 'gudangTujuan', 'gudangAsal', 'requestor', 'recipient'])->find($id);
+        if (!$data) {
+            return $this->errorResponse('Data tidak ditemukan', 404);
+        }
+
+        try {
+            $data->delete();
+            return $this->successResponse(null, 'Stock Mutation berhasil dihapus (soft delete)');
+        } catch (Exception $e) {
+            return $this->errorResponse('Gagal soft delete Stock Mutation: ' . $e->getMessage(), 500);
         }
     }
 
