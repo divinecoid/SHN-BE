@@ -26,6 +26,7 @@ class ItemBarang extends Model
         'is_edit',
         'user_id',
         'canvas_file',
+        'canvas_image',
     ];
 
     protected $hidden = [

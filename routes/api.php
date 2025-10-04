@@ -30,9 +30,7 @@ use App\Http\Controllers\Transactions\WorkOrderPlanningController;
 use App\Http\Controllers\Transactions\WorkOrderActualController;
 use App\Http\Controllers\Transactions\DashboardController;
 use App\Http\Controllers\Transactions\PurchaseOrderController;
-use App\Http\Controllers\Output\InvoicePodController;
-
-
+use App\Http\Controllers\Transactions\StockMutationController;
 Route::get('/user', function (Request $request) {
     return $request->user()->load('roles');
 });
@@ -192,6 +190,7 @@ Route::prefix('item-barang')->middleware('checkrole')->group(function () {
     Route::put('{id}', [ItemBarangController::class, 'update']);
     Route::patch('{id}', [ItemBarangController::class, 'update']);
     Route::get('{itemBarangId}/canvas', [WorkOrderPlanningController::class, 'getCanvasByItemId']);
+    Route::get('{itemBarangId}/canvas-image', [WorkOrderPlanningController::class, 'getCanvasImageByItemId']);
 });
 Route::prefix('item-barang')->middleware('checkrole:admin')->group(function () {
     Route::delete('{id}/soft', [ItemBarangController::class, 'softDelete']);
@@ -445,6 +444,20 @@ Route::middleware('checkrole')->group(function () {
     Route::get('files/folder', [FileController::class, 'getFilesInFolder']);
 });
 
+// Stock Mutation routes
+Route::prefix('stock-mutation')->middleware('checkrole')->group(function () {
+    Route::get('/', [StockMutationController::class, 'index']);
+    Route::get('{id}', [StockMutationController::class, 'show']);
+    Route::post('/', [StockMutationController::class, 'store']);
+    Route::put('{id}', [StockMutationController::class, 'update']);
+    Route::patch('{id}', [StockMutationController::class, 'update']);
+    Route::delete('{id}', [StockMutationController::class, 'destroy']);
+    Route::delete('{id}/soft', [StockMutationController::class, 'softDelete']);
+    Route::patch('{id}/restore', [StockMutationController::class, 'restore']);
+    Route::delete('{id}/force', [StockMutationController::class, 'forceDelete']);
+    Route::get('with-trashed/all', [StockMutationController::class, 'indexWithTrashed']);
+    Route::get('with-trashed/trashed', [StockMutationController::class, 'indexTrashed']);
+});
 
 // Invoice Pod routes
 Route::prefix('invoice-pod')->middleware('checkrole')->group(function () {

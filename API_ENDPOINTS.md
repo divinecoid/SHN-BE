@@ -133,10 +133,21 @@
 - `GET /api/item-barang/with-trashed/all` - Get all item barang including deleted
 - `GET /api/item-barang/with-trashed/trashed` - Get only deleted item barang
 - `GET /api/item-barang/{itemBarangId}/canvas` - Get canvas data by item barang ID
-  - **Description**: Mendapatkan canvas data berdasarkan item barang ID dari tabel saran plat dasar (bukan dari work order planning)
-  - **Note**: API ini ada di endpoint `item-barang`, bukan `work-order-planning`. Canvas data diambil dari tabel `trx_saran_plat_shaft_dasar` berdasarkan `item_barang_id`
+  - **Description**: Mendapatkan canvas data (JSON) berdasarkan item barang ID dari tabel ref_item_barang
   - **Response**: JSON canvas data langsung (tanpa wrapper object)
   - **Example**: `GET /api/item-barang/1/canvas` akan mengembalikan canvas data untuk item barang ID 1
+- `GET /api/item-barang/{itemBarangId}/canvas-image` - Get canvas image by item barang ID
+  - **Description**: Mendapatkan canvas image (base64) berdasarkan item barang ID dari tabel ref_item_barang
+  - **Response**: 
+    ```json
+    {
+      "canvas_image": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD..."
+    }
+    ```
+  - **Note**: 
+    - Return base64 encoded JPG image dengan prefix data URI
+    - Return error 404 jika file tidak ditemukan
+  - **Example**: `GET /api/item-barang/1/canvas-image` akan mengembalikan canvas image untuk item barang ID 1
 
 ## Master Data - Jenis Transaksi Kas
 - `GET /api/jenis-transaksi-kas` - List all jenis transaksi kas
@@ -382,6 +393,7 @@
 - **Request Body**:
 ```json
 {
+  "wo_unique_id": "WO-20240101-ABC123",
   "nomor_wo": "WO-001",
   "tanggal_wo": "2024-01-01",
   "id_sales_order": 1,
@@ -391,6 +403,7 @@
   "status": "DRAFT",
   "items": [
     {
+      "wo_item_unique_id": "WOI-20240101-DEF456",
       "qty": 10,
       "panjang": 100.00,
       "lebar": 50.00,
@@ -403,6 +416,7 @@
       "id_pelaksana": [1, 2, 3]
     },
     {
+      "wo_item_unique_id": "WOI-20240101-GHI789",
       "qty": 5,
       "panjang": 80.00,
       "lebar": 40.00,
@@ -417,7 +431,29 @@
   ]
 }
 ```
+- **Parameters**:
+  - `wo_unique_id` (required): Unique identifier untuk work order planning
+  - `nomor_wo` (required): Nomor work order
+  - `tanggal_wo` (required): Tanggal work order
+  - `id_sales_order` (required): ID sales order
+  - `id_pelanggan` (required): ID pelanggan
+  - `id_gudang` (required): ID gudang
+  - `prioritas` (required): Prioritas work order
+  - `status` (required): Status work order
+  - `items` (required, array): Array items work order
+  - `items.*.wo_item_unique_id` (required): Unique identifier untuk setiap item
+  - `items.*.qty` (optional): Quantity item
+  - `items.*.panjang` (optional): Panjang item
+  - `items.*.lebar` (optional): Lebar item
+  - `items.*.tebal` (optional): Tebal item
+  - `items.*.plat_dasar_id` (optional): ID plat dasar
+  - `items.*.jenis_barang_id` (optional): ID jenis barang
+  - `items.*.bentuk_barang_id` (optional): ID bentuk barang
+  - `items.*.grade_barang_id` (optional): ID grade barang
+  - `items.*.catatan` (optional): Catatan item
+  - `items.*.id_pelaksana` (optional, array): Array ID pelaksana untuk item
 - **Notes**:
+  - `wo_unique_id` dan `wo_item_unique_id` harus unik dan disediakan dari request
   - `id_pelaksana` sekarang berada di dalam setiap item dan menerima array of integers (multiple pelaksana per item)
   - Setiap item bisa memiliki pelaksana yang berbeda
   - Pelaksana akan ditambahkan ke tabel `trx_work_order_planning_pelaksana` untuk setiap item
@@ -559,26 +595,36 @@
 
 #### 16. Add Saran Plat Dasar
 - **POST** `/api/work-order-planning/saran-plat-dasar`
-- **Description**: Menambahkan saran plat/shaft dasar baru ke item dengan canvas file
+- **Description**: Menambahkan saran plat/shaft dasar baru ke item dengan canvas file dan canvas image. Mendukung multiple items dalam satu request.
 - **Request Body**:
 ```json
 {
-  "wo_planning_item_id": 123,
+  "wo_planning_item_id": ["WOI-20240101-DEF456", "WOI-20240101-GHI789", "WOI-20240101-JKL012"],
   "item_barang_id": 1,
   "is_selected": true,
-  "canvas_data": "{\"shapes\":[{\"type\":\"rectangle\",\"x\":10,\"y\":20,\"width\":100,\"height\":50}]}"
+  "canvas_data": "{\"shapes\":[{\"type\":\"rectangle\",\"x\":10,\"y\":20,\"width\":100,\"height\":50}]}",
+  "canvas_image": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
 }
 ```
 - **Parameters**:
-  - `wo_planning_item_id` (required): ID work order planning item
+  - `wo_planning_item_id` (required, array of strings): Array wo_item_unique_id work order planning items
   - `item_barang_id` (required): ID item barang yang akan dijadikan saran
   - `is_selected` (optional, boolean): Apakah saran ini dipilih (default: false)
   - `canvas_data` (optional, json): Data canvas dalam format JSON string (bebas, bisa berisi shapes, coordinates, annotations, dll)
+  - `canvas_image` (optional, string): Base64 encoded JPG image data. Akan disimpan sebagai file JPG di folder yang sama dengan canvas_data
 
 
 #### 17. Set Selected Plat Dasar
 - **PATCH** `/api/work-order-planning/saran-plat-dasar/{saranId}/select`
-- **Description**: Set saran plat dasar sebagai yang dipilih (is_selected = true)
+- **Description**: Set saran plat dasar sebagai yang dipilih (is_selected = true) menggunakan wo_item_unique_id
+- **Request Body**:
+```json
+{
+  "wo_item_unique_id": "WOI-20240101-DEF456"
+}
+```
+- **Parameters**:
+  - `wo_item_unique_id` (required, string): Unique identifier work order planning item
 - **Note**: Otomatis akan set semua saran lain menjadi false dan update plat_dasar_id di work order planning item
 
 
@@ -598,8 +644,14 @@
 ### Canvas File Notes
 
 - Canvas data disimpan sebagai file JSON di `storage/app/public/canvas/{item_id}/canvas.json`
-- Path file disimpan di database field `canvas_file` di tabel `trx_saran_plat_shaft_dasar` dan `ref_item_barang`
+- Canvas image disimpan sebagai file JPG di `storage/app/public/canvas/{item_id}/canvas_image.jpg`
+- Path file disimpan di database:
+  - Field `canvas_file` untuk JSON data di tabel `ref_item_barang`
+  - Field `canvas_image` untuk JPG image di tabel `ref_item_barang`
 - File canvas akan di-timpa setiap upload baru untuk item yang sama
-- Format path: `canvas/{item_id}/canvas.json`
-- Canvas data dapat diakses via API atau langsung dari storage URL
+- Format path:
+  - Canvas data: `canvas/{item_id}/canvas.json`
+  - Canvas image: `canvas/{item_id}/canvas_image.jpg`
+- Canvas data dan image dapat diakses via API atau langsung dari storage URL
 - **Canvas data format bebas**: Bisa berisi shapes, coordinates, annotations, metadata, atau struktur JSON apapun yang dibutuhkan untuk mapping/visualization
+- **Canvas image**: Base64 JPG data yang dikonversi dan disimpan sebagai file JPG
