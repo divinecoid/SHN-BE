@@ -17,10 +17,18 @@ use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\ApiFilterTrait;
 use App\Helpers\FileHelper;
+use App\Http\Controllers\MasterData\DocumentSequenceController;
 
 class WorkOrderPlanningController extends Controller
 {
     use ApiFilterTrait;
+    
+    protected $documentSequenceController;
+    
+    public function __construct()
+    {
+        $this->documentSequenceController = new DocumentSequenceController();
+    }
 
     public function index(Request $request)
     {
@@ -48,7 +56,6 @@ class WorkOrderPlanningController extends Controller
     {
         $validator = Validator::make($request->all(), [ 
             'wo_unique_id' => 'required|string|unique:trx_work_order_planning,wo_unique_id',
-            'nomor_wo' => 'required|string|unique:trx_work_order_planning,nomor_wo',
             'id_sales_order' => 'required|exists:trx_sales_order,id',
             'id_pelanggan' => 'required|exists:ref_pelanggan,id',
             'id_gudang' => 'required|exists:ref_gudang,id',
@@ -72,19 +79,30 @@ class WorkOrderPlanningController extends Controller
         }
         DB::beginTransaction();
         try {
+            // Generate nomor_wo menggunakan DocumentSequenceController
+            $nomorWoResponse = $this->documentSequenceController->generateDocumentSequence('wo');
+            if ($nomorWoResponse->getStatusCode() !== 200) {
+                return $this->errorResponse('Gagal generate nomor WO', 500);
+            }
+            $nomorWo = $nomorWoResponse->getData()->data;
+            
+            // Generate wo_unique_id (bisa menggunakan UUID atau kombinasi lainnya)
+            $woUniqueId = 'WO-' . uniqid();
+            
             // Membuat header Work Order Planning
-            $workOrderPlanning = WorkOrderPlanning::create(array_merge($request->only([
-            'nomor_wo',
-            'tanggal_wo',
-            'id_sales_order',
-            'id_pelanggan',
-            'id_gudang',
-            'prioritas',
-            'status',
-            'handover_method',
-            ]), [
-                'wo_unique_id' => $woUniqueId,
-            ]));
+            $workOrderData = $request->only([
+                'tanggal_wo',
+                'id_sales_order',
+                'id_pelanggan',
+                'id_gudang',
+                'prioritas',
+                'status',
+                'handover_method',
+            ]);
+            $workOrderData['nomor_wo'] = $nomorWo;
+            $workOrderData['wo_unique_id'] = $woUniqueId;
+            
+            $workOrderPlanning = WorkOrderPlanning::create($workOrderData);
 
 
             // Jika ada items, simpan items beserta relasi ke ref_jenis_barang, ref_bentuk_barang, ref_grade_barang
@@ -124,6 +142,9 @@ class WorkOrderPlanningController extends Controller
                     }
                 }
             }
+
+            // Update sequence counter setelah berhasil create WorkOrderPlanning
+            $this->documentSequenceController->increaseSequence('wo');
 
             DB::commit();
 
