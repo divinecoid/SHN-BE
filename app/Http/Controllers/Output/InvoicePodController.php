@@ -15,10 +15,18 @@ use App\Models\Transactions\WorkOrderActualItem;
 use App\Models\Transactions\WorkOrderActual;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use App\Http\Controllers\MasterData\DocumentSequenceController;
 
 class InvoicePodController extends Controller
 {
     use ApiFilterTrait;
+    
+    protected $documentSequenceController;
+    
+    public function __construct()
+    {
+        $this->documentSequenceController = new DocumentSequenceController();
+    }
 
     public function generateInvoicePod(Request $request)
     {
@@ -49,14 +57,19 @@ class InvoicePodController extends Controller
                 return $this->errorResponse('Work order actual tidak ditemukan', 404);
             }
 
-            $now = microtime(true);
-            // Use UTC+7 (Asia/Jakarta) for date/time generation
-            $dt = new \DateTime('now', new \DateTimeZone('Asia/Jakarta'));
-            $datePart = $dt->format('Ymd');
-            $timePart = $dt->format('His');
-            $milliseconds = sprintf('%03d', ($now - floor($now)) * 1000);
-            $nomorInvoice = 'INV-' . $datePart . '-' . $timePart . $milliseconds;
-            $nomorPod = 'POD-' . $datePart . '-' . $timePart . $milliseconds;
+            // Generate nomor_invoice menggunakan DocumentSequenceController
+            $nomorInvoiceResponse = $this->documentSequenceController->generateDocumentSequence('invoice');
+            if ($nomorInvoiceResponse->getStatusCode() !== 200) {
+                return $this->errorResponse('Gagal generate nomor Invoice', 500);
+            }
+            $nomorInvoice = $nomorInvoiceResponse->getData()->data;
+            
+            // Generate nomor_pod menggunakan DocumentSequenceController
+            $nomorPodResponse = $this->documentSequenceController->generateDocumentSequence('pod');
+            if ($nomorPodResponse->getStatusCode() !== 200) {
+                return $this->errorResponse('Gagal generate nomor POD', 500);
+            }
+            $nomorPod = $nomorPodResponse->getData()->data;
             $invoicePod = InvoicePod::create([
                 'work_order_planning_id' => $workOrderPlanning->id,
                 'work_order_actual_id' => $workOrderActual->id,
@@ -106,6 +119,11 @@ class InvoicePodController extends Controller
             $invoicePod->uang_muka = is_null($salesOrder->uang_muka) ? 0 : $salesOrder->uang_muka;
             $invoicePod->sisa_bayar = $invoicePod->grand_total - $invoicePod->uang_muka;
             $invoicePod->save();
+            
+            // Update sequence counter setelah berhasil create InvoicePod
+            $this->documentSequenceController->increaseSequence('invoice');
+            $this->documentSequenceController->increaseSequence('pod');
+            
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();

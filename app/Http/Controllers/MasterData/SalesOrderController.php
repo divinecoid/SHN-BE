@@ -9,10 +9,18 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\ApiFilterTrait;
+use App\Http\Controllers\MasterData\DocumentSequenceController;
 
 class SalesOrderController extends Controller
 {
     use ApiFilterTrait;
+    
+    protected $documentSequenceController;
+    
+    public function __construct()
+    {
+        $this->documentSequenceController = new DocumentSequenceController();
+    }
 
     public function index(Request $request)
     {
@@ -28,7 +36,6 @@ class SalesOrderController extends Controller
     {
         $validator = Validator::make($request->all(), [
             // Header validation
-            'nomor_so' => 'required|string|unique:trx_sales_order,nomor_so',
             'tanggal_so' => 'required|date',
             'tanggal_pengiriman' => 'required|date',
             'syarat_pembayaran' => 'required|string',
@@ -64,9 +71,15 @@ class SalesOrderController extends Controller
 
         DB::beginTransaction();
         try {
+            // Generate nomor_so menggunakan DocumentSequenceController
+            $nomorSoResponse = $this->documentSequenceController->generateDocumentSequence('so');
+            if ($nomorSoResponse->getStatusCode() !== 200) {
+                return $this->errorResponse('Gagal generate nomor SO', 500);
+            }
+            $nomorSo = $nomorSoResponse->getData()->data;
+            
             // Create sales order header
-            $salesOrder = SalesOrder::create($request->only([
-                'nomor_so',
+            $salesOrderData = $request->only([
                 'tanggal_so',
                 'tanggal_pengiriman',
                 'syarat_pembayaran',
@@ -78,7 +91,10 @@ class SalesOrderController extends Controller
                 'ppn_amount',
                 'total_harga_so',
                 'handover_method',
-            ]));
+            ]);
+            $salesOrderData['nomor_so'] = $nomorSo;
+            
+            $salesOrder = SalesOrder::create($salesOrderData);
 
             // Create sales order items
             foreach ($request->items as $item) {
@@ -96,6 +112,9 @@ class SalesOrderController extends Controller
                     'catatan' => $item['catatan'] ?? null,
                 ]);
             }
+
+            // Update sequence counter setelah berhasil create SalesOrder
+            $this->documentSequenceController->increaseSequence('so');
 
             DB::commit();
 

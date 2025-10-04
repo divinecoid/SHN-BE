@@ -32,6 +32,7 @@ use App\Http\Controllers\Transactions\DashboardController;
 use App\Http\Controllers\Transactions\PurchaseOrderController;
 use App\Http\Controllers\Output\InvoicePodController;
 use App\Http\Controllers\Transactions\StockMutationController;
+use App\Http\Controllers\MasterData\DocumentSequenceController;
 
 
 Route::get('/user', function (Request $request) {
@@ -193,6 +194,7 @@ Route::prefix('item-barang')->middleware('checkrole')->group(function () {
     Route::put('{id}', [ItemBarangController::class, 'update']);
     Route::patch('{id}', [ItemBarangController::class, 'update']);
     Route::get('{itemBarangId}/canvas', [WorkOrderPlanningController::class, 'getCanvasByItemId']);
+    Route::get('{itemBarangId}/canvas-image', [WorkOrderPlanningController::class, 'getCanvasImageByItemId']);
 });
 Route::prefix('item-barang')->middleware('checkrole:admin')->group(function () {
     Route::delete('{id}/soft', [ItemBarangController::class, 'softDelete']);
@@ -461,6 +463,15 @@ Route::prefix('dashboard')->middleware('checkrole')->group(function () {
     Route::get('/workshop', [DashboardController::class, 'workshop']);
 });
 
+
+//document sequence routes
+Route::prefix('document-sequence')->middleware('checkrole')->group(function () {
+    Route::get('/', [DocumentSequenceController::class, 'index']);
+    Route::get('today', [DocumentSequenceController::class, 'getTodayDocumentSequence']);
+    Route::get('generate-sequence/{type}', [DocumentSequenceController::class, 'generateDocumentSequence']);
+    Route::post('increase-sequence/{type}', [DocumentSequenceController::class, 'increaseSequence']);
+    
+});
 // Stock Mutation routes
 Route::prefix('stock-mutation')->middleware('checkrole')->group(function () {
     Route::get('/', [StockMutationController::class, 'index']);

@@ -248,4 +248,86 @@ class FileHelper
         $maxSizeInBytes = $maxSizeInMB * 1024 * 1024;
         return $file->getSize() <= $maxSizeInBytes;
     }
+
+    /**
+     * Save base64 image as JPG file
+     *
+     * @param string $base64Data
+     * @param string $folder
+     * @param string|null $filename
+     * @return array
+     */
+    public static function saveBase64AsJpg(string $base64Data, string $folder = 'uploads', ?string $filename = null): array
+    {
+        try {
+            // Remove data:image/jpeg;base64, prefix if exists
+            $base64Data = preg_replace('/^data:image\/[a-zA-Z]+;base64,/', '', $base64Data);
+            
+            // Decode base64
+            $imageData = base64_decode($base64Data);
+            
+            if ($imageData === false) {
+                return [
+                    'success' => false,
+                    'data' => null,
+                    'message' => 'Invalid base64 data'
+                ];
+            }
+
+            // Generate filename if not provided
+            if (!$filename) {
+                $filename = Str::uuid() . '.jpg';
+            } else {
+                // Ensure .jpg extension
+                $filename = pathinfo($filename, PATHINFO_FILENAME) . '.jpg';
+            }
+
+            // Ensure folder path is clean
+            $folder = trim($folder, '/');
+            
+            // Create folder if not exists
+            $fullPath = storage_path('app/public/' . $folder);
+            if (!file_exists($fullPath)) {
+                mkdir($fullPath, 0755, true);
+            }
+            
+            // Save file
+            $filePath = $fullPath . '/' . $filename;
+            $result = file_put_contents($filePath, $imageData);
+            
+            if ($result === false) {
+                return [
+                    'success' => false,
+                    'data' => null,
+                    'message' => 'Failed to save image file'
+                ];
+            }
+            
+            $relativePath = $folder . '/' . $filename;
+            
+            // Get file info
+            $fileInfo = [
+                'filename' => $filename,
+                'path' => $relativePath,
+                'url' => Storage::url($relativePath),
+                'size' => filesize($filePath),
+                'mime_type' => 'image/jpeg',
+                'extension' => 'jpg',
+                'folder' => $folder
+            ];
+
+            return [
+                'success' => true,
+                'data' => $fileInfo,
+                'message' => 'Image berhasil disimpan'
+            ];
+
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'data' => null,
+                'message' => 'Gagal menyimpan image: ' . $e->getMessage()
+            ];
+        }
+    }
 }
