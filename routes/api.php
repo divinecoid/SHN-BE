@@ -31,6 +31,8 @@ use App\Http\Controllers\Transactions\WorkOrderActualController;
 use App\Http\Controllers\Transactions\DashboardController;
 use App\Http\Controllers\Transactions\PurchaseOrderController;
 use App\Http\Controllers\Transactions\StockMutationController;
+use App\Http\Controllers\Output\InvoicePodController;
+
 Route::get('/user', function (Request $request) {
     return $request->user()->load('roles');
 });
