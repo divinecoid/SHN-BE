@@ -32,6 +32,8 @@ use App\Http\Controllers\Transactions\DashboardController;
 use App\Http\Controllers\Transactions\PurchaseOrderController;
 use App\Http\Controllers\Transactions\StockMutationController;
 use App\Http\Controllers\Output\InvoicePodController;
+use App\Http\Controllers\MasterData\DocumentSequenceController;
+
 
 Route::get('/user', function (Request $request) {
     return $request->user()->load('roles');
@@ -479,6 +481,8 @@ Route::prefix('dashboard')->middleware('checkrole')->group(function () {
 //document sequence routes
 Route::prefix('document-sequence')->middleware('checkrole')->group(function () {
     Route::get('/', [DocumentSequenceController::class, 'index']);
-    Route::post('/increase-sequence/{type}', [DocumentSequenceController::class, 'increaseSequence']);
+    Route::get('today', [DocumentSequenceController::class, 'getTodayDocumentSequence']);
+    Route::get('generate-sequence/{type}', [DocumentSequenceController::class, 'generateDocumentSequence']);
+    Route::post('increase-sequence/{type}', [DocumentSequenceController::class, 'increaseSequence']);
     
 });
