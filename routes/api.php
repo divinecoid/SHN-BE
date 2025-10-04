@@ -188,6 +188,7 @@ Route::prefix('item-barang')->middleware('checkrole')->group(function () {
     Route::put('{id}', [ItemBarangController::class, 'update']);
     Route::patch('{id}', [ItemBarangController::class, 'update']);
     Route::get('{itemBarangId}/canvas', [WorkOrderPlanningController::class, 'getCanvasByItemId']);
+    Route::get('{itemBarangId}/canvas-image', [WorkOrderPlanningController::class, 'getCanvasImageByItemId']);
 });
 Route::prefix('item-barang')->middleware('checkrole:admin')->group(function () {
     Route::delete('{id}/soft', [ItemBarangController::class, 'softDelete']);

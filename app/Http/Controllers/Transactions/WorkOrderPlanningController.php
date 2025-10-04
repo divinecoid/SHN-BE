@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\ApiFilterTrait;
+use App\Helpers\FileHelper;
 
 class WorkOrderPlanningController extends Controller
 {
@@ -613,6 +614,7 @@ class WorkOrderPlanningController extends Controller
             'item_barang_id' => 'required|exists:ref_item_barang,id',
             'is_selected' => 'boolean',
             'canvas_data' => 'nullable|json', // JSON data langsung
+            'canvas_image' => 'nullable|string', // Base64 JPG data
         ]);
 
         if ($validator->fails()) {
@@ -680,6 +682,26 @@ class WorkOrderPlanningController extends Controller
                     }
                     
                     $itemBarang->update($updateData);
+                }
+            }
+
+            // Handle canvas image jika ada (base64 JPG)
+            if ($request->has('canvas_image') && !empty($request->canvas_image)) {
+                $folderPath = 'canvas/' . $request->item_barang_id;
+                $fileName = 'canvas_image';
+                
+                // Save base64 as JPG using FileHelper
+                $result = FileHelper::saveBase64AsJpg($request->canvas_image, $folderPath, $fileName);
+                
+                if ($result['success']) {
+                    // Update item barang dengan canvas image path
+                    $itemBarang = ItemBarang::find($request->item_barang_id);
+                    if ($itemBarang) {
+                        $itemBarang->update(['canvas_image' => $result['data']['path']]);
+                    }
+                } else {
+                    // Log error tapi jangan gagalkan seluruh proses
+                    Log::error('Failed to save canvas image: ' . $result['message']);
                 }
             }
 
@@ -895,6 +917,35 @@ class WorkOrderPlanningController extends Controller
         
         // Return hanya isi JSON canvas saja
         return response()->json(json_decode($content, true));
+    }
+
+    /**
+     * Get canvas image berdasarkan item barang ID
+     */
+    public function getCanvasImageByItemId($itemBarangId)
+    {
+        $itemBarang = ItemBarang::find($itemBarangId);
+        
+        if (!$itemBarang) {
+            return $this->errorResponse('Data item barang tidak ditemukan', 404);
+        }
+
+        if (!$itemBarang->canvas_image) {
+            return $this->errorResponse('Canvas image tidak ditemukan untuk item ini', 404);
+        }
+
+        $imagePath = storage_path('app/public/' . $itemBarang->canvas_image);
+        
+        if (!file_exists($imagePath)) {
+            return $this->errorResponse('File image tidak ditemukan di storage', 404);
+        }
+
+        $imageData = file_get_contents($imagePath);
+        $base64 = base64_encode($imageData);
+        
+        return response()->json([
+            'canvas_image' => 'data:image/jpeg;base64,' . $base64
+        ]);
     }
 
    
