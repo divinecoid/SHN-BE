@@ -192,7 +192,7 @@ class MasterDataSeeder extends Seeder
             'tebal' => 5.0,
             'quantity' => 10.0,
             'quantity_tebal_sama' => 5.0,
-            'jenis_potongan' => 'Utuh'
+            'jenis_potongan' => 'utuh'
         ]);
         ItemBarang::create([
             'kode_barang' => 'ITM002',
@@ -206,7 +206,7 @@ class MasterDataSeeder extends Seeder
             'tebal' => 3.0,
             'quantity' => 5.0,
             'quantity_tebal_sama' => 3.0,
-            'jenis_potongan' => 'Utuh'
+            'jenis_potongan' => 'utuh'
         ]);
         ItemBarang::create([
             'kode_barang' => 'ITM003',
@@ -248,7 +248,7 @@ class MasterDataSeeder extends Seeder
             'tebal' => 8.0,
             'quantity' => 25.0,
             'quantity_tebal_sama' => 10.0,
-            'jenis_potongan' => 'Utuh'
+            'jenis_potongan' => 'utuh'
         ]);
 
         // Jenis Transaksi Kas

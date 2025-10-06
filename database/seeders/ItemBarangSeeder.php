@@ -50,7 +50,7 @@ class ItemBarangSeeder extends Seeder
                     $quantityTebalSama = random_int(1, $quantity);
                     
                     // Random jenis potongan
-                    $jenisPotonganOptions = ['potong', 'tidak_potong', 'custom'];
+                    $jenisPotonganOptions = ['utuh', 'potongan'];
                     $jenisPotongan = $jenisPotonganOptions[array_rand($jenisPotonganOptions)];
 
                     ItemBarang::create([
