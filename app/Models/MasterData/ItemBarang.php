@@ -32,6 +32,10 @@ class ItemBarang extends Model
     protected $hidden = [
         'deleted_at'
     ];
+
+    protected $casts = [
+        'jenis_potongan' => 'string',
+    ];
     
     public function jenisBarang()
     {

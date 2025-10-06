@@ -73,17 +73,16 @@ class WorkOrderPlanningController extends Controller
         DB::beginTransaction();
         try {
             // Membuat header Work Order Planning
-            $workOrderPlanning = WorkOrderPlanning::create(array_merge($request->only([
-            'nomor_wo',
-            'tanggal_wo',
-            'id_sales_order',
-            'id_pelanggan',
-            'id_gudang',
-            'prioritas',
-            'status',
-            'handover_method',
-            ]), [
-                'wo_unique_id' => $woUniqueId,
+            $workOrderPlanning = WorkOrderPlanning::create($request->only([
+                'wo_unique_id',
+                'nomor_wo',
+                'tanggal_wo',
+                'id_sales_order',
+                'id_pelanggan',
+                'id_gudang',
+                'prioritas',
+                'status',
+                'handover_method',
             ]));
 
 
