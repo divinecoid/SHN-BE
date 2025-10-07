@@ -27,6 +27,7 @@ class KonversiBarangController extends Controller
         }
 
         $query->whereIn('jenis_potongan', ['potongan', 'utuh']);
+        $query->where('quantity', 1);
         $data = $query->paginate($perPage);
         $items = collect($data->items());
         return response()->json($this->paginateResponse($data, $items));
@@ -42,8 +43,11 @@ class KonversiBarangController extends Controller
 
         DB::beginTransaction();
         try {
+            $today = now()->setTimezone('Asia/Jakarta')->format('Y-m-d');
+
             $data->update([
                 'jenis_potongan' => 'potongan',
+                'convert_date' => $today
             ]);
 
             DB::commit();
