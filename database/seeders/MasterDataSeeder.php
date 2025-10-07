@@ -220,7 +220,7 @@ class MasterDataSeeder extends Seeder
             'tebal' => 0.5,
             'quantity' => 100.0,
             'quantity_tebal_sama' => 50.0,
-            'jenis_potongan' => 'Potongan'
+            'jenis_potongan' => 'potongan'
         ]);
         ItemBarang::create([
             'kode_barang' => 'ITM004',
@@ -234,7 +234,7 @@ class MasterDataSeeder extends Seeder
             'tebal' => 2.0,
             'quantity' => 500.0,
             'quantity_tebal_sama' => 200.0,
-            'jenis_potongan' => 'Bundle'
+            'jenis_potongan' => 'utuh'
         ]);
         ItemBarang::create([
             'kode_barang' => 'ITM005',
