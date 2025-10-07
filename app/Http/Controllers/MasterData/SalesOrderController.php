@@ -34,7 +34,7 @@ class SalesOrderController extends Controller
             'syarat_pembayaran' => 'required|string',
             'gudang_id' => 'required|exists:ref_gudang,id',
             'pelanggan_id' => 'required|exists:ref_pelanggan,id',
-            'handover_method' => 'required|string|in:pickup,delivery',
+            'handover_method' => 'nullable|string',
             
             // Summary validation
             'subtotal' => 'required|numeric|min:0',
@@ -65,7 +65,7 @@ class SalesOrderController extends Controller
         DB::beginTransaction();
         try {
             // Create sales order header
-            $salesOrder = SalesOrder::create($request->only([
+            $salesOrder = SalesOrder::create(array_merge($request->only([
                 'nomor_so',
                 'tanggal_so',
                 'tanggal_pengiriman',
@@ -78,6 +78,8 @@ class SalesOrderController extends Controller
                 'ppn_amount',
                 'total_harga_so',
                 'handover_method',
+            ]), [
+                'handover_method' => $request->handover_method ?? 'pickup'
             ]));
 
             // Create sales order items
@@ -134,14 +136,13 @@ class SalesOrderController extends Controller
             'syarat_pembayaran' => 'required|string',
             'gudang_id' => 'required|exists:ref_gudang,id',
             'pelanggan_id' => 'required|exists:ref_pelanggan,id',
-            'handover_method' => 'required|string|in:pickup,delivery',
+            'handover_method' => 'nullable|string',
             // Summary validation
             'subtotal' => 'required|numeric|min:0',
             'total_diskon' => 'required|numeric|min:0',
             'ppn_percent' => 'required|numeric|min:0|max:100',
             'ppn_amount' => 'required|numeric|min:0',
             'total_harga_so' => 'required|numeric|min:0',
-            'handover_method' => 'required|string|in:pickup,delivery',
             
             // Items validation
             'items' => 'required|array|min:1',
@@ -165,7 +166,7 @@ class SalesOrderController extends Controller
         DB::beginTransaction();
         try {
             // Update sales order header
-            $salesOrder->update($request->only([
+            $salesOrder->update(array_merge($request->only([
                 'nomor_so',
                 'tanggal_so',
                 'tanggal_pengiriman',
@@ -178,6 +179,8 @@ class SalesOrderController extends Controller
                 'ppn_amount',
                 'total_harga_so',
                 'handover_method',
+            ]), [
+                'handover_method' => $request->handover_method ?? 'pickup'
             ]));
 
             // Delete existing items and create new ones

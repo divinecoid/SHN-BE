@@ -581,7 +581,7 @@ class WorkOrderPlanningController extends Controller
             ->where('bentuk_barang_id', $request->bentuk_barang_id)
             ->where('grade_barang_id', $request->grade_barang_id)
             ->where('tebal', $request->tebal)
-            ->where('sisa_luas', '>', $request->sisa_luas)
+            ->where('sisa_luas', '>=', $request->sisa_luas)
             ->where(function($query) use ($currentUserId) {
                 $query->where('is_edit', false)
                       ->orWhereNull('is_edit')
