@@ -490,14 +490,5 @@ Route::prefix('stock-mutation')->middleware('checkrole')->group(function () {
 
 Route::prefix('konversi-barang')->middleware('checkrole')->group(function () {
     Route::get('/', [KonversiBarangController::class, 'index']);
-    Route::get('{id}', [KonversiBarangController::class, 'show']);
-    Route::post('/', [KonversiBarangController::class, 'store']);
-    Route::put('{id}', [KonversiBarangController::class, 'update']);
     Route::patch('{id}', [KonversiBarangController::class, 'update']);
-    Route::delete('{id}', [KonversiBarangController::class, 'destroy']);
-    Route::delete('{id}/soft', [KonversiBarangController::class, 'softDelete']);
-    Route::patch('{id}/restore', [KonversiBarangController::class, 'restore']);
-    Route::delete('{id}/force', [KonversiBarangController::class, 'forceDelete']);
-    Route::get('with-trashed/all', [KonversiBarangController::class, 'indexWithTrashed']);
-    Route::get('with-trashed/trashed', [KonversiBarangController::class, 'indexTrashed']);
 });
