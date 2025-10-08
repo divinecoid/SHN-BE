@@ -11,14 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('ref_item_barang', function (Blueprint $table) {
-            // Drop the old is_edit_by column
-            $table->dropColumn('is_edit_by');
+        // Schema::table('ref_item_barang', function (Blueprint $table) {
+        //     // Drop the old is_edit_by column
+        //     $table->dropColumn('is_edit_by');
             
-            // Add new user_id column with foreign key
-            $table->unsignedBigInteger('user_id')->nullable();
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('set null');
-        });
+        //     // Add new user_id column with foreign key
+        //     $table->unsignedBigInteger('user_id')->nullable();
+        //     $table->foreign('user_id')->references('id')->on('users')->onDelete('set null');
+        // });
     }
 
     /**

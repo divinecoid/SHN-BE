@@ -27,10 +27,15 @@ class ItemBarang extends Model
         'user_id',
         'canvas_file',
         'canvas_image',
+        'convert_date'
     ];
 
     protected $hidden = [
         'deleted_at'
+    ];
+
+    protected $casts = [
+        'jenis_potongan' => 'string',
     ];
     
     public function jenisBarang()

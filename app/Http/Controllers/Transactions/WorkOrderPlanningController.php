@@ -90,7 +90,9 @@ class WorkOrderPlanningController extends Controller
             $woUniqueId = 'WO-' . uniqid();
             
             // Membuat header Work Order Planning
-            $workOrderData = $request->only([
+            $workOrderPlanning = WorkOrderPlanning::create($request->only([
+                'wo_unique_id',
+                'nomor_wo',
                 'tanggal_wo',
                 'id_sales_order',
                 'id_pelanggan',
@@ -98,11 +100,7 @@ class WorkOrderPlanningController extends Controller
                 'prioritas',
                 'status',
                 'handover_method',
-            ]);
-            $workOrderData['nomor_wo'] = $nomorWo;
-            $workOrderData['wo_unique_id'] = $woUniqueId;
-            
-            $workOrderPlanning = WorkOrderPlanning::create($workOrderData);
+            ]));
 
 
             // Jika ada items, simpan items beserta relasi ke ref_jenis_barang, ref_bentuk_barang, ref_grade_barang

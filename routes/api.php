@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Transactions\KonversiBarangController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\RegisterController;
@@ -30,8 +31,8 @@ use App\Http\Controllers\Transactions\WorkOrderPlanningController;
 use App\Http\Controllers\Transactions\WorkOrderActualController;
 use App\Http\Controllers\Transactions\DashboardController;
 use App\Http\Controllers\Transactions\PurchaseOrderController;
-use App\Http\Controllers\Transactions\StockMutationController;
 use App\Http\Controllers\Output\InvoicePodController;
+use App\Http\Controllers\Transactions\StockMutationController;
 use App\Http\Controllers\MasterData\DocumentSequenceController;
 
 
@@ -448,20 +449,6 @@ Route::middleware('checkrole')->group(function () {
     Route::get('files/folder', [FileController::class, 'getFilesInFolder']);
 });
 
-// Stock Mutation routes
-Route::prefix('stock-mutation')->middleware('checkrole')->group(function () {
-    Route::get('/', [StockMutationController::class, 'index']);
-    Route::get('{id}', [StockMutationController::class, 'show']);
-    Route::post('/', [StockMutationController::class, 'store']);
-    Route::put('{id}', [StockMutationController::class, 'update']);
-    Route::patch('{id}', [StockMutationController::class, 'update']);
-    Route::delete('{id}', [StockMutationController::class, 'destroy']);
-    Route::delete('{id}/soft', [StockMutationController::class, 'softDelete']);
-    Route::patch('{id}/restore', [StockMutationController::class, 'restore']);
-    Route::delete('{id}/force', [StockMutationController::class, 'forceDelete']);
-    Route::get('with-trashed/all', [StockMutationController::class, 'indexWithTrashed']);
-    Route::get('with-trashed/trashed', [StockMutationController::class, 'indexTrashed']);
-});
 
 // Invoice Pod routes
 Route::prefix('invoice-pod')->middleware('checkrole')->group(function () {
@@ -485,4 +472,23 @@ Route::prefix('document-sequence')->middleware('checkrole')->group(function () {
     Route::get('generate-sequence/{type}', [DocumentSequenceController::class, 'generateDocumentSequence']);
     Route::post('increase-sequence/{type}', [DocumentSequenceController::class, 'increaseSequence']);
     
+});
+// Stock Mutation routes
+Route::prefix('stock-mutation')->middleware('checkrole')->group(function () {
+    Route::get('/', [StockMutationController::class, 'index']);
+    Route::get('{id}', [StockMutationController::class, 'show']);
+    Route::post('/', [StockMutationController::class, 'store']);
+    Route::put('{id}', [StockMutationController::class, 'update']);
+    Route::patch('{id}', [StockMutationController::class, 'update']);
+    Route::delete('{id}', [StockMutationController::class, 'destroy']);
+    Route::delete('{id}/soft', [StockMutationController::class, 'softDelete']);
+    Route::patch('{id}/restore', [StockMutationController::class, 'restore']);
+    Route::delete('{id}/force', [StockMutationController::class, 'forceDelete']);
+    Route::get('with-trashed/all', [StockMutationController::class, 'indexWithTrashed']);
+    Route::get('with-trashed/trashed', [StockMutationController::class, 'indexTrashed']);
+});
+
+Route::prefix('konversi-barang')->middleware('checkrole')->group(function () {
+    Route::get('/', [KonversiBarangController::class, 'index']);
+    Route::patch('{id}', [KonversiBarangController::class, 'update']);
 });
