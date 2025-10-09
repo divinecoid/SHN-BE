@@ -5,6 +5,7 @@ namespace App\Models\MasterData;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Traits\HideTimestampsInRelations;
+use App\Models\MasterData\Gudang;
 
 class ItemBarang extends Model
 {
@@ -29,7 +30,8 @@ class ItemBarang extends Model
         'canvas_image',
         'convert_date',
         'split_date',
-        'merge_date'
+        'merge_date',
+        'gudang_id'
     ];
 
     protected $hidden = [
@@ -51,5 +53,9 @@ class ItemBarang extends Model
     public function gradeBarang()
     {
         return $this->belongsTo(GradeBarang::class, 'grade_barang_id');
+    }
+    public function gudang()
+    {
+        return $this->belongsTo(Gudang::class, 'gudang_id');
     }
 } 
