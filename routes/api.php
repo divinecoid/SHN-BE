@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Transactions\KonversiBarangController;
+use App\Http\Controllers\Transactions\SplitBarangController;
+use App\Http\Controllers\Transactions\MergeBarangController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\RegisterController;
@@ -491,4 +493,14 @@ Route::prefix('stock-mutation')->middleware('checkrole')->group(function () {
 Route::prefix('konversi-barang')->middleware('checkrole')->group(function () {
     Route::get('/', [KonversiBarangController::class, 'index']);
     Route::patch('{id}', [KonversiBarangController::class, 'update']);
+});
+
+Route::prefix('merge-barang')->middleware('checkrole')->group(function () {
+    Route::get('/', [MergeBarangController::class, 'index']);
+    Route::patch('{id}', [MergeBarangController::class, 'update']);
+});
+
+Route::prefix('split-barang')->middleware('checkrole')->group(function () {
+    Route::get('/', [SplitBarangController::class, 'index']);
+    Route::patch('{id}', [SplitBarangController::class, 'update']);
 });
