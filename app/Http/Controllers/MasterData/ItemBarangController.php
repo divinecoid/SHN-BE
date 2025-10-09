@@ -15,7 +15,7 @@ class ItemBarangController extends Controller
     public function index(Request $request)
     {
         $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
-        $query = ItemBarang::with(['jenisBarang', 'bentukBarang', 'gradeBarang']);
+        $query = ItemBarang::with(['jenisBarang', 'bentukBarang', 'gradeBarang', 'gudang']);
         $query = $this->applyFilter($query, $request, ['kode_barang', 'nama_item_barang']);
         $data = $query->paginate($perPage);
         $items = collect($data->items());
@@ -43,8 +43,8 @@ class ItemBarangController extends Controller
         if ($validator->fails()) {
             return $this->errorResponse($validator->errors()->first(), 422);
         }
-        $data = ItemBarang::create($request->only(['kode_barang', 'jenis_barang_id', 'bentuk_barang_id', 'grade_barang_id', 'nama_item_barang', 'sisa_luas', 'panjang', 'lebar', 'tebal', 'quantity', 'quantity_tebal_sama', 'jenis_potongan', 'is_edit', 'is_edit_by']));
-        $data->load(['jenisBarang', 'bentukBarang', 'gradeBarang']);
+        $data = ItemBarang::create($request->only(['kode_barang', 'jenis_barang_id', 'bentuk_barang_id', 'grade_barang_id', 'nama_item_barang', 'sisa_luas', 'panjang', 'lebar', 'tebal', 'quantity', 'quantity_tebal_sama', 'jenis_potongan', 'is_edit', 'is_edit_by', 'gudang_id']));
+        $data->load(['jenisBarang', 'bentukBarang', 'gradeBarang', 'gudang']);
         return $this->successResponse($data, 'Data berhasil ditambahkan');
     }
 
@@ -78,12 +78,29 @@ class ItemBarangController extends Controller
             'jenis_potongan' => 'nullable|string',
             'is_edit' => 'nullable|boolean',
             'user_id' => 'nullable|exists:users,id',
+            'gudang_id' => 'nullable|exists:ref_gudang,id',
         ]);
         if ($validator->fails()) {
             return $this->errorResponse($validator->errors()->first(), 422);
         }
         // Hanya update field yang dikirim dalam request
-        $updateData = array_filter($request->only(['kode_barang', 'jenis_barang_id', 'bentuk_barang_id', 'grade_barang_id', 'nama_item_barang', 'sisa_luas', 'panjang', 'lebar', 'tebal', 'quantity', 'quantity_tebal_sama', 'jenis_potongan', 'is_edit', 'user_id']), function($value) {
+        $updateData = array_filter($request->only([
+            'kode_barang', 
+            'jenis_barang_id', 
+            'bentuk_barang_id', 
+            'grade_barang_id', 
+            'nama_item_barang', 
+            'sisa_luas', 
+            'panjang', 
+            'lebar', 
+            'tebal', 
+            'quantity', 
+            'quantity_tebal_sama', 
+            'jenis_potongan', 
+            'is_edit', 
+            'user_id',
+            'gudang_id'
+        ]), function($value) {
             return $value !== null && $value !== '';
         });
         $data->update($updateData);
