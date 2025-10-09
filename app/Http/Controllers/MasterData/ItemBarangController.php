@@ -16,6 +16,12 @@ class ItemBarangController extends Controller
     {
         $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
         $query = ItemBarang::with(['jenisBarang', 'bentukBarang', 'gradeBarang', 'gudang']);
+        
+        // Filter berdasarkan gudang_id jika ada
+        if ($request->has('gudang_id') && $request->gudang_id) {
+            $query->where('gudang_id', $request->gudang_id);
+        }
+        
         $query = $this->applyFilter($query, $request, ['kode_barang', 'nama_item_barang']);
         $data = $query->paginate($perPage);
         $items = collect($data->items());
@@ -141,7 +147,13 @@ class ItemBarangController extends Controller
     public function indexWithTrashed(Request $request)
     {
         $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
-        $query = ItemBarang::withTrashed()->with(['jenisBarang', 'bentukBarang', 'gradeBarang']);
+        $query = ItemBarang::withTrashed()->with(['jenisBarang', 'bentukBarang', 'gradeBarang', 'gudang']);
+        
+        // Filter berdasarkan gudang_id jika ada
+        if ($request->has('gudang_id') && $request->gudang_id) {
+            $query->where('gudang_id', $request->gudang_id);
+        }
+        
         $query = $this->applyFilter($query, $request, ['kode_barang', 'nama_item_barang']);
         $data = $query->paginate($perPage);
         $items = collect($data->items());
@@ -151,7 +163,13 @@ class ItemBarangController extends Controller
     public function indexTrashed(Request $request)
     {
         $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
-        $query = ItemBarang::onlyTrashed()->with(['jenisBarang', 'bentukBarang', 'gradeBarang']);
+        $query = ItemBarang::onlyTrashed()->with(['jenisBarang', 'bentukBarang', 'gradeBarang', 'gudang']);
+        
+        // Filter berdasarkan gudang_id jika ada
+        if ($request->has('gudang_id') && $request->gudang_id) {
+            $query->where('gudang_id', $request->gudang_id);
+        }
+        
         $query = $this->applyFilter($query, $request, ['kode_barang', 'nama_item_barang']);
         $data = $query->paginate($perPage);
         $items = collect($data->items());
