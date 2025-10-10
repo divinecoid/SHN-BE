@@ -14,14 +14,14 @@ class ItemBarangController extends Controller
 
     public function index(Request $request)
     {
-        $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
+        $perPage = (int) ($request->input('per_page', $this->getPerPageDefault()));
         $query = ItemBarang::with(['jenisBarang', 'bentukBarang', 'gradeBarang', 'gudang']);
-        
+
         // Filter berdasarkan gudang_id jika ada
         if ($request->has('gudang_id') && $request->gudang_id) {
             $query->where('gudang_id', $request->gudang_id);
         }
-        
+
         $query = $this->applyFilter($query, $request, ['kode_barang', 'nama_item_barang']);
         $data = $query->paginate($perPage);
         $items = collect($data->items());
@@ -91,22 +91,22 @@ class ItemBarangController extends Controller
         }
         // Hanya update field yang dikirim dalam request
         $updateData = array_filter($request->only([
-            'kode_barang', 
-            'jenis_barang_id', 
-            'bentuk_barang_id', 
-            'grade_barang_id', 
-            'nama_item_barang', 
-            'sisa_luas', 
-            'panjang', 
-            'lebar', 
-            'tebal', 
-            'quantity', 
-            'quantity_tebal_sama', 
-            'jenis_potongan', 
-            'is_edit', 
+            'kode_barang',
+            'jenis_barang_id',
+            'bentuk_barang_id',
+            'grade_barang_id',
+            'nama_item_barang',
+            'sisa_luas',
+            'panjang',
+            'lebar',
+            'tebal',
+            'quantity',
+            'quantity_tebal_sama',
+            'jenis_potongan',
+            'is_edit',
             'user_id',
             'gudang_id'
-        ]), function($value) {
+        ]), function ($value) {
             return $value !== null && $value !== '';
         });
         $data->update($updateData);
@@ -146,14 +146,14 @@ class ItemBarangController extends Controller
 
     public function indexWithTrashed(Request $request)
     {
-        $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
+        $perPage = (int) ($request->input('per_page', $this->getPerPageDefault()));
         $query = ItemBarang::withTrashed()->with(['jenisBarang', 'bentukBarang', 'gradeBarang', 'gudang']);
-        
+
         // Filter berdasarkan gudang_id jika ada
         if ($request->has('gudang_id') && $request->gudang_id) {
             $query->where('gudang_id', $request->gudang_id);
         }
-        
+
         $query = $this->applyFilter($query, $request, ['kode_barang', 'nama_item_barang']);
         $data = $query->paginate($perPage);
         $items = collect($data->items());
@@ -162,17 +162,43 @@ class ItemBarangController extends Controller
 
     public function indexTrashed(Request $request)
     {
-        $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
+        $perPage = (int) ($request->input('per_page', $this->getPerPageDefault()));
         $query = ItemBarang::onlyTrashed()->with(['jenisBarang', 'bentukBarang', 'gradeBarang', 'gudang']);
-        
+
         // Filter berdasarkan gudang_id jika ada
         if ($request->has('gudang_id') && $request->gudang_id) {
             $query->where('gudang_id', $request->gudang_id);
         }
-        
+
         $query = $this->applyFilter($query, $request, ['kode_barang', 'nama_item_barang']);
         $data = $query->paginate($perPage);
         $items = collect($data->items());
         return response()->json($this->paginateResponse($data, $items));
     }
-} 
+    public function similarType(Request $request, $id)
+    {
+        $data = ItemBarang::with(['jenisBarang', 'bentukBarang', 'gradeBarang', 'gudang'])->find($id);
+        if (!$data) {
+            return $this->errorResponse('Data tidak ditemukan', 404);
+        }
+        $perPage = (int) ($request->input('per_page', $this->getPerPageDefault()));
+        $query = ItemBarang::with(['jenisBarang', 'bentukBarang', 'gradeBarang', 'gudang']);
+
+        if ($request->filled('gudang_id')) {
+            $query->where('gudang_id', $request->gudang_id);
+        }
+
+        $query->where([
+            ['jenis_barang_id', '=', $data->jenis_barang_id],
+            ['bentuk_barang_id', '=', $data->bentuk_barang_id],
+            ['grade_barang_id', '=', $data->grade_barang_id],
+            ['tebal', '=', $data->tebal],
+            ['jenis_potongan', '=', 'utuh'],
+        ]);
+
+        $query = $this->applyFilter($query, $request, ['kode_barang', 'nama_item_barang']);
+        $data = $query->paginate($perPage);
+        $items = collect($data->items());
+        return response()->json($this->paginateResponse($data, $items));
+    }
+}

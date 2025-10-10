@@ -198,6 +198,7 @@ Route::prefix('item-barang')->middleware('checkrole')->group(function () {
     Route::patch('{id}', [ItemBarangController::class, 'update']);
     Route::get('{itemBarangId}/canvas', [WorkOrderPlanningController::class, 'getCanvasByItemId']);
     Route::get('{itemBarangId}/canvas-image', [WorkOrderPlanningController::class, 'getCanvasImageByItemId']);
+    Route::get('/similar-type/{id}', [ItemBarangController::class, 'similarType']);
 });
 Route::prefix('item-barang')->middleware('checkrole:admin')->group(function () {
     Route::delete('{id}/soft', [ItemBarangController::class, 'softDelete']);
@@ -497,7 +498,7 @@ Route::prefix('konversi-barang')->middleware('checkrole')->group(function () {
 
 Route::prefix('merge-barang')->middleware('checkrole')->group(function () {
     Route::get('/', [MergeBarangController::class, 'index']);
-    Route::patch('{id}', [MergeBarangController::class, 'update']);
+    Route::patch('/', [MergeBarangController::class, 'update']);
 });
 
 Route::prefix('split-barang')->middleware('checkrole')->group(function () {

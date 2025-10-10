@@ -22,6 +22,7 @@ class MergeBarangController extends Controller
         if ($request->filled('search')) {
             $query->where('nama_item_barang', 'like', '%' . $request->input('search') . '%');
         }
+        $query->whereNotNull('merge_date');
 
         $data = $query->paginate($perPage);
         $items = collect($data->items());
@@ -30,7 +31,6 @@ class MergeBarangController extends Controller
 
     public function update(Request $request)
     {
-
         $request->validate([
             'id_1' => 'required',
             'id_2' => 'required'
