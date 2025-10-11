@@ -53,12 +53,12 @@ class MergeBarangController extends Controller
 
         foreach ($fields as $field) {
             if ($data_1->$field != $data_2->$field) {
-                return $this->errorResponse('Salah satu data tidak valid', 404);
+                return $this->errorResponse('Barang memiliki jenis/bentuk/grade/tebal/jenis potongan yang tidak sama', 404);
             }
         }
 
         if ($data_1->jenis_potongan != 'utuh') {
-            return $this->errorResponse('Salah satu data tidak valid', 404);
+            return $this->errorResponse('Barang memiliki jenis/bentuk/grade/tebal/jenis potongan yang tidak sama', 404);
         }
 
         $all_splitted_data = ItemBarang::where('kode_barang', 'LIKE', "%{$data_1->kode_barang}%")->count();
