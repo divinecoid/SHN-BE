@@ -61,7 +61,7 @@ class MergeBarangController extends Controller
             return $this->errorResponse('Salah satu data tidak valid', 404);
         }
 
-        $all_splitted_data = ItemBarang::whereLike('kode_barang', $data_1->kode_barang)->count();
+        $all_splitted_data = ItemBarang::where('kode_barang', 'LIKE', "%{$data_1->kode_barang}%")->count();
 
         DB::beginTransaction();
         try {

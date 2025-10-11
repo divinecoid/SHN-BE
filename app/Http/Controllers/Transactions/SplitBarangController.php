@@ -23,26 +23,28 @@ class SplitBarangController extends Controller
             $query->where('nama_item_barang', 'like', '%' . $request->input('search') . '%');
         }
 
+        $query->whereNotNull('split_date');
         $data = $query->paginate($perPage);
         $items = collect($data->items());
         return response()->json($this->paginateResponse($data, $items));
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request)
     {
 
         $request->validate([
+            'id' => 'required',
             'quantity' => 'required|numeric|min:0'
         ]);
 
-        $data = ItemBarang::with(['jenisBarang', 'bentukBarang', 'gradeBarang'])->find($id);
+        $data = ItemBarang::with(['jenisBarang', 'bentukBarang', 'gradeBarang'])->find($request->id);
 
         if (!$data) {
             return $this->errorResponse('Data tidak ditemukan', 404);
         }
 
         // memberikan nama 001 002 003 di belakang nama item barang hasil copy
-        $all_splitted_data = ItemBarang::whereLike('kode_barang', $data->kode_barang)->count();
+        $all_splitted_data = ItemBarang::where('kode_barang', 'LIKE', "%{$data->kode_barang}%")->count();
 
         $new_item_quantity = $request->input('quantity');
         DB::beginTransaction();
@@ -70,7 +72,7 @@ class SplitBarangController extends Controller
             return $this->successResponse($splitted_item_barang, 'Stock barang berhasil displit');
         } catch (Exception $e) {
             DB::rollBack();
-            return $this->errorResponse('Gagal split stock barang: ' . $e->getMessage(), 500);
+            return $this->errorResponse( 'Gagal split stock barang: ' . $e->getMessage(), 500);
         }
     }
 }

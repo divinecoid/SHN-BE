@@ -503,5 +503,5 @@ Route::prefix('merge-barang')->middleware('checkrole')->group(function () {
 
 Route::prefix('split-barang')->middleware('checkrole')->group(function () {
     Route::get('/', [SplitBarangController::class, 'index']);
-    Route::patch('{id}', [SplitBarangController::class, 'update']);
+    Route::patch('/', [SplitBarangController::class, 'update']);
 });
