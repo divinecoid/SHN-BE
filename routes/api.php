@@ -192,6 +192,7 @@ Route::prefix('grade-barang')->middleware('checkrole:admin')->group(function () 
 // ItemBarang routes
 Route::prefix('item-barang')->middleware('checkrole')->group(function () {
     Route::get('/', [ItemBarangController::class, 'index']);
+    Route::get('/bulk', [ItemBarangController::class, 'bulk']);
     Route::get('{id}', [ItemBarangController::class, 'show']);
     Route::post('/', [ItemBarangController::class, 'store']);
     Route::put('{id}', [ItemBarangController::class, 'update']);
