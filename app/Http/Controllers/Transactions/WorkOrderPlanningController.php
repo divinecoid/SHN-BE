@@ -628,6 +628,61 @@ class WorkOrderPlanningController extends Controller
         return $this->successResponse($data);
     }
 
+    /**
+     * Mendapatkan daftar saran plat dasar untuk jenis potongan 'utuh' berdasarkan data yang dikirim melalui body (POST request).
+     * Data yang dibutuhkan: jenis_barang_id, bentuk_barang_id, grade_barang_id, tebal, panjang, lebar
+     */
+    public function getSaranPlatUtuh(Request $request)
+    {
+        // Validasi input dari body request
+        $validator = Validator::make($request->all(), [
+            'jenis_barang_id' => 'required|exists:ref_jenis_barang,id',
+            'bentuk_barang_id' => 'required|exists:ref_bentuk_barang,id',
+            'grade_barang_id' => 'required|exists:ref_grade_barang,id',
+            'tebal' => 'required|numeric',
+            'panjang' => 'required|numeric',
+            'lebar' => 'required|numeric',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->errorResponse($validator->errors()->first(), 422);
+        }
+
+        // Ambil user_id dari JWT token
+        $currentUserId = auth()->id();
+        
+        // Ambil data item barang sesuai kriteria yang dikirim melalui body
+        $data = ItemBarang::with(['jenisBarang', 'bentukBarang', 'gradeBarang'])
+            ->where('jenis_barang_id', $request->jenis_barang_id)
+            ->where('bentuk_barang_id', $request->bentuk_barang_id)
+            ->where('grade_barang_id', $request->grade_barang_id)
+            ->where('tebal', $request->tebal)
+            ->where('panjang', '>=', $request->panjang)
+            ->where('lebar', '>=', $request->lebar)
+            ->where('jenis_potongan', 'utuh') // Hanya ambil yang jenis_potongan = 'utuh'
+            ->where(function($query) use ($currentUserId) {
+                $query->where('is_edit', false)
+                      ->orWhereNull('is_edit')
+                      ->orWhere('user_id', $currentUserId); // Kalau yang edit user yang sama, tetap return
+            })
+            ->orderBy('sisa_luas', 'asc')
+            ->get();
+
+        // Mapping data untuk response
+        $data = $data->map(function ($item) {
+            return [
+                'id' => $item->id,
+                'nama' => $item->nama_item_barang,
+                'ukuran' => 
+                    (is_null($item->panjang) ? '' : ($item->panjang . ' x ')) .
+                    (is_null($item->lebar) ? '' : ($item->lebar . ' x ')) .
+                    (is_null($item->tebal) ? '' : $item->tebal),
+                'sisa_luas' => $item->sisa_luas,
+            ];
+        });
+        return $this->successResponse($data);
+    }
+
 
     /**
      * Tambah saran plat/shaft dasar ke work order planning item

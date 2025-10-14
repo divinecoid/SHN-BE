@@ -58,7 +58,8 @@ class ItemBarangMaterialSeeder extends Seeder
                 'tebal' => 5.0,
                 'quantity' => 10.0,
                 'quantity_tebal_sama' => 5.0,
-                'jenis_potongan' => 'utuh'
+                'jenis_potongan' => 'utuh',
+                'is_available' => true
             ],
             [
                 'kode_barang' => 'ITM002',
@@ -72,7 +73,8 @@ class ItemBarangMaterialSeeder extends Seeder
                 'tebal' => 3.0,
                 'quantity' => 5.0,
                 'quantity_tebal_sama' => 3.0,
-                'jenis_potongan' => 'utuh'
+                'jenis_potongan' => 'utuh',
+                'is_available' => true
             ],
             [
                 'kode_barang' => 'ITM003',
@@ -86,7 +88,8 @@ class ItemBarangMaterialSeeder extends Seeder
                 'tebal' => 0.5,
                 'quantity' => 100.0,
                 'quantity_tebal_sama' => 50.0,
-                'jenis_potongan' => 'potongan'
+                'jenis_potongan' => 'potongan',
+                'is_available' => false
             ],
             [
                 'kode_barang' => 'ITM004',
@@ -100,7 +103,8 @@ class ItemBarangMaterialSeeder extends Seeder
                 'tebal' => 2.0,
                 'quantity' => 500.0,
                 'quantity_tebal_sama' => 200.0,
-                'jenis_potongan' => 'utuh'
+                'jenis_potongan' => 'utuh',
+                'is_available' => true
             ],
             [
                 'kode_barang' => 'ITM005',
@@ -114,7 +118,8 @@ class ItemBarangMaterialSeeder extends Seeder
                 'tebal' => 8.0,
                 'quantity' => 25.0,
                 'quantity_tebal_sama' => 10.0,
-                'jenis_potongan' => 'utuh'
+                'jenis_potongan' => 'utuh',
+                'is_available' => true
             ]
         ];
 

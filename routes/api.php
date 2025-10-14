@@ -426,6 +426,7 @@ Route::prefix('work-order-planning')->middleware('checkrole')->group(function ()
     
     // Utility routes
     Route::post('get-saran-plat-dasar', [WorkOrderPlanningController::class, 'getSaranPlatDasar']);
+    Route::post('get-saran-plat-utuh', [WorkOrderPlanningController::class, 'getSaranPlatUtuh']);
     Route::get('{id}/print-spk', [WorkOrderPlanningController::class, 'printSpkWorkOrder']);
     
     // Saran Plat/Shaft Dasar routes
