@@ -393,6 +393,7 @@ Route::prefix('sales-order')->middleware('checkrole')->group(function () {
 Route::prefix('purchase-order')->middleware('checkrole')->group(function () {
     Route::get('/', [PurchaseOrderController::class, 'index']);
     Route::get('{id}', [PurchaseOrderController::class, 'show']);
+    Route::get('scan-nomor-po/{nomor_po}', [PurchaseOrderController::class, 'scanNomorPo']);
     Route::post('/', [PurchaseOrderController::class, 'store']);
     Route::put('{id}', [PurchaseOrderController::class, 'update']);
     Route::patch('{id}', [PurchaseOrderController::class, 'update']);
@@ -481,6 +482,7 @@ Route::prefix('document-sequence')->middleware('checkrole')->group(function () {
 Route::prefix('stock-mutation')->middleware('checkrole')->group(function () {
     Route::get('/', [StockMutationController::class, 'index']);
     Route::get('{id}', [StockMutationController::class, 'show']);
+    Route::get('scan-nomor-mutasi/{nomor_mutasi}', [StockMutationController::class, 'scanNomorMutasi']);
     Route::post('/', [StockMutationController::class, 'store']);
     Route::put('{id}', [StockMutationController::class, 'update']);
     Route::patch('{id}', [StockMutationController::class, 'update']);

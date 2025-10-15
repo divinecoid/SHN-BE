@@ -109,6 +109,52 @@ class PurchaseOrderController extends Controller
         }
         return $this->successResponse($data);
     }
+
+    public function scanNomorPo($nomor_po)
+    {
+        $data = PurchaseOrder::with(['purchaseOrderItems.jenisBarang', 'purchaseOrderItems.bentukBarang', 'purchaseOrderItems.gradeBarang', 'supplier'])->where('nomor_po', $nomor_po)->first();
+        if (!$data) {
+            return $this->errorResponse('Data tidak ditemukan', 404);
+        }
+
+        // Transform data ke struktur response yang diinginkan
+        $transformedData = [
+            'id' => $data->id,
+            'nomor_dokumen' => $data->nomor_po,
+            'tipe_dokumen' => 'purchase_order',
+            'status' => $data->status,
+            'tanggal_dokumen' => $data->tanggal_po,
+            'tanggal_penerimaan' => $data->tanggal_penerimaan,
+            'id_user_penerima' => null,
+            'gudang_asal_id' => null,
+            'gudang_tujuan_id' => null,
+            'supplier_id' => $data->id_supplier,
+            'catatan' => $data->catatan,
+            'items' => $data->purchaseOrderItems->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'panjang' => $item->panjang,
+                    'lebar' => $item->lebar,
+                    'tebal' => $item->tebal,
+                    'qty' => $item->qty,
+                    'jenis_barang_id' => $item->jenis_barang_id,
+                    'bentuk_barang_id' => $item->bentuk_barang_id,
+                    'grade_barang_id' => $item->grade_barang_id,
+                    'satuan' => $item->satuan,
+                    'catatan' => $item->catatan,
+                    'item_barang_id' => $item->id_item_barang ?? null,
+                    'unit' => null,
+                    'status' => null
+                ];
+            })
+        ];
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data ditemukan',
+            'data' => $transformedData
+        ]);
+    }
     
     public function update(Request $request, $id)
     {

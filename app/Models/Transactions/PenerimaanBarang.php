@@ -5,6 +5,10 @@ namespace App\Models\Transactions;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Traits\HideTimestampsInRelations;
+use App\Models\MasterData\Gudang;
+use App\Models\Transactions\PurchaseOrder;
+use App\Models\Transactions\StockMutation;
+use App\Models\Transactions\PenerimaanBarangDetail;
 
 class PenerimaanBarang extends Model
 {
@@ -13,11 +17,12 @@ class PenerimaanBarang extends Model
     protected $table = 'trx_penerimaan_barang';
     
     protected $fillable = [
-        'id_item_barang',
+        'origin',
+        'id_purchase_order',
+        'id_stock_mutation',
         'id_gudang',
-        'id_rak',
-        'jumlah_barang',
         'catatan',
+        'url_foto',
     ];
     
     protected $hidden = ['deleted_at'];
@@ -25,9 +30,17 @@ class PenerimaanBarang extends Model
     /**
      * Get the item barang
      */
-    public function itemBarang()
+    public function purchaseOrder()
     {
-        return $this->belongsTo(ItemBarang::class, 'id_item_barang');
+        return $this->belongsTo(PurchaseOrder::class, 'id_purchase_order');
+    }
+
+    /**
+     * Get the stock mutation
+     */
+    public function stockMutation()
+    {
+        return $this->belongsTo(StockMutation::class, 'id_stock_mutation');
     }
     
     /**
@@ -37,12 +50,12 @@ class PenerimaanBarang extends Model
     {
         return $this->belongsTo(Gudang::class, 'id_gudang');
     }
-    
+
     /**
-     * Get the rak
+     * Get the penerimaan barang details
      */
-    public function rak()
+    public function penerimaanBarangDetails()
     {
-        return $this->belongsTo(Gudang::class, 'id_rak');
+        return $this->hasMany(PenerimaanBarangDetail::class);
     }
 }
