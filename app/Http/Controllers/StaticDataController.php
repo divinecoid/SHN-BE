@@ -113,12 +113,6 @@ class StaticDataController extends Controller
                 'kode' => 'PER_DIMENSI',
                 'nama' => 'Dimensi',
                 'deskripsi' => 'Satuan berdasarkan dimensi (panjang x lebar x tebal)'
-            ],
-            [
-                'id' => 11,
-                'kode' => 'BUNDLE',
-                'nama' => 'Bundle',
-                'deskripsi' => 'Satuan per group item'
             ]
         ];
 

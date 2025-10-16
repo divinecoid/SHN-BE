@@ -24,6 +24,7 @@ class ItemBarang extends Model
         'quantity',
         'quantity_tebal_sama',
         'jenis_potongan',
+        'is_available',
         'is_edit',
         'user_id',
         'canvas_file',
@@ -40,6 +41,7 @@ class ItemBarang extends Model
 
     protected $casts = [
         'jenis_potongan' => 'string',
+        'is_available' => 'boolean',
     ];
     
     public function jenisBarang()
@@ -58,4 +60,4 @@ class ItemBarang extends Model
     {
         return $this->belongsTo(Gudang::class, 'gudang_id');
     }
-} 
+}

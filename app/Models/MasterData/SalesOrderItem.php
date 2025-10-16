@@ -23,6 +23,7 @@ class SalesOrderItem extends Model
         'grade_barang_id',
         'harga',
         'satuan',
+        'jenis_potongan',
         'diskon',
         'catatan',
     ];

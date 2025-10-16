@@ -431,6 +431,7 @@ Route::prefix('work-order-planning')->middleware('checkrole')->group(function ()
     
     // Utility routes
     Route::post('get-saran-plat-dasar', [WorkOrderPlanningController::class, 'getSaranPlatDasar']);
+    Route::post('get-saran-plat-utuh', [WorkOrderPlanningController::class, 'getSaranPlatUtuh']);
     Route::get('{id}/print-spk', [WorkOrderPlanningController::class, 'printSpkWorkOrder']);
     
     // Saran Plat/Shaft Dasar routes
@@ -498,6 +499,7 @@ Route::prefix('konversi-barang')->middleware('checkrole')->group(function () {
     Route::get('/', [KonversiBarangController::class, 'index']);
     Route::patch('{id}', [KonversiBarangController::class, 'update']);
 });
+
 
 Route::prefix('merge-barang')->middleware('checkrole')->group(function () {
     Route::get('/', [MergeBarangController::class, 'index']);

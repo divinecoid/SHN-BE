@@ -61,6 +61,7 @@ class SalesOrderController extends Controller
             'items.*.grade_barang_id' => 'required|exists:ref_grade_barang,id',
             'items.*.harga' => 'required|numeric|min:0',
             'items.*.satuan' => 'required|string',
+            'items.*.jenis_potongan' => 'required|string|in:utuh,potongan',
             'items.*.diskon' => 'nullable|numeric|min:0|max:100',
             'items.*.catatan' => 'nullable|string',
         ]);
@@ -172,6 +173,7 @@ class SalesOrderController extends Controller
             'items.*.grade_barang_id' => 'required|exists:ref_grade_barang,id',
             'items.*.harga' => 'required|numeric|min:0',
             'items.*.satuan' => 'required|string',
+            'items.*.jenis_potongan' => 'required|string|in:utuh,potongan',
             'items.*.diskon' => 'nullable|numeric|min:0|max:100',
             'items.*.catatan' => 'nullable|string',
         ]);
