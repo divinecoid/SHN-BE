@@ -12,7 +12,6 @@ class ItemBarang extends Model
     use SoftDeletes, HideTimestampsInRelations;
     protected $table = 'ref_item_barang';
     protected $fillable = [
-        'kode_barang',
         'jenis_barang_id',
         'bentuk_barang_id',
         'grade_barang_id',

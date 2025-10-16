@@ -4,13 +4,23 @@ namespace App\Http\Controllers\MasterData;
 
 use Illuminate\Http\Request;
 use App\Models\MasterData\ItemBarang;
+use App\Models\MasterData\JenisBarang;
+use App\Models\MasterData\BentukBarang;
+use App\Models\MasterData\GradeBarang;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\ApiFilterTrait;
+use App\Http\Controllers\MasterData\DocumentSequenceController;
 
 class ItemBarangController extends Controller
 {
     use ApiFilterTrait;
+    protected $documentSequenceController;
+
+    public function __construct(DocumentSequenceController $documentSequenceController)
+    {
+        $this->documentSequenceController = $documentSequenceController;
+    }
 
     public function index(Request $request)
     {
@@ -31,7 +41,6 @@ class ItemBarangController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'kode_barang' => 'required|string|unique:ref_item_barang,kode_barang',
             'jenis_barang_id' => 'required|exists:ref_jenis_barang,id',
             'bentuk_barang_id' => 'required|exists:ref_bentuk_barang,id',
             'grade_barang_id' => 'required|exists:ref_grade_barang,id',
@@ -49,6 +58,22 @@ class ItemBarangController extends Controller
         if ($validator->fails()) {
             return $this->errorResponse($validator->errors()->first(), 422);
         }
+        $jenis_barang = JenisBarang::find($request->jenis_barang_id);
+        $bentuk_barang = BentukBarang::find($request->bentuk_barang_id);
+        $grade_barang = GradeBarang::find($request->grade_barang_id);
+        $dimensi = $bentuk_barang->dimensi;
+        if ($dimensi == '1D') {
+            $kode_barang = $bentuk_barang->kode . '-' . $jenis_barang->kode . '-' . $grade_barang->kode . '-' . $request->panjang . 'x' . $request->tebal;
+        } else {
+            $kode_barang = $bentuk_barang->kode . '-' . $jenis_barang->kode . '-' . $grade_barang->kode . '-' . $request->panjang . 'x' . $request->lebar . 'x' . $request->tebal;
+        }        
+        $sequenceBarang = $this->documentSequenceController->generateDocumentSequence('barang');
+        if ($sequenceBarang->getStatusCode() !== 200) {
+            return $this->errorResponse('Gagal generate nomor barang', 500);
+        }
+        $sequenceBarang = $sequenceBarang->getData()->data;
+        $kode_barang = $kode_barang . '-' . $sequenceBarang;
+        $request['kode_barang'] = $kode_barang;
         $data = ItemBarang::create($request->only(['kode_barang', 'jenis_barang_id', 'bentuk_barang_id', 'grade_barang_id', 'nama_item_barang', 'sisa_luas', 'panjang', 'lebar', 'tebal', 'quantity', 'quantity_tebal_sama', 'jenis_potongan', 'is_edit', 'is_edit_by', 'gudang_id']));
         $data->load(['jenisBarang', 'bentukBarang', 'gradeBarang', 'gudang']);
         return $this->successResponse($data, 'Data berhasil ditambahkan');

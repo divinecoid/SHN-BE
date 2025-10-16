@@ -48,7 +48,7 @@ class DocumentSequenceController extends Controller
 
     public function increaseSequence($type)
     {
-        $types = ['po', 'so', 'wo', 'pod', 'invoice', 'mutasi'];
+        $types = ['po', 'so', 'wo', 'pod', 'invoice', 'mutasi', 'barang'];
         if (!in_array($type, $types)) {
             return $this->errorResponse('Type tidak valid', 400);
         }
@@ -70,6 +70,7 @@ class DocumentSequenceController extends Controller
             'pod' => 'POD',
             'invoice' => 'INV',
             'mutasi' => 'SM',
+            'barang' => '',
         ];
 
         if (!isset($prefixes[$type])) {

@@ -119,16 +119,15 @@ class PurchaseOrderController extends Controller
 
         // Transform data ke struktur response yang diinginkan
         $transformedData = [
-            'id' => $data->id,
             'nomor_dokumen' => $data->nomor_po,
             'tipe_dokumen' => 'purchase_order',
             'status' => $data->status,
             'tanggal_dokumen' => $data->tanggal_po,
             'tanggal_penerimaan' => $data->tanggal_penerimaan,
-            'id_user_penerima' => null,
-            'gudang_asal_id' => null,
-            'gudang_tujuan_id' => null,
-            'supplier_id' => $data->id_supplier,
+            'user_penerima' => null,
+            'gudang_asal' => null,
+            'gudang_tujuan' => null,
+            'supplier' => $data->supplier ? $data->supplier->nama_supplier : null,
             'catatan' => $data->catatan,
             'items' => $data->purchaseOrderItems->map(function ($item) {
                 return [
