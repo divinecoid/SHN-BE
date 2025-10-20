@@ -9,6 +9,11 @@ use App\Models\Transactions\PurchaseOrder;
 use App\Models\Transactions\PurchaseOrderItem;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\MasterData\DocumentSequenceController;
+use App\Models\MasterData\ItemBarang;
+use App\Models\MasterData\JenisBarang;
+use App\Models\MasterData\BentukBarang;
+use App\Models\MasterData\GradeBarang;
 
 class PurchaseOrderController extends Controller
 {
@@ -18,7 +23,7 @@ class PurchaseOrderController extends Controller
     {
         $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
         $query = PurchaseOrder::with(['purchaseOrderItems.jenisBarang', 'purchaseOrderItems.bentukBarang', 'purchaseOrderItems.gradeBarang', 'purchaseOrderItems.itemBarang', 'supplier']);
-        $query = $this->applyFilter($query, $request, ['nomor_po', 'tanggal_po', 'tanggal_penerimaan', 'tanggal_jatuh_tempo', 'tanggal_pembayaran', 'status']);
+        $query = $this->applyFilter($query, $request, ['nomor_po', 'tanggal_po', 'tanggal_jatuh_tempo', 'status']);
         $data = $query->paginate($perPage);
         $items = collect($data->items());
         return response()->json($this->paginateResponse($data, $items));
@@ -27,14 +32,11 @@ class PurchaseOrderController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'nomor_po' => 'required|string|max:255|unique:trx_purchase_order,nomor_po',
-            'tanggal_po' => 'required|date',
-            'tanggal_penerimaan' => 'nullable|date',
+            'tanggal_po' => 'nullable|date',
             'tanggal_jatuh_tempo' => 'required|date',
-            'tanggal_pembayaran' => 'nullable|date',
             'id_supplier' => 'required|exists:ref_supplier,id',
             'total_amount' => 'nullable|numeric|min:0',
-            'status' => 'required|string',
+            'status' => 'nullable|string',
             'catatan' => 'nullable|string|max:500',
             'items' => 'nullable|array',
             'items.*.qty' => 'required|integer|min:0',
@@ -56,23 +58,29 @@ class PurchaseOrderController extends Controller
 
         DB::beginTransaction();
         try {
-            // Membuat header Purchase Order
-            $purchaseOrder = PurchaseOrder::create($request->only([
-                'nomor_po',
-                'tanggal_po',
-                'tanggal_penerimaan',
+            // Generate nomor_po menggunakan DocumentSequenceController
+            $nomorPoResponse = app(DocumentSequenceController::class)->generateDocumentSequence('po');
+            if ($nomorPoResponse->getStatusCode() !== 200) {
+                return $this->errorResponse('Gagal generate nomor PO', 500);
+            }
+            $nomorPo = $nomorPoResponse->getData()->data;
+
+            // Membuat header Purchase Order dengan default values
+            $purchaseOrderData = $request->only([
                 'tanggal_jatuh_tempo',
-                'tanggal_pembayaran',
                 'id_supplier',
                 'total_amount',
-                'status',
                 'catatan',
-            ]));
+            ]);
+            $purchaseOrderData['nomor_po'] = $nomorPo;
+            $purchaseOrderData['tanggal_po'] = $request->tanggal_po ?? now()->format('Y-m-d');
+            $purchaseOrderData['status'] = $request->status ?? 'draft';
+            $purchaseOrder = PurchaseOrder::create($purchaseOrderData);
 
             // Jika ada items, simpan items
             if ($request->has('items') && is_array($request->items)) {
                 foreach ($request->items as $item) {
-                    PurchaseOrderItem::create([
+                    $poItem = PurchaseOrderItem::create([
                         'purchase_order_id' => $purchaseOrder->id,
                         'qty' => $item['qty'] ?? 0,
                         'panjang' => $item['panjang'] ?? 0,
@@ -86,8 +94,68 @@ class PurchaseOrderController extends Controller
                         'diskon' => $item['diskon'] ?? 0,
                         'catatan' => $item['catatan'] ?? null,
                     ]);
+
+                    // Auto-create ItemBarang untuk setiap qty, langsung soft-delete, dengan sequence seperti ItemBarangController
+                    $qty = (int)($item['qty'] ?? 0);
+                    if ($qty > 0 && isset($item['jenis_barang_id'], $item['bentuk_barang_id'], $item['grade_barang_id'])) {
+                        $jenisBarang = JenisBarang::find($item['jenis_barang_id']);
+                        $bentukBarang = BentukBarang::find($item['bentuk_barang_id']);
+                        $gradeBarang = GradeBarang::find($item['grade_barang_id']);
+
+                        if ($jenisBarang && $bentukBarang && $gradeBarang) {
+                            $dimensi = $bentukBarang->dimensi;
+                            $panjang = (float)($item['panjang'] ?? 0);
+                            $lebar = array_key_exists('lebar', $item) ? (float)$item['lebar'] : null;
+                            $tebal = (float)($item['tebal'] ?? 0);
+
+                            if ($dimensi === '1D') {
+                                $namaItemBarang = $bentukBarang->kode . '-' . $jenisBarang->kode . '-' . $gradeBarang->kode . '-' . $panjang . 'x' . $tebal;
+                                $sisaLuas = $panjang * $tebal;
+                            } else {
+                                $namaItemBarang = $bentukBarang->kode . '-' . $jenisBarang->kode . '-' . $gradeBarang->kode . '-' . $panjang . 'x' . ($lebar ?? 0) . 'x' . $tebal;
+                                $sisaLuas = $panjang * (($lebar ?? 0)) * $tebal;
+                            }
+
+                            $sequenceController = app(DocumentSequenceController::class);
+
+                            for ($i = 0; $i < $qty; $i++) {
+                                $sequenceResponse = $sequenceController->generateDocumentSequence('barang');
+                                $sequenceData = method_exists($sequenceResponse, 'getData') ? $sequenceResponse->getData() : null;
+                                $sequenceNomor = $sequenceData && isset($sequenceData->data) ? $sequenceData->data : null;
+                                if (!$sequenceNomor) {
+                                    throw new \Exception('Gagal generate nomor barang');
+                                }
+
+                                $kodeBarang = $namaItemBarang . '-' . $sequenceNomor;
+
+                                $created = ItemBarang::create([
+                                    'kode_barang' => $kodeBarang,
+                                    'jenis_barang_id' => $jenisBarang->id,
+                                    'bentuk_barang_id' => $bentukBarang->id,
+                                    'grade_barang_id' => $gradeBarang->id,
+                                    'nama_item_barang' => $namaItemBarang,
+                                    'sisa_luas' => $sisaLuas,
+                                    'panjang' => $panjang,
+                                    'lebar' => $lebar,
+                                    'tebal' => $tebal,
+                                    'quantity' => 1,
+                                    'jenis_potongan' => 'utuh',
+                                    'is_edit' => false,
+                                    'is_onprogress_po' => true,
+                                    'user_id' => auth()->id(),
+                                    'gudang_id' => null,
+                                ]);
+
+                                // Tambah urutan sequence barang
+                                $sequenceController->increaseSequence('barang');
+                            }
+                        }
+                    }
                 }
             }
+
+            // Update sequence counter setelah berhasil create PurchaseOrder
+            app(DocumentSequenceController::class)->increaseSequence('po');
 
             DB::commit();
 
@@ -160,11 +228,8 @@ class PurchaseOrderController extends Controller
     public function update(Request $request, $id)
     {
         $validator = Validator::make($request->all(), [
-            'nomor_po' => 'required|string|max:255|unique:trx_purchase_order,nomor_po,' . $id,
-            'tanggal_po' => 'required|date',
-            'tanggal_penerimaan' => 'required|date',
+            'tanggal_po' => 'nullable|date',
             'tanggal_jatuh_tempo' => 'required|date',
-            'tanggal_pembayaran' => 'required|date',
             'id_supplier' => 'required|exists:ref_supplier,id',
             'total_amount' => 'nullable|numeric|min:0',
             'status' => 'required|string',
@@ -193,11 +258,8 @@ class PurchaseOrderController extends Controller
         DB::beginTransaction();
         try {
             $data->update($request->only([
-                'nomor_po',
                 'tanggal_po',
-                'tanggal_penerimaan',
                 'tanggal_jatuh_tempo',
-                'tanggal_pembayaran',
                 'id_supplier',
                 'total_amount',
                 'status',
