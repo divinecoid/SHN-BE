@@ -16,6 +16,7 @@ class WorkOrderActual extends Model
         'tanggal_actual',
         'status',
         'catatan',
+        'foto_bukti',
     ];
 
     protected $hidden = ['deleted_at'];

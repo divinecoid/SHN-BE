@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
+use App\Helpers\FileHelper;
 
 class WorkOrderActualController extends Controller
 {
@@ -31,6 +32,7 @@ class WorkOrderActualController extends Controller
         try {
             // Validasi input untuk struktur baru
             $validator = Validator::make($request->all(), [
+                'foto_bukti' => 'required|string',
                 'actualWorkOrderId' => 'required|integer',
                 'planningWorkOrderId' => 'required|integer',
                 'items' => 'required|array',
@@ -77,6 +79,20 @@ class WorkOrderActualController extends Controller
                 throw new \Exception("ActualWorkOrder dengan ID {$actualWorkOrderId} tidak ditemukan");
             }
             Log::channel('stderr')->info("ActualWorkOrder ID: {$actualWorkOrderId}");
+
+            // Simpan foto_bukti jika dikirim (base64), menggunakan logic seperti canvas_image
+            $fotoBuktiBase64 = $request->input('foto_bukti');
+            if (!empty($fotoBuktiBase64)) {
+                $folderPath = 'work-order-actual/' . $actualWorkOrderId;
+                $fileName = 'foto_bukti';
+                $result = FileHelper::saveBase64AsJpg($fotoBuktiBase64, $folderPath, $fileName);
+                if ($result['success'] ?? false) {
+                    $actualWorkOrder->foto_bukti = $result['data']['path'] ?? null;
+                    $actualWorkOrder->save();
+                } else {
+                    Log::error('Failed to save foto_bukti: ' . ($result['message'] ?? 'Unknown error'));
+                }
+            }
             $actualWorkOrderItems = $actualWorkOrder->workOrderActualItems;
             foreach ($actualWorkOrderItems as $actualWorkOrderItem) {
                 // log actualworkorderitem id

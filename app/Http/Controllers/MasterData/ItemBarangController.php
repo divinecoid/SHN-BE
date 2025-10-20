@@ -51,6 +51,7 @@ class ItemBarangController extends Controller
             'quantity_tebal_sama' => 'nullable|numeric|min:0',
             'jenis_potongan' => 'nullable|string',
             'is_edit' => 'nullable|boolean',
+            'is_onprogress_po' => 'nullable|boolean',
             'user_id' => 'nullable|exists:users,id',
             'gudang_id' => 'nullable|exists:ref_gudang,id',
         ]);
@@ -95,7 +96,7 @@ class ItemBarangController extends Controller
             'jenis_barang_id', 'bentuk_barang_id', 'grade_barang_id',
             'nama_item_barang', 'sisa_luas', 'panjang', 'lebar', 'tebal',
             'quantity', 'jenis_potongan',
-            'is_edit', 'user_id', 'gudang_id'
+            'is_edit', 'is_onprogress_po', 'user_id', 'gudang_id'
         ]);
         $input['kode_barang'] = $kode_barang;
         $input['nama_item_barang'] = $nama_item_barang;
