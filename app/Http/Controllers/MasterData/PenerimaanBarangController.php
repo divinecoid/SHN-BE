@@ -98,6 +98,13 @@ class PenerimaanBarangController extends Controller
                 'url_foto' => null
             ]);
 
+            // Update status based on origin
+            if ($request->asal_penerimaan === 'purchaseorder' && $purchaseOrder) {
+                $purchaseOrder->update(['status' => 'received']);
+            } elseif ($request->asal_penerimaan === 'stockmutation' && $stockMutation) {
+                $stockMutation->update(['status' => 'accepted']);
+            }
+
             // Simpan bukti_foto jika dikirim (base64)
             $buktiFotoBase64 = $request->input('bukti_foto');
             if (!empty($buktiFotoBase64)) {
