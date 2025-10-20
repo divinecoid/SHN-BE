@@ -56,6 +56,6 @@ class PenerimaanBarang extends Model
      */
     public function penerimaanBarangDetails()
     {
-        return $this->hasMany(PenerimaanBarangDetail::class);
+        return $this->hasMany(PenerimaanBarangDetail::class, 'id_penerimaan_barang');
     }
 }

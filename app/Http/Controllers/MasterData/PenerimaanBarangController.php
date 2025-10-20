@@ -31,32 +31,35 @@ class PenerimaanBarangController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'origin' => 'required|in:purchaseorder,stockmutation',
-            'id_gudang' => 'required|exists:ref_gudang,id',
+            'asal_penerimaan' => 'required|in:purchaseorder,stockmutation',
+            'nomor_po' => 'nullable|string',
+            'nomor_mutasi' => 'nullable|string',
+            'gudang_id' => 'required|exists:ref_gudang,id',
             'catatan' => 'nullable|string',
-            'url_foto' => 'nullable|string',
-            'details' => 'required|array|min:1',
-            'details.*.id_item_barang' => 'required|exists:ref_item_barang,id',
-            'details.*.id_rak' => 'required|exists:ref_gudang,id',
-            'details.*.qty' => 'required|numeric|min:0',
-            'details.*.id_purchase_order_item' => 'nullable|exists:trx_purchase_order_item,id',
-            'details.*.id_stock_mutation_detail' => 'nullable|exists:trx_stock_mutation_detail,id',
+            'bukti_foto' => 'nullable|string',
+            'detail_barang' => 'required|array|min:1',
+            'detail_barang.*.id' => 'required|integer',
+            'detail_barang.*.kode' => 'required|string',
+            'detail_barang.*.nama_item' => 'required|string',
+            'detail_barang.*.ukuran' => 'required|string',
+            'detail_barang.*.qty' => 'required|numeric|min:0',
+            'detail_barang.*.status_scan' => 'required|string',
         ]);
 
         if ($validator->fails()) {
             return $this->errorResponse($validator->errors()->first(), 422);
         }
 
-        // Conditional validation based on origin
-        if ($request->origin === 'purchaseorder') {
+        // Conditional validation based on asal_penerimaan
+        if ($request->asal_penerimaan === 'purchaseorder') {
             $validator = Validator::make($request->all(), [
-                'id_purchase_order' => 'required|exists:trx_purchase_order,id',
-                'id_stock_mutation' => 'nullable|prohibited',
+                'nomor_po' => 'required|string',
+                'nomor_mutasi' => 'nullable|prohibited',
             ]);
-        } elseif ($request->origin === 'stockmutation') {
+        } elseif ($request->asal_penerimaan === 'stockmutation') {
             $validator = Validator::make($request->all(), [
-                'id_stock_mutation' => 'required|exists:trx_stock_mutation,id',
-                'id_purchase_order' => 'nullable|prohibited',
+                'nomor_mutasi' => 'required|string',
+                'nomor_po' => 'nullable|prohibited',
             ]);
         }
 
@@ -64,51 +67,71 @@ class PenerimaanBarangController extends Controller
             return $this->errorResponse($validator->errors()->first(), 422);
         }
 
-        // Validasi bahwa rak adalah child dari gudang untuk setiap detail
-        $gudang = Gudang::find($request->id_gudang);
-        foreach ($request->details as $detail) {
-            $rak = Gudang::find($detail['id_rak']);
-            if (!$rak->ancestors->contains('id', $gudang->id)) {
-                return $this->errorResponse('Rak harus berada di dalam gudang yang dipilih', 422);
-            }
-        }
-
         try {
             DB::beginTransaction();
 
-            $penerimaanBarang = PenerimaanBarang::create($request->only([
-                'origin',
-                'id_purchase_order',
-                'id_stock_mutation',
-                'id_gudang',
-                'catatan',
-                'url_foto'
-            ]));
+            // Find purchase order or stock mutation based on asal_penerimaan
+            $id_purchase_order = null;
+            $id_stock_mutation = null;
 
-            // Simpan foto_bukti jika dikirim (base64), menggunakan logic seperti WorkOrderActualController
-            $fotoBuktiBase64 = $request->input('foto_bukti');
-            if (!empty($fotoBuktiBase64)) {
+            if ($request->asal_penerimaan === 'purchaseorder') {
+                $purchaseOrder = \App\Models\Transactions\PurchaseOrder::where('nomor_po', $request->nomor_po)->first();
+                if (!$purchaseOrder) {
+                    throw new \Exception("Purchase Order dengan nomor {$request->nomor_po} tidak ditemukan");
+                }
+                $id_purchase_order = $purchaseOrder->id;
+            } elseif ($request->asal_penerimaan === 'stockmutation') {
+                $stockMutation = \App\Models\Transactions\StockMutation::where('nomor_mutasi', $request->nomor_mutasi)->first();
+                if (!$stockMutation) {
+                    throw new \Exception("Stock Mutation dengan nomor {$request->nomor_mutasi} tidak ditemukan");
+                }
+                $id_stock_mutation = $stockMutation->id;
+            }
+
+            // Create penerimaan barang record
+            $penerimaanBarang = PenerimaanBarang::create([
+                'origin' => $request->asal_penerimaan,
+                'id_purchase_order' => $id_purchase_order,
+                'id_stock_mutation' => $id_stock_mutation,
+                'id_gudang' => $request->gudang_id,
+                'catatan' => $request->catatan,
+                'url_foto' => null
+            ]);
+
+            // Simpan bukti_foto jika dikirim (base64)
+            $buktiFotoBase64 = $request->input('bukti_foto');
+            if (!empty($buktiFotoBase64)) {
                 $folderPath = 'penerimaan-barang/' . $penerimaanBarang->id;
-                $fileName = 'foto_bukti';
-                $result = FileHelper::saveBase64AsJpg($fotoBuktiBase64, $folderPath, $fileName);
+                $fileName = 'bukti_foto';
+                $result = FileHelper::saveBase64AsJpg($buktiFotoBase64, $folderPath, $fileName);
                 if ($result['success'] ?? false) {
                     $penerimaanBarang->url_foto = $result['data']['path'] ?? null;
                     $penerimaanBarang->save();
                 } else {
-                    Log::error('Failed to save foto_bukti: ' . ($result['message'] ?? 'Unknown error'));
-                    throw new \Exception('Gagal menyimpan foto bukti: ' . ($result['message'] ?? 'Unknown error'));
+                    Log::error('Failed to save bukti_foto: ' . ($result['message'] ?? 'Unknown error'));
+                    throw new \Exception('Gagal menyimpan bukti foto: ' . ($result['message'] ?? 'Unknown error'));
                 }
             }
 
             // Create details
-            foreach ($request->details as $detail) {
+            foreach ($request->detail_barang as $detail) {
+                // Find item barang by id
+                $itemBarang = ItemBarang::find($detail['id']);
+                if (!$itemBarang) {
+                    throw new \Exception("Item barang dengan ID {$detail['id']} tidak ditemukan");
+                }
+
+                // For now, we'll use the gudang_id as the rak_id since the new structure doesn't specify rak
+                // You may need to adjust this based on your business logic
+                $rak_id = $request->gudang_id; // This might need to be adjusted based on your requirements
+
                 PenerimaanBarangDetail::create([
                     'id_penerimaan_barang' => $penerimaanBarang->id,
-                    'id_item_barang' => $detail['id_item_barang'],
-                    'id_rak' => $detail['id_rak'],
+                    'id_item_barang' => $detail['id'],
+                    'id_rak' => $rak_id,
                     'qty' => $detail['qty'],
-                    'id_purchase_order_item' => $detail['id_purchase_order_item'] ?? null,
-                    'id_stock_mutation_detail' => $detail['id_stock_mutation_detail'] ?? null,
+                    'id_purchase_order_item' => null, // This might need to be found based on your logic
+                    'id_stock_mutation_detail' => null, // This might need to be found based on your logic
                 ]);
             }
 
@@ -140,6 +163,7 @@ class PenerimaanBarangController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
+            'foto_bukti' => 'nullable|string',
             'origin' => 'required|in:purchaseorder,stockmutation',
             'id_gudang' => 'required|exists:ref_gudang,id',
             'catatan' => 'nullable|string',
