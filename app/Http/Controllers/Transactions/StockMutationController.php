@@ -154,6 +154,7 @@ class StockMutationController extends Controller
                 return [
                     'id' => $item->id,
                     'item_barang_id' => $item->item_barang_id,
+                    'kode_barang' => $itemBarang ? $itemBarang->kode_barang : null,
                     'unit' => $item->unit,
                     'status' => 'on_progress',
                     'quantity' => $item->quantity,

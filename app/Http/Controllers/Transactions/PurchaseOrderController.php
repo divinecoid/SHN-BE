@@ -17,7 +17,7 @@ class PurchaseOrderController extends Controller
     public function index(Request $request)
     {
         $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
-        $query = PurchaseOrder::with(['purchaseOrderItems.jenisBarang', 'purchaseOrderItems.bentukBarang', 'purchaseOrderItems.gradeBarang', 'supplier']);
+        $query = PurchaseOrder::with(['purchaseOrderItems.jenisBarang', 'purchaseOrderItems.bentukBarang', 'purchaseOrderItems.gradeBarang', 'purchaseOrderItems.itemBarang', 'supplier']);
         $query = $this->applyFilter($query, $request, ['nomor_po', 'tanggal_po', 'tanggal_penerimaan', 'tanggal_jatuh_tempo', 'tanggal_pembayaran', 'status']);
         $data = $query->paginate($perPage);
         $items = collect($data->items());
@@ -103,7 +103,7 @@ class PurchaseOrderController extends Controller
 
     public function show($id)
     {
-        $data = PurchaseOrder::with(['purchaseOrderItems.jenisBarang', 'purchaseOrderItems.bentukBarang', 'purchaseOrderItems.gradeBarang', 'supplier'])->find($id);
+        $data = PurchaseOrder::with(['purchaseOrderItems.jenisBarang', 'purchaseOrderItems.bentukBarang', 'purchaseOrderItems.gradeBarang', 'purchaseOrderItems.itemBarang', 'supplier'])->find($id);
         if (!$data) {
             return $this->errorResponse('Data tidak ditemukan', 404);
         }
@@ -112,7 +112,7 @@ class PurchaseOrderController extends Controller
 
     public function scanNomorPo($nomor_po)
     {
-        $data = PurchaseOrder::with(['purchaseOrderItems.jenisBarang', 'purchaseOrderItems.bentukBarang', 'purchaseOrderItems.gradeBarang', 'supplier'])->where('nomor_po', $nomor_po)->first();
+        $data = PurchaseOrder::with(['purchaseOrderItems.jenisBarang', 'purchaseOrderItems.bentukBarang', 'purchaseOrderItems.gradeBarang', 'purchaseOrderItems.itemBarang', 'supplier'])->where('nomor_po', $nomor_po)->first();
         if (!$data) {
             return $this->errorResponse('Data tidak ditemukan', 404);
         }
@@ -130,6 +130,7 @@ class PurchaseOrderController extends Controller
             'supplier' => $data->supplier ? $data->supplier->nama_supplier : null,
             'catatan' => $data->catatan,
             'items' => $data->purchaseOrderItems->map(function ($item) {
+                $itemBarang = $item->itemBarang;
                 return [
                     'id' => $item->id,
                     'panjang' => $item->panjang,
@@ -142,6 +143,7 @@ class PurchaseOrderController extends Controller
                     'satuan' => $item->satuan,
                     'catatan' => $item->catatan,
                     'item_barang_id' => $item->id_item_barang ?? null,
+                    'kode_barang' => $itemBarang ? $itemBarang->kode_barang : null,
                     'unit' => null,
                     'status' => null
                 ];
@@ -183,7 +185,7 @@ class PurchaseOrderController extends Controller
             return $this->errorResponse($validator->errors()->first(), 422);
         }
 
-        $data = PurchaseOrder::with(['purchaseOrderItems.jenisBarang', 'purchaseOrderItems.bentukBarang', 'purchaseOrderItems.gradeBarang', 'supplier'])->find($id);
+            $data = PurchaseOrder::with(['purchaseOrderItems.jenisBarang', 'purchaseOrderItems.bentukBarang', 'purchaseOrderItems.gradeBarang', 'purchaseOrderItems.itemBarang', 'supplier'])->find($id);
         if (!$data) {
             return $this->errorResponse('Data tidak ditemukan', 404);
         }
@@ -227,7 +229,7 @@ class PurchaseOrderController extends Controller
             DB::commit();
 
             // Load relasi setelah update
-            $data->load(['purchaseOrderItems.jenisBarang', 'purchaseOrderItems.bentukBarang', 'purchaseOrderItems.gradeBarang', 'supplier']);
+            $data->load(['purchaseOrderItems.jenisBarang', 'purchaseOrderItems.bentukBarang', 'purchaseOrderItems.gradeBarang', 'purchaseOrderItems.itemBarang', 'supplier']);
 
             return $this->successResponse($data, 'Purchase Order berhasil diupdate');
         } catch (\Exception $e) {
@@ -238,7 +240,7 @@ class PurchaseOrderController extends Controller
     
     public function destroy($id)
     {
-        $data = PurchaseOrder::with(['purchaseOrderItems.jenisBarang', 'purchaseOrderItems.bentukBarang', 'purchaseOrderItems.gradeBarang', 'supplier'])->find($id);
+        $data = PurchaseOrder::with(['purchaseOrderItems.jenisBarang', 'purchaseOrderItems.bentukBarang', 'purchaseOrderItems.gradeBarang', 'purchaseOrderItems.itemBarang', 'supplier'])->find($id);
         if (!$data) {
             return $this->errorResponse('Data tidak ditemukan', 404);
         }
@@ -254,7 +256,7 @@ class PurchaseOrderController extends Controller
     
     public function restore($id)
     {
-        $data = PurchaseOrder::with(['purchaseOrderItems.jenisBarang', 'purchaseOrderItems.bentukBarang', 'purchaseOrderItems.gradeBarang', 'supplier'])->onlyTrashed()->find($id);
+        $data = PurchaseOrder::with(['purchaseOrderItems.jenisBarang', 'purchaseOrderItems.bentukBarang', 'purchaseOrderItems.gradeBarang', 'purchaseOrderItems.itemBarang', 'supplier'])->onlyTrashed()->find($id);
         if (!$data) {
             return $this->errorResponse('Data tidak ditemukan', 404);
         }
@@ -269,7 +271,7 @@ class PurchaseOrderController extends Controller
 
     public function forceDelete($id)
     {
-        $data = PurchaseOrder::with(['purchaseOrderItems.jenisBarang', 'purchaseOrderItems.bentukBarang', 'purchaseOrderItems.gradeBarang', 'supplier'])->withTrashed()->find($id);
+        $data = PurchaseOrder::with(['purchaseOrderItems.jenisBarang', 'purchaseOrderItems.bentukBarang', 'purchaseOrderItems.gradeBarang', 'purchaseOrderItems.itemBarang', 'supplier'])->withTrashed()->find($id);
         if (!$data) {
             return $this->errorResponse('Data tidak ditemukan', 404);
         }
@@ -284,7 +286,7 @@ class PurchaseOrderController extends Controller
 
     public function softDelete($id)
     {
-        $data = PurchaseOrder::with(['purchaseOrderItems.jenisBarang', 'purchaseOrderItems.bentukBarang', 'purchaseOrderItems.gradeBarang', 'supplier'])->find($id);
+        $data = PurchaseOrder::with(['purchaseOrderItems.jenisBarang', 'purchaseOrderItems.bentukBarang', 'purchaseOrderItems.gradeBarang', 'purchaseOrderItems.itemBarang', 'supplier'])->find($id);
         if (!$data) {
             return $this->errorResponse('Data tidak ditemukan', 404);
         }
