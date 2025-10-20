@@ -95,8 +95,9 @@ class PurchaseOrderController extends Controller
                         'catatan' => $item['catatan'] ?? null,
                     ]);
 
-                    // Auto-create ItemBarang untuk setiap qty, langsung soft-delete, dengan sequence seperti ItemBarangController
                     $qty = (int)($item['qty'] ?? 0);
+                    $firstItemBarangId = null; // Simpan ID ItemBarang pertama untuk di-link ke PurchaseOrderItem
+                    
                     if ($qty > 0 && isset($item['jenis_barang_id'], $item['bentuk_barang_id'], $item['grade_barang_id'])) {
                         $jenisBarang = JenisBarang::find($item['jenis_barang_id']);
                         $bentukBarang = BentukBarang::find($item['bentuk_barang_id']);
@@ -146,10 +147,20 @@ class PurchaseOrderController extends Controller
                                     'gudang_id' => null,
                                 ]);
 
+                                // Simpan ID ItemBarang pertama untuk di-link ke PurchaseOrderItem
+                                if ($i === 0) {
+                                    $firstItemBarangId = $created->id;
+                                }
+
                                 // Tambah urutan sequence barang
                                 $sequenceController->increaseSequence('barang');
                             }
                         }
+                    }
+
+                    // Update PurchaseOrderItem dengan id_item_barang
+                    if ($firstItemBarangId) {
+                        $poItem->update(['id_item_barang' => $firstItemBarangId]);
                     }
                 }
             }

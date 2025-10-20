@@ -10,6 +10,9 @@ use App\Models\MasterData\Gudang;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\ApiFilterTrait;
+use App\Helpers\FileHelper;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class PenerimaanBarangController extends Controller
 {
@@ -70,28 +73,54 @@ class PenerimaanBarangController extends Controller
             }
         }
 
-        $penerimaanBarang = PenerimaanBarang::create($request->only([
-            'origin',
-            'id_purchase_order',
-            'id_stock_mutation',
-            'id_gudang',
-            'catatan',
-            'url_foto'
-        ]));
+        try {
+            DB::beginTransaction();
 
-        // Create details
-        foreach ($request->details as $detail) {
-            PenerimaanBarangDetail::create([
-                'id_penerimaan_barang' => $penerimaanBarang->id,
-                'id_item_barang' => $detail['id_item_barang'],
-                'id_rak' => $detail['id_rak'],
-                'qty' => $detail['qty'],
-                'id_purchase_order_item' => $detail['id_purchase_order_item'] ?? null,
-                'id_stock_mutation_detail' => $detail['id_stock_mutation_detail'] ?? null,
-            ]);
+            $penerimaanBarang = PenerimaanBarang::create($request->only([
+                'origin',
+                'id_purchase_order',
+                'id_stock_mutation',
+                'id_gudang',
+                'catatan',
+                'url_foto'
+            ]));
+
+            // Simpan foto_bukti jika dikirim (base64), menggunakan logic seperti WorkOrderActualController
+            $fotoBuktiBase64 = $request->input('foto_bukti');
+            if (!empty($fotoBuktiBase64)) {
+                $folderPath = 'penerimaan-barang/' . $penerimaanBarang->id;
+                $fileName = 'foto_bukti';
+                $result = FileHelper::saveBase64AsJpg($fotoBuktiBase64, $folderPath, $fileName);
+                if ($result['success'] ?? false) {
+                    $penerimaanBarang->url_foto = $result['data']['path'] ?? null;
+                    $penerimaanBarang->save();
+                } else {
+                    Log::error('Failed to save foto_bukti: ' . ($result['message'] ?? 'Unknown error'));
+                    throw new \Exception('Gagal menyimpan foto bukti: ' . ($result['message'] ?? 'Unknown error'));
+                }
+            }
+
+            // Create details
+            foreach ($request->details as $detail) {
+                PenerimaanBarangDetail::create([
+                    'id_penerimaan_barang' => $penerimaanBarang->id,
+                    'id_item_barang' => $detail['id_item_barang'],
+                    'id_rak' => $detail['id_rak'],
+                    'qty' => $detail['qty'],
+                    'id_purchase_order_item' => $detail['id_purchase_order_item'] ?? null,
+                    'id_stock_mutation_detail' => $detail['id_stock_mutation_detail'] ?? null,
+                ]);
+            }
+
+            DB::commit();
+
+            return $this->successResponse($penerimaanBarang->load(['purchaseOrder', 'stockMutation', 'gudang', 'penerimaanBarangDetails']), 'Data penerimaan barang berhasil ditambahkan');
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Error in PenerimaanBarang store: ' . $e->getMessage());
+            return $this->errorResponse('Terjadi kesalahan saat menyimpan data: ' . $e->getMessage(), 500);
         }
-
-        return $this->successResponse($penerimaanBarang->load(['purchaseOrder', 'stockMutation', 'gudang', 'penerimaanBarangDetails']), 'Data penerimaan barang berhasil ditambahkan');
     }
 
     public function show($id)
@@ -153,29 +182,55 @@ class PenerimaanBarangController extends Controller
             }
         }
 
-        $data->update($request->only([
-            'origin',
-            'id_purchase_order',
-            'id_stock_mutation',
-            'id_gudang',
-            'catatan',
-            'url_foto'
-        ]));
+        try {
+            DB::beginTransaction();
 
-        // Delete existing details and create new ones
-        $data->penerimaanBarangDetails()->delete();
-        foreach ($request->details as $detail) {
-            PenerimaanBarangDetail::create([
-                'id_penerimaan_barang' => $data->id,
-                'id_item_barang' => $detail['id_item_barang'],
-                'id_rak' => $detail['id_rak'],
-                'qty' => $detail['qty'],
-                'id_purchase_order_item' => $detail['id_purchase_order_item'] ?? null,
-                'id_stock_mutation_detail' => $detail['id_stock_mutation_detail'] ?? null,
-            ]);
+            $data->update($request->only([
+                'origin',
+                'id_purchase_order',
+                'id_stock_mutation',
+                'id_gudang',
+                'catatan',
+                'url_foto'
+            ]));
+
+            // Simpan foto_bukti jika dikirim (base64), menggunakan logic seperti WorkOrderActualController
+            $fotoBuktiBase64 = $request->input('foto_bukti');
+            if (!empty($fotoBuktiBase64)) {
+                $folderPath = 'penerimaan-barang/' . $data->id;
+                $fileName = 'foto_bukti';
+                $result = FileHelper::saveBase64AsJpg($fotoBuktiBase64, $folderPath, $fileName);
+                if ($result['success'] ?? false) {
+                    $data->url_foto = $result['data']['path'] ?? null;
+                    $data->save();
+                } else {
+                    Log::error('Failed to save foto_bukti: ' . ($result['message'] ?? 'Unknown error'));
+                    throw new \Exception('Gagal menyimpan foto bukti: ' . ($result['message'] ?? 'Unknown error'));
+                }
+            }
+
+            // Delete existing details and create new ones
+            $data->penerimaanBarangDetails()->delete();
+            foreach ($request->details as $detail) {
+                PenerimaanBarangDetail::create([
+                    'id_penerimaan_barang' => $data->id,
+                    'id_item_barang' => $detail['id_item_barang'],
+                    'id_rak' => $detail['id_rak'],
+                    'qty' => $detail['qty'],
+                    'id_purchase_order_item' => $detail['id_purchase_order_item'] ?? null,
+                    'id_stock_mutation_detail' => $detail['id_stock_mutation_detail'] ?? null,
+                ]);
+            }
+
+            DB::commit();
+
+            return $this->successResponse($data->load(['purchaseOrder', 'stockMutation', 'gudang', 'penerimaanBarangDetails']), 'Data penerimaan barang berhasil diupdate');
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Error in PenerimaanBarang update: ' . $e->getMessage());
+            return $this->errorResponse('Terjadi kesalahan saat mengupdate data: ' . $e->getMessage(), 500);
         }
-
-        return $this->successResponse($data->load(['purchaseOrder', 'stockMutation', 'gudang', 'penerimaanBarangDetails']), 'Data penerimaan barang berhasil diupdate');
     }
 
     public function softDelete($id)
