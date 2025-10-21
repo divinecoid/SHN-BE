@@ -9,6 +9,7 @@ use App\Models\MasterData\ItemBarang;
 use App\Models\MasterData\Gudang;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Controllers\Controller;
+use App\Models\Transactions\PurchaseOrderItem;
 use App\Http\Traits\ApiFilterTrait;
 use App\Helpers\FileHelper;
 use Illuminate\Support\Facades\Log;
@@ -101,6 +102,12 @@ class PenerimaanBarangController extends Controller
             // Update status based on origin
             if ($request->asal_penerimaan === 'purchaseorder' && $purchaseOrder) {
                 $purchaseOrder->update(['status' => 'received']);
+                $purchaseOrderItems = PurchaseOrderItem::where('purchase_order_id', $purchaseOrder->id)->get();
+                foreach ($purchaseOrderItems as $purchaseOrderItem) {
+                    $itemBarang = ItemBarang::find($purchaseOrderItem->id_item_barang);
+                    $itemBarang->is_onprogress_po = false;
+                    $itemBarang->save();
+                }
             } elseif ($request->asal_penerimaan === 'stockmutation' && $stockMutation) {
                 $stockMutation->update(['status' => 'accepted']);
             }

@@ -212,6 +212,7 @@ class PurchaseOrderController extends Controller
                 $itemBarang = $item->itemBarang;
                 return [
                     'id' => $item->id,
+                    'item_barang_id' => $item->id_item_barang,
                     'panjang' => $item->panjang,
                     'lebar' => $item->lebar,
                     'tebal' => $item->tebal,
