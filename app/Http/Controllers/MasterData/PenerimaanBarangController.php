@@ -25,7 +25,11 @@ class PenerimaanBarangController extends Controller
         $query = PenerimaanBarang::with(['purchaseOrder', 'stockMutation', 'gudang', 'penerimaanBarangDetails']);
         $query = $this->applyFilter($query, $request, ['catatan']);
         $data = $query->paginate($perPage);
-        $items = collect($data->items());
+        $items = collect($data->items())->map(function ($item) {
+            $arrayItem = $item->toArray();
+            $arrayItem['created_at'] = $item->created_at;
+            return $arrayItem;
+        });
         return response()->json($this->paginateResponse($data, $items));
     }
 
