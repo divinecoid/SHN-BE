@@ -23,7 +23,9 @@ class PenerimaanBarangController extends Controller
     {
         $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
         $query = PenerimaanBarang::with(['purchaseOrder', 'stockMutation', 'gudang', 'penerimaanBarangDetails']);
+        $query = $query->orderBy('id', 'desc');
         $query = $this->applyFilter($query, $request, ['catatan']);
+        
         $data = $query->paginate($perPage);
         $items = collect($data->items())->map(function ($item) {
             $arrayItem = $item->toArray();
