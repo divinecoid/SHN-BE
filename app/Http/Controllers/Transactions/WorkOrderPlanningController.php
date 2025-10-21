@@ -37,15 +37,13 @@ class WorkOrderPlanningController extends Controller
             ->leftJoin('ref_pelanggan', 'trx_work_order_planning.id_pelanggan', '=', 'ref_pelanggan.id')
             ->leftJoin('ref_gudang', 'trx_work_order_planning.id_gudang', '=', 'ref_gudang.id')
             ->leftJoin('trx_sales_order', 'trx_work_order_planning.id_sales_order', '=', 'trx_sales_order.id')
-            ->leftJoin('trx_work_order_planning_item', 'trx_work_order_planning.id', '=', 'trx_work_order_planning_item.work_order_planning_id')
             ->addSelect([
                 'trx_work_order_planning.*',
                 'ref_pelanggan.nama_pelanggan',
                 'ref_gudang.nama_gudang',
                 'trx_sales_order.nomor_so',
-                DB::raw('COUNT(trx_work_order_planning_item.id) as count')
             ])
-            ->groupBy('trx_work_order_planning.id');
+            ->withCount(['workOrderPlanningItems as count']);
         $query = $this->applyFilter($query, $request, ['sales_order.nomor_so', 'nomor_wo', 'tanggal_wo', 'prioritas', 'status']);
         $data = $query->paginate($perPage);
         $items = collect($data->items());
@@ -65,6 +63,7 @@ class WorkOrderPlanningController extends Controller
             'handover_method' => 'required|string|in:pickup,delivery',
             'items' => 'required|array',
             'items.*.wo_item_unique_id' => 'required|string|unique:trx_work_order_planning_item,wo_item_unique_id',
+            'items.*.sales_order_item_id' => 'nullable|exists:trx_sales_order_item,id',
             'items.*.pelaksana' => 'nullable|array',
             'items.*.pelaksana.*.pelaksana_id' => 'required|exists:ref_pelaksana,id',
             'items.*.pelaksana.*.qty' => 'nullable|integer|min:0',
@@ -73,6 +72,7 @@ class WorkOrderPlanningController extends Controller
             'items.*.pelaksana.*.jam_mulai' => 'nullable|date_format:H:i',
             'items.*.pelaksana.*.jam_selesai' => 'nullable|date_format:H:i',
             'items.*.pelaksana.*.catatan' => 'nullable|string|max:500',
+            'items.*.jenis_potongan' => 'nullable|in:utuh,potongan',
         ]);
         if ($validator->fails()) {
             return $this->errorResponse($validator->errors()->first(), 422);
@@ -92,7 +92,6 @@ class WorkOrderPlanningController extends Controller
             // Membuat header Work Order Planning
             $workOrderData = $request->only([
                 'wo_unique_id',
-                'nomor_wo',
                 'tanggal_wo',
                 'id_sales_order',
                 'id_pelanggan',
@@ -124,6 +123,7 @@ class WorkOrderPlanningController extends Controller
                         'bentuk_barang_id' => $item['bentuk_barang_id'] ?? null,
                         'grade_barang_id' => $item['grade_barang_id'] ?? null,
                         'catatan' => $item['catatan'] ?? null,
+                        'jenis_potongan' => $item['jenis_potongan'] ?? null,
                     ]);
 
                     // Insert pelaksana ke item jika ada
@@ -141,6 +141,17 @@ class WorkOrderPlanningController extends Controller
                             ]);
                         }
                     }
+
+                    // Insert saran plat dasar ke item jika ada
+                    if (isset($item['saran_plat_dasar']) && is_array($item['saran_plat_dasar'])) {
+                        foreach ($item['saran_plat_dasar'] as $saranData) {
+                            SaranPlatShaftDasar::create([
+                                'wo_planning_item_id' => $workOrderPlanningItem->id,
+                                'item_barang_id' => $saranData['item_barang_id'],
+                                'quantity' => $saranData['quantity'] ?? null,
+                            ]);
+                        }
+                    }
                 }
             }
 
@@ -150,7 +161,7 @@ class WorkOrderPlanningController extends Controller
             DB::commit();
 
             // Load relasi setelah simpan
-            $workOrderPlanning->load(['workOrderPlanningItems.hasManyPelaksana.pelaksana', 'salesOrder']);
+            $workOrderPlanning->load(['workOrderPlanningItems.hasManyPelaksana.pelaksana', 'workOrderPlanningItems.hasManySaranPlatShaftDasar.itemBarang', 'salesOrder']);
 
             return $this->successResponse($workOrderPlanning, 'Work Order Planning berhasil ditambahkan');
         } catch (\Exception $e) {
@@ -165,17 +176,130 @@ class WorkOrderPlanningController extends Controller
             'workOrderPlanningItems.hasManyPelaksana.pelaksana',
             'workOrderPlanningItems.jenisBarang',
             'workOrderPlanningItems.bentukBarang',
-            'workOrderPlanningItems.gradeBarang'
+            'workOrderPlanningItems.gradeBarang',
+            // Tambahkan relasi saran plat/shaft dasar dan plat dasar
+            'workOrderPlanningItems.hasManySaranPlatShaftDasar.itemBarang',
+            'workOrderPlanningItems.platDasar',
+            // Tambahkan relasi header agar lengkap
+            'salesOrder',
+            'pelanggan',
+            'gudang',
+            'pelaksana',
         ])->find($id);
         if (!$data) {
             return $this->errorResponse('Data tidak ditemukan', 404);
         }
         
-        // Ambil nomor_so dari sales order tanpa memuat object salesOrder
-        $nomorSo = SalesOrder::where('id', $data->id_sales_order)->value('nomor_so');
-        
-        // Tambahkan nomor_so ke object utama
-        $data->nomor_so = $nomorSo;
+        // Transform data to return meaningful information
+        $transformedData = [
+            'id' => $data->id,
+            'wo_unique_id' => $data->wo_unique_id,
+            'nomor_wo' => $data->nomor_wo,
+            'tanggal_wo' => $data->tanggal_wo,
+            'prioritas' => $data->prioritas,
+            'status' => $data->status,
+            'catatan' => $data->catatan,
+            'created_at' => $data->created_at,
+            'updated_at' => $data->updated_at,
+            'close_wo_at' => $data->close_wo_at,
+            'has_generated_invoice' => $data->has_generated_invoice,
+            'has_generated_pod' => $data->has_generated_pod,
+            
+            // Sales Order information
+            'sales_order' => [
+                'id' => $data->salesOrder->id ?? null,
+                'nomor_so' => $data->salesOrder->nomor_so ?? null,
+                'tanggal_so' => $data->salesOrder->tanggal_so ?? null,
+                'tanggal_pengiriman' => $data->salesOrder->tanggal_pengiriman ?? null,
+                'syarat_pembayaran' => $data->salesOrder->syarat_pembayaran ?? null,
+                'handover_method' => $data->salesOrder->handover_method ?? null,
+            ],
+            
+            // Master data information
+            'pelanggan' => [
+                'id' => $data->pelanggan->id ?? null,
+                'nama_pelanggan' => $data->pelanggan->nama_pelanggan ?? null,
+            ],
+            'gudang' => [
+                'id' => $data->gudang->id ?? null,
+                'nama_gudang' => $data->gudang->nama_gudang ?? null,
+            ],
+            'pelaksana' => [
+                'id' => $data->pelaksana->id ?? null,
+                'nama_pelaksana' => $data->pelaksana->nama_pelaksana ?? null,
+            ],
+            
+            // Transform items with meaningful data
+            'workOrderPlanningItems' => $data->workOrderPlanningItems->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'wo_item_unique_id' => $item->wo_item_unique_id,
+                    'qty' => $item->qty,
+                    'panjang' => $item->panjang,
+                    'lebar' => $item->lebar,
+                    'tebal' => $item->tebal,
+                    'berat' => $item->berat,
+                    'satuan' => $item->satuan,
+                    'diskon' => $item->diskon,
+                    'catatan' => $item->catatan,
+                    'jenis_potongan' => $item->jenis_potongan,
+                    'created_at' => $item->created_at,
+                    'updated_at' => $item->updated_at,
+                    
+                    // Master data with ID and name
+                    'jenis_barang' => [
+                        'id' => $item->jenisBarang->id ?? null,
+                        'nama_jenis_barang' => $item->jenisBarang->nama_jenis ?? null,
+                    ],
+                    'bentuk_barang' => [
+                        'id' => $item->bentukBarang->id ?? null,
+                        'nama_bentuk_barang' => $item->bentukBarang->nama_bentuk ?? null,
+                    ],
+                    'grade_barang' => [
+                        'id' => $item->gradeBarang->id ?? null,
+                        'nama_grade_barang' => $item->gradeBarang->nama ?? null,
+                    ],
+                    'plat_dasar' => [
+                        'id' => $item->platDasar->id ?? null,
+                        'nama_item_barang' => $item->platDasar->nama_item_barang ?? null,
+                    ],
+                    
+                    // Transform pelaksana with meaningful data
+                    'pelaksana' => $item->hasManyPelaksana->map(function ($pelaksana) {
+                        return [
+                            'id' => $pelaksana->id,
+                            'qty' => $pelaksana->qty,
+                            'weight' => $pelaksana->weight,
+                            'tanggal' => $pelaksana->tanggal,
+                            'jam_mulai' => $pelaksana->jam_mulai,
+                            'jam_selesai' => $pelaksana->jam_selesai,
+                            'catatan' => $pelaksana->catatan,
+                            'created_at' => $pelaksana->created_at,
+                            'updated_at' => $pelaksana->updated_at,
+                            'pelaksana_info' => [
+                                'id' => $pelaksana->pelaksana->id ?? null,
+                                'nama_pelaksana' => $pelaksana->pelaksana->nama_pelaksana ?? null,
+                            ],
+                        ];
+                    }),
+                    
+                    // Transform saran plat with meaningful data
+                    'saran_plat_dasar' => $item->hasManySaranPlatShaftDasar->map(function ($saran) {
+                        return [
+                            'id' => $saran->id,
+                            'is_selected' => $saran->is_selected,
+                            'quantity' => $saran->quantity,
+                            'created_at' => $saran->created_at,
+                            'updated_at' => $saran->updated_at,
+                            'item_barang' => [
+                                'id' => $saran->itemBarang->id ?? null,
+                                'nama_item_barang' => $saran->itemBarang->nama_item_barang ?? null,
+                            ],
+                        ];
+                    }),
+                ];
+            }),
+        ];
         
         // Cek apakah perlu membuat WorkOrderActual
         $createActual = $request->boolean('create_actual', false);
@@ -202,10 +326,10 @@ class WorkOrderPlanningController extends Controller
                     DB::commit();
                     
                     // Tambahkan informasi WorkOrderActual ke response
-                    $data->work_order_actual = $workOrderActual;
+                    $transformedData['work_order_actual'] = $workOrderActual;
                 } else {
                     // Jika sudah ada, tambahkan informasi yang sudah ada
-                    $data->work_order_actual = $existingActual;
+                    $transformedData['work_order_actual'] = $existingActual;
                 }
             } catch (\Exception $e) {
                 // Rollback transaction jika ada error
@@ -215,7 +339,7 @@ class WorkOrderPlanningController extends Controller
             }
         }
         
-        return $this->successResponse($data);
+        return $this->successResponse($transformedData);
     }
 
     public function showItem($id, Request $request)
@@ -576,284 +700,7 @@ class WorkOrderPlanningController extends Controller
     yang memiliki jenis barang, bentuk barang, dan grade barang, dan tebal yang sama 
     dengan jenis barang, bentuk barang, dan grade barang, dan tebal yang diinputkan, 
     dan urutkan dari sisa_luas terbesar ke terkecil */
-    /**
-     * Mendapatkan daftar saran plat dasar berdasarkan data yang dikirim melalui body (POST request).
-     * Data yang dibutuhkan: jenis_barang_id, bentuk_barang_id, grade_barang_id, tebal, sisa_luas
-     */
-    public function getSaranPlatDasar(Request $request)
-    {
-        // Validasi input dari body request
-        $validator = Validator::make($request->all(), [
-            'jenis_barang_id' => 'required|exists:ref_jenis_barang,id',
-            'bentuk_barang_id' => 'required|exists:ref_bentuk_barang,id',
-            'grade_barang_id' => 'required|exists:ref_grade_barang,id',
-            'tebal' => 'required|numeric',
-            'sisa_luas' => 'required|numeric',
-        ]);
-
-        if ($validator->fails()) {
-            return $this->errorResponse($validator->errors()->first(), 422);
-        }
-
-        // Ambil user_id dari JWT token
-        $currentUserId = auth()->id();
-        
-        // Ambil data item barang sesuai kriteria yang dikirim melalui body
-        $data = ItemBarang::with(['jenisBarang', 'bentukBarang', 'gradeBarang'])
-            ->where('jenis_barang_id', $request->jenis_barang_id)
-            ->where('bentuk_barang_id', $request->bentuk_barang_id)
-            ->where('grade_barang_id', $request->grade_barang_id)
-            ->where('tebal', $request->tebal)
-            ->where('sisa_luas', '>=', $request->sisa_luas)
-            ->where(function($query) use ($currentUserId) {
-                $query->where('is_edit', false)
-                      ->orWhereNull('is_edit')
-                      ->orWhere('user_id', $currentUserId); // Kalau yang edit user yang sama, tetap return
-            })
-            ->orderBy('sisa_luas', 'asc')
-            ->get();
-
-        // Mapping data untuk response
-        $data = $data->map(function ($item) {
-            return [
-                'id' => $item->id,
-                'nama' => $item->nama_item_barang,
-                'ukuran' => 
-                    (is_null($item->panjang) ? '' : ($item->panjang . ' x ')) .
-                    (is_null($item->lebar) ? '' : ($item->lebar . ' x ')) .
-                    (is_null($item->tebal) ? '' : $item->tebal),
-                'sisa_luas' => $item->sisa_luas,
-            ];
-        });
-        return $this->successResponse($data);
-    }
-
-    /**
-     * Mendapatkan daftar saran plat dasar untuk jenis potongan 'utuh' berdasarkan data yang dikirim melalui body (POST request).
-     * Data yang dibutuhkan: jenis_barang_id, bentuk_barang_id, grade_barang_id, tebal, panjang, lebar
-     */
-    public function getSaranPlatUtuh(Request $request)
-    {
-        // Validasi input dari body request
-        $validator = Validator::make($request->all(), [
-            'jenis_barang_id' => 'required|exists:ref_jenis_barang,id',
-            'bentuk_barang_id' => 'required|exists:ref_bentuk_barang,id',
-            'grade_barang_id' => 'required|exists:ref_grade_barang,id',
-            'tebal' => 'required|numeric',
-            'panjang' => 'required|numeric',
-            'lebar' => 'required|numeric',
-        ]);
-
-        if ($validator->fails()) {
-            return $this->errorResponse($validator->errors()->first(), 422);
-        }
-
-        // Ambil user_id dari JWT token
-        $currentUserId = auth()->id();
-        
-        // Ambil data item barang sesuai kriteria yang dikirim melalui body
-        $data = ItemBarang::with(['jenisBarang', 'bentukBarang', 'gradeBarang'])
-            ->where('jenis_barang_id', $request->jenis_barang_id)
-            ->where('bentuk_barang_id', $request->bentuk_barang_id)
-            ->where('grade_barang_id', $request->grade_barang_id)
-            ->where('tebal', $request->tebal)
-            ->where('panjang', '>=', $request->panjang)
-            ->where('lebar', '>=', $request->lebar)
-            ->where('jenis_potongan', 'utuh') // Hanya ambil yang jenis_potongan = 'utuh'
-            ->where(function($query) use ($currentUserId) {
-                $query->where('is_edit', false)
-                      ->orWhereNull('is_edit')
-                      ->orWhere('user_id', $currentUserId); // Kalau yang edit user yang sama, tetap return
-            })
-            ->orderBy('sisa_luas', 'asc')
-            ->get();
-
-        // Mapping data untuk response
-        $data = $data->map(function ($item) {
-            return [
-                'id' => $item->id,
-                'nama' => $item->nama_item_barang,
-                'ukuran' => 
-                    (is_null($item->panjang) ? '' : ($item->panjang . ' x ')) .
-                    (is_null($item->lebar) ? '' : ($item->lebar . ' x ')) .
-                    (is_null($item->tebal) ? '' : $item->tebal),
-                'sisa_luas' => $item->sisa_luas,
-            ];
-        });
-        return $this->successResponse($data);
-    }
-
-
-    /**
-     * Tambah saran plat/shaft dasar ke work order planning item
-     */
-    public function addSaranPlatDasar(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'wo_planning_item_id' => 'required|array',
-            'wo_planning_item_id.*' => 'required|string|exists:trx_work_order_planning_item,wo_item_unique_id',
-            'item_barang_id' => 'required|exists:ref_item_barang,id',
-            'is_selected' => 'boolean',
-            'canvas_data' => 'nullable|json', // JSON data langsung
-            'canvas_image' => 'nullable|string', // Base64 JPG data
-        ]);
-
-        if ($validator->fails()) {
-            return $this->errorResponse($validator->errors()->first(), 422);
-        }
-
-        // Validasi semua item ada berdasarkan wo_item_unique_id
-        $items = WorkOrderPlanningItem::whereIn('wo_item_unique_id', $request->wo_planning_item_id)->get();
-        if ($items->count() !== count($request->wo_planning_item_id)) {
-            return $this->errorResponse('Beberapa data item tidak ditemukan', 404);
-        }
-
-        DB::beginTransaction();
-        try {
-            $createdSaranPlatDasar = [];
-
-            foreach ($request->wo_planning_item_id as $woItemUniqueId) {
-                $item = $items->firstWhere('wo_item_unique_id', $woItemUniqueId);
-
-                // Jika is_selected = true, set semua saran lain menjadi false untuk item ini
-                if ($request->is_selected) {
-                    SaranPlatShaftDasar::where('wo_planning_item_id', $item->id)
-                        ->update(['is_selected' => false]);
-                }
-
-                // Tambah saran plat dasar baru dulu (tanpa canvas_file)
-                $saranPlatDasar = SaranPlatShaftDasar::create([
-                    'wo_planning_item_id' => $item->id,
-                    'item_barang_id' => $request->item_barang_id,
-                    'is_selected' => $request->is_selected ?? false,
-                    'canvas_file' => null,
-                ]);
-
-                $createdSaranPlatDasar[] = $saranPlatDasar;
-            }
-
-            // Handle canvas data jika ada (setelah semua saran dibuat)
-            if ($request->has('canvas_data') && !empty($request->canvas_data)) {
-                // Convert JSON to file
-                $canvasData = $request->canvas_data;
-                $fileName = 'canvas.json';
-                $folderPath = 'canvas/' . $request->item_barang_id;
-                $fullPath = storage_path('app/public/' . $folderPath);
-                
-                // Buat folder jika belum ada
-                if (!file_exists($fullPath)) {
-                    mkdir($fullPath, 0755, true);
-                }
-                
-                // Tulis JSON ke file
-                $filePath = $fullPath . '/' . $fileName;
-                file_put_contents($filePath, $canvasData);
-                
-                $canvasFilePath = $folderPath . '/' . $fileName;
-                
-                // Update item barang dengan canvas file path dan sisa_luas (hanya di item barang, tidak di saran)
-                $itemBarang = ItemBarang::find($request->item_barang_id);
-                if ($itemBarang) {
-                    $updateData = ['canvas_file' => $canvasFilePath];
-                    
-                    // Update sisa_luas dari totalArea di metadata canvas
-                    $canvasDataDecoded = json_decode($canvasData, true);
-                    if (isset($canvasDataDecoded['metadata']['totalArea'])) {
-                        $updateData['sisa_luas'] = $canvasDataDecoded['metadata']['totalArea'];
-                    }
-                    
-                    $itemBarang->update($updateData);
-                }
-            }
-
-            // Handle canvas image jika ada (base64 JPG)
-            if ($request->has('canvas_image') && !empty($request->canvas_image)) {
-                $folderPath = 'canvas/' . $request->item_barang_id;
-                $fileName = 'canvas_image';
-                
-                // Save base64 as JPG using FileHelper
-                $result = FileHelper::saveBase64AsJpg($request->canvas_image, $folderPath, $fileName);
-                
-                if ($result['success']) {
-                    // Update item barang dengan canvas image path
-                    $itemBarang = ItemBarang::find($request->item_barang_id);
-                    if ($itemBarang) {
-                        $itemBarang->update(['canvas_image' => $result['data']['path']]);
-                    }
-                } else {
-                    // Log error tapi jangan gagalkan seluruh proses
-                    Log::error('Failed to save canvas image: ' . $result['message']);
-                }
-            }
-
-            // Load relasi untuk response
-            foreach ($createdSaranPlatDasar as $saran) {
-                $saran->load('itemBarang');
-            }
-
-            DB::commit();
-            return $this->successResponse($createdSaranPlatDasar, 'Saran plat dasar berhasil ditambahkan untuk ' . count($createdSaranPlatDasar) . ' item');
-        } catch (\Exception $e) {
-            DB::rollback();
-            return $this->errorResponse('Gagal menambahkan saran plat dasar: ' . $e->getMessage(), 500);
-        }
-    }
-
-
-
-    /**
-     * Set saran plat dasar sebagai yang dipilih (is_selected = true)
-     */
-    public function setSelectedPlatDasar(Request $request, $saranId)
-    {
-        $validator = Validator::make($request->all(), [
-            'wo_item_unique_id' => 'required|string|exists:trx_work_order_planning_item,wo_item_unique_id',
-        ]);
-
-        if ($validator->fails()) {
-            return $this->errorResponse($validator->errors()->first(), 422);
-        }
-
-        // Cari item berdasarkan wo_item_unique_id
-        $item = WorkOrderPlanningItem::where('wo_item_unique_id', $request->wo_item_unique_id)->first();
-        if (!$item) {
-            return $this->errorResponse('Data item tidak ditemukan', 404);
-        }
-
-        // Cari saran plat dasar
-        $saranPlatDasar = SaranPlatShaftDasar::find($saranId);
-        if (!$saranPlatDasar) {
-            return $this->errorResponse('Data saran plat dasar tidak ditemukan', 404);
-        }
-
-        // Validasi bahwa saran tersebut milik item yang sama
-        if ($saranPlatDasar->wo_planning_item_id != $item->id) {
-            return $this->errorResponse('Saran plat dasar tidak sesuai dengan item yang dipilih', 400);
-        }
-
-        DB::beginTransaction();
-        try {
-            // Set semua saran lain menjadi false untuk item ini
-            SaranPlatShaftDasar::where('wo_planning_item_id', $item->id)
-                ->update(['is_selected' => false]);
-
-            // Set saran yang dipilih menjadi true
-            $saranPlatDasar->update(['is_selected' => true]);
-
-            // Update plat_dasar_id di work order planning item
-            $item->update(['plat_dasar_id' => $saranPlatDasar->item_barang_id]);
-
-            // Load relasi untuk response
-            $saranPlatDasar->load('itemBarang');
-
-            DB::commit();
-            return $this->successResponse($saranPlatDasar, 'Saran plat dasar berhasil diset sebagai yang dipilih');
-        } catch (\Exception $e) {
-            DB::rollback();
-            return $this->errorResponse('Gagal set saran plat dasar: ' . $e->getMessage(), 500);
-        }
-    }
-
+ 
 
     /**
      * Get semua saran plat/shaft dasar untuk item tertentu

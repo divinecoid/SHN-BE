@@ -14,7 +14,7 @@ class SaranPlatShaftDasar extends Model
     protected $fillable = [
         'wo_planning_item_id',
         'item_barang_id',
-        'is_selected',
+        'quantity',
         'canvas_file',
     ];
 
@@ -23,7 +23,7 @@ class SaranPlatShaftDasar extends Model
     protected $casts = [
         'wo_planning_item_id' => 'integer',
         'item_barang_id' => 'integer',
-        'is_selected' => 'boolean',
+        'quantity' => 'decimal:2',
     ];
 
     public function workOrderPlanningItem()

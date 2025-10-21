@@ -29,6 +29,7 @@ use App\Http\Controllers\StaticDataController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\Transactions\WorkOrderPlanningController;
 use App\Http\Controllers\Transactions\WorkOrderActualController;
+use App\Http\Controllers\Transactions\SaranPlatController;
 use App\Http\Controllers\Transactions\DashboardController;
 use App\Http\Controllers\Transactions\PurchaseOrderController;
 use App\Http\Controllers\Output\InvoicePodController;
@@ -425,14 +426,21 @@ Route::prefix('work-order-planning')->middleware('checkrole')->group(function ()
     Route::delete('item/{itemId}/pelaksana/{pelaksanaId}', [WorkOrderPlanningController::class, 'removePelaksana']);
     
     // Utility routes
-    Route::post('get-saran-plat-dasar', [WorkOrderPlanningController::class, 'getSaranPlatDasar']);
-    Route::post('get-saran-plat-utuh', [WorkOrderPlanningController::class, 'getSaranPlatUtuh']);
+    Route::post('get-saran-plat-dasar', [SaranPlatController::class, 'getSaranPlatDasar']);
+    Route::post('get-saran-plat-utuh', [SaranPlatController::class, 'getSaranPlatUtuh']);
     Route::get('{id}/print-spk', [WorkOrderPlanningController::class, 'printSpkWorkOrder']);
     
     // Saran Plat/Shaft Dasar routes
-    Route::post('saran-plat-dasar', [WorkOrderPlanningController::class, 'addSaranPlatDasar']);
-    Route::patch('saran-plat-dasar/{saranId}', [WorkOrderPlanningController::class, 'updateSaranPlatDasar']);
-    Route::delete('saran-plat-dasar/{saranId}', [WorkOrderPlanningController::class, 'removeSaranPlatDasar']);
+    Route::post('saran-plat-dasar', [SaranPlatController::class, 'addSaranPlatDasar']);
+    Route::patch('saran-plat-dasar/{saranId}/set-selected', [SaranPlatController::class, 'setSelectedPlatDasar']);
+    Route::get('item/{itemId}/saran-plat-dasar', [SaranPlatController::class, 'getSaranPlatDasarByItem']);
+    
+    // Canvas file management
+    Route::get('canvas/{saranId}/download', [SaranPlatController::class, 'downloadCanvasFile']);
+    Route::get('canvas/{saranId}/file', [SaranPlatController::class, 'getCanvasFile']);
+    Route::get('canvas/item-barang/{itemBarangId}/file', [SaranPlatController::class, 'getCanvasFileByItemBarang']);
+    Route::get('canvas/item-barang/{itemBarangId}/data', [SaranPlatController::class, 'getCanvasByItemId']);
+    Route::get('canvas/item-barang/{itemBarangId}/image', [SaranPlatController::class, 'getCanvasImageByItemId']);
   });
 
 

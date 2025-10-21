@@ -31,6 +31,7 @@ class WorkOrderPlanningItem extends Model
         'bentuk_barang_id',
         'grade_barang_id',
         'catatan',
+        'jenis_potongan',
         'is_assigned',
     ];
 
