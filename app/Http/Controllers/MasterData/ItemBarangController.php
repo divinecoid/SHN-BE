@@ -38,6 +38,70 @@ class ItemBarangController extends Controller
         return response()->json($this->paginateResponse($data, $items));
     }
 
+    public function checkStock(Request $request)
+    {
+        // Validasi parameter yang diperlukan
+        $validator = Validator::make($request->all(), [
+            'gudang_id' => 'nullable|exists:ref_gudang,id',
+            'jenis_barang_id' => 'nullable|exists:ref_jenis_barang,id',
+            'bentuk_barang_id' => 'nullable|exists:ref_bentuk_barang,id',
+            'grade_barang_id' => 'nullable|exists:ref_grade_barang,id',
+            'panjang' => 'nullable|numeric|min:0',
+            'lebar' => 'nullable|numeric|min:0',
+            'tebal' => 'nullable|numeric|min:0',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->errorResponse($validator->errors()->first(), 422);
+        }
+
+        // Build query dengan relasi
+        $query = ItemBarang::with(['jenisBarang', 'bentukBarang', 'gradeBarang', 'gudang']);
+
+        // Filter opsional untuk gudang
+        if ($request->filled('gudang_id')) {
+            $query->where('gudang_id', $request->gudang_id);
+        }
+
+        // Filter opsional untuk jenis barang
+        if ($request->filled('jenis_barang_id')) {
+            $query->where('jenis_barang_id', $request->jenis_barang_id);
+        }
+
+        // Filter opsional untuk bentuk barang
+        if ($request->filled('bentuk_barang_id')) {
+            $query->where('bentuk_barang_id', $request->bentuk_barang_id);
+        }
+
+        // Filter opsional untuk grade barang
+        if ($request->filled('grade_barang_id')) {
+            $query->where('grade_barang_id', $request->grade_barang_id);
+        }
+
+        // Filter opsional untuk dimensi
+        if ($request->filled('panjang')) {
+            $query->where('panjang', $request->panjang);
+        }
+
+        if ($request->filled('lebar')) {
+            $query->where('lebar', $request->lebar);
+        }
+
+        if ($request->filled('tebal')) {
+            $query->where('tebal', $request->tebal);
+        }
+
+        // Ambil semua data yang sesuai dengan filter
+        $data = $query->get();
+
+        if ($data->isEmpty()) {
+            return $this->errorResponse('Data tidak ditemukan', 404);
+        }
+
+        return $this->successResponse($data);
+    }
+
+
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -260,7 +324,7 @@ class ItemBarangController extends Controller
         return response()->json($this->paginateResponse($data, $items));
     }
 
-        public function bulk(Request $request)
+    public function bulk(Request $request)
     {
         $perPage = (int) ($request->input('per_page', $this->getPerPageDefault()));
         $query = ItemBarang::with(['jenisBarang', 'bentukBarang', 'gradeBarang', 'gudang']);

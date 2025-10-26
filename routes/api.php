@@ -208,6 +208,9 @@ Route::prefix('item-barang')->middleware('checkrole:admin')->group(function () {
     Route::get('with-trashed/all', [ItemBarangController::class, 'indexWithTrashed']);
     Route::get('with-trashed/trashed', [ItemBarangController::class, 'indexTrashed']);
 });
+Route::prefix('stock')->middleware('checkrole')->group(function () {
+    Route::get('/check', [ItemBarangController::class, 'checkStock']);
+});
 
 // JenisTransaksiKas routes
 Route::prefix('jenis-transaksi-kas')->middleware('checkrole')->group(function () {
