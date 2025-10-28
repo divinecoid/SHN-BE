@@ -5,6 +5,7 @@ namespace App\Models\Transactions;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Traits\HideTimestampsInRelations;
+use App\Models\MasterData\ItemBarang;
 
 class PurchaseOrderItem extends Model
 {
@@ -23,6 +24,7 @@ class PurchaseOrderItem extends Model
     ];
     protected $fillable = [
         'purchase_order_id',
+        'id_item_barang',
         'qty',
         'panjang',
         'lebar',
@@ -54,5 +56,10 @@ class PurchaseOrderItem extends Model
     public function gradeBarang()
     {
         return $this->belongsTo(\App\Models\MasterData\GradeBarang::class, 'grade_barang_id');
+    }
+
+    public function itemBarang()
+    {
+        return $this->belongsTo(ItemBarang::class, 'id_item_barang');
     }
 }

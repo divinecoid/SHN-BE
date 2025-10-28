@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Transactions\KonversiBarangController;
+use App\Http\Controllers\Transactions\SplitBarangController;
+use App\Http\Controllers\Transactions\MergeBarangController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\RegisterController;
@@ -191,12 +193,14 @@ Route::prefix('grade-barang')->middleware('checkrole:admin')->group(function () 
 // ItemBarang routes
 Route::prefix('item-barang')->middleware('checkrole')->group(function () {
     Route::get('/', [ItemBarangController::class, 'index']);
+    Route::get('/bulk', [ItemBarangController::class, 'bulk']);
     Route::get('{id}', [ItemBarangController::class, 'show']);
     Route::post('/', [ItemBarangController::class, 'store']);
     Route::put('{id}', [ItemBarangController::class, 'update']);
     Route::patch('{id}', [ItemBarangController::class, 'update']);
     Route::get('{itemBarangId}/canvas', [WorkOrderPlanningController::class, 'getCanvasByItemId']);
     Route::get('{itemBarangId}/canvas-image', [WorkOrderPlanningController::class, 'getCanvasImageByItemId']);
+    Route::get('/similar-type/{id}', [ItemBarangController::class, 'similarType']);
 });
 Route::prefix('item-barang')->middleware('checkrole:admin')->group(function () {
     Route::delete('{id}/soft', [ItemBarangController::class, 'softDelete']);
@@ -204,6 +208,9 @@ Route::prefix('item-barang')->middleware('checkrole:admin')->group(function () {
     Route::delete('{id}/force', [ItemBarangController::class, 'forceDelete']);
     Route::get('with-trashed/all', [ItemBarangController::class, 'indexWithTrashed']);
     Route::get('with-trashed/trashed', [ItemBarangController::class, 'indexTrashed']);
+});
+Route::prefix('stock')->middleware('checkrole')->group(function () {
+    Route::get('/check', [ItemBarangController::class, 'checkStock']);
 });
 
 // JenisTransaksiKas routes
@@ -390,6 +397,7 @@ Route::prefix('sales-order')->middleware('checkrole')->group(function () {
 Route::prefix('purchase-order')->middleware('checkrole')->group(function () {
     Route::get('/', [PurchaseOrderController::class, 'index']);
     Route::get('{id}', [PurchaseOrderController::class, 'show']);
+    Route::get('scan-nomor-po/{nomor_po}', [PurchaseOrderController::class, 'scanNomorPo']);
     Route::post('/', [PurchaseOrderController::class, 'store']);
     Route::put('{id}', [PurchaseOrderController::class, 'update']);
     Route::patch('{id}', [PurchaseOrderController::class, 'update']);
@@ -486,6 +494,7 @@ Route::prefix('document-sequence')->middleware('checkrole')->group(function () {
 Route::prefix('stock-mutation')->middleware('checkrole')->group(function () {
     Route::get('/', [StockMutationController::class, 'index']);
     Route::get('{id}', [StockMutationController::class, 'show']);
+    Route::get('scan-nomor-mutasi/{nomor_mutasi}', [StockMutationController::class, 'scanNomorMutasi']);
     Route::post('/', [StockMutationController::class, 'store']);
     Route::put('{id}', [StockMutationController::class, 'update']);
     Route::patch('{id}', [StockMutationController::class, 'update']);
@@ -500,4 +509,15 @@ Route::prefix('stock-mutation')->middleware('checkrole')->group(function () {
 Route::prefix('konversi-barang')->middleware('checkrole')->group(function () {
     Route::get('/', [KonversiBarangController::class, 'index']);
     Route::patch('{id}', [KonversiBarangController::class, 'update']);
+});
+
+
+Route::prefix('merge-barang')->middleware('checkrole')->group(function () {
+    Route::get('/', [MergeBarangController::class, 'index']);
+    Route::patch('/', [MergeBarangController::class, 'update']);
+});
+
+Route::prefix('split-barang')->middleware('checkrole')->group(function () {
+    Route::get('/', [SplitBarangController::class, 'index']);
+    Route::patch('/', [SplitBarangController::class, 'update']);
 });

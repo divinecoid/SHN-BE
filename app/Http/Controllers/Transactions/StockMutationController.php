@@ -12,10 +12,18 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Log;
+use App\Http\Controllers\MasterData\DocumentSequenceController;
 
 class StockMutationController extends Controller
 {
     use ApiFilterTrait;
+    
+    protected $documentSequenceController;
+    
+    public function __construct()
+    {
+        $this->documentSequenceController = new DocumentSequenceController();
+    }
 
     public function index(Request $request)
     {
@@ -68,6 +76,13 @@ class StockMutationController extends Controller
 
         DB::beginTransaction();
         try {
+            // Generate nomor_mutasi menggunakan DocumentSequenceController
+            $nomorMutasiResponse = $this->documentSequenceController->generateDocumentSequence('mutasi');
+            if ($nomorMutasiResponse->getStatusCode() !== 200) {
+                return $this->errorResponse('Gagal generate nomor mutasi', 500);
+            }
+            $nomorMutasi = $nomorMutasiResponse->getData()->data;
+            
             $stockMutation = StockMutation::create(array_merge(
                 $request->only([
                     'gudang_tujuan_id',
@@ -76,7 +91,8 @@ class StockMutationController extends Controller
                 ]),
                 [
                     'requestor_id' => $requestor_id,
-                    'status' => 'requested'
+                    'status' => 'requested',
+                    'nomor_mutasi' => $nomorMutasi
                 ]
             ));
 
@@ -88,6 +104,9 @@ class StockMutationController extends Controller
                     'quantity' => $item['quantity']
                 ]);
             }
+
+            // Update sequence counter setelah berhasil create StockMutation
+            $this->documentSequenceController->increaseSequence('mutasi');
 
             DB::commit();
 
@@ -109,6 +128,54 @@ class StockMutationController extends Controller
             return $this->errorResponse('Data tidak ditemukan', 404);
         }
         return $this->successResponse($data);
+    }
+
+    public function scanNomorMutasi($nomor_mutasi)
+    {
+        $data = StockMutation::with(['stockMutationItems.itemBarang', 'gudangTujuan', 'gudangAsal', 'requestor', 'recipient'])->where('nomor_mutasi', $nomor_mutasi)->first();
+        if (!$data) {
+            return $this->errorResponse('Data tidak ditemukan', 404);
+        }
+
+        // Transform data ke struktur response yang diinginkan
+        $transformedData = [
+            'nomor_dokumen' => $data->nomor_mutasi,
+            'tipe_dokumen' => 'mutasi',
+            'status' => $data->status,
+            'tanggal_dokumen' => $data->created_at,
+            'tanggal_penerimaan' => null,
+            'user_penerima' => $data->recipient ? $data->recipient->name : null,
+            'gudang_asal' => $data->gudangAsal ? $data->gudangAsal->nama_gudang : null,
+            'gudang_tujuan' => $data->gudangTujuan ? $data->gudangTujuan->nama_gudang : null,
+            'supplier' => null,
+            'catatan' => null,
+            'items' => $data->stockMutationItems->map(function ($item) {
+                $itemBarang = $item->itemBarang;
+                return [
+                    'id' => $item->id,
+                    'item_barang_id' => $item->item_barang_id,
+                    'kode_barang' => $itemBarang ? $itemBarang->kode_barang : null,
+                    'unit' => $item->unit,
+                    'status' => 'on_progress',
+                    'quantity' => $item->quantity,
+                    'panjang' => $itemBarang->panjang,
+                    'lebar' => $itemBarang->lebar,
+                    'tebal' => $itemBarang->tebal,
+                    'qty' => $item->quantity,
+                    'jenis_barang_id' => null,
+                    'bentuk_barang_id' => null,
+                    'grade_barang_id' => null,
+                    'satuan' => null,
+                    'catatan' => null
+                ];
+            })
+        ];
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data ditemukan',
+            'data' => $transformedData
+        ]);
     }
 
     public function update(Request $request, $id)

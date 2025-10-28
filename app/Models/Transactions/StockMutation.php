@@ -20,6 +20,7 @@ class StockMutation extends Model
         'recipient_id',
         'approval_date',
         'status',
+        'nomor_mutasi',
     ];
 
     protected $hidden = ['deleted_at'];

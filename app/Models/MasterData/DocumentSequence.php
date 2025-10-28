@@ -18,5 +18,7 @@ class DocumentSequence extends Model
         'wo',
         'pod',
         'invoice',
+        'mutasi',
+        'barang',
     ];
 }

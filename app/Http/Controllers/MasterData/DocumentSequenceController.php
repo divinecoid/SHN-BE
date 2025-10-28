@@ -33,7 +33,8 @@ class DocumentSequenceController extends Controller
                 'so' => 0,
                 'wo' => 0,
                 'pod' => 0,
-                'invoice' => 0
+                'invoice' => 0,
+                'mutasi' => 0
             ]);
         }
         return $documentSequence;
@@ -47,7 +48,7 @@ class DocumentSequenceController extends Controller
 
     public function increaseSequence($type)
     {
-        $types = ['po', 'so', 'wo', 'pod', 'invoice'];
+        $types = ['po', 'so', 'wo', 'pod', 'invoice', 'mutasi', 'barang'];
         if (!in_array($type, $types)) {
             return $this->errorResponse('Type tidak valid', 400);
         }
@@ -68,6 +69,8 @@ class DocumentSequenceController extends Controller
             'wo' => 'WO',
             'pod' => 'POD',
             'invoice' => 'INV',
+            'mutasi' => 'SM',
+            'barang' => '',
         ];
 
         if (!isset($prefixes[$type])) {

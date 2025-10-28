@@ -30,6 +30,8 @@ class ItemBarang extends Model
         'canvas_file',
         'canvas_image',
         'convert_date',
+        'split_date',
+        'merge_date',
         'gudang_id'
     ];
 
