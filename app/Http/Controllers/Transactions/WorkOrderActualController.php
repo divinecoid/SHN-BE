@@ -19,7 +19,80 @@ class WorkOrderActualController extends Controller
 {
     use ApiFilterTrait;
 
-    
+    /**
+     * Display a listing of work order actuals
+     */
+    public function index(Request $request)
+    {
+        try {
+            $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
+            $query = WorkOrderActual::with([
+                'workOrderPlanning',
+                'workOrderActualItems.workOrderPlanningItem.itemBarang',
+                'workOrderActualItems.workOrderActualPelaksanas.pelaksana'
+            ]);
+
+            // Apply filters using the correct method name and search fields
+            $query = $this->applyFilter($query, $request, [
+                'id',
+                'work_order_planning_id', 
+                'foto_bukti',
+                'status',
+                'catatan'
+            ]);
+
+            $data = $query->paginate($perPage);
+            $items = collect($data->items());
+            
+            return response()->json($this->paginateResponse($data, $items));
+
+        } catch (\Exception $e) {
+            Log::error('Error fetching work order actuals: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil data work order actual',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Display the specified work order actual
+     */
+    public function show($id)
+    {
+        try {
+            $workOrderActual = WorkOrderActual::with([
+                'workOrderPlanning',
+                'workOrderActualItems.workOrderPlanningItem.itemBarang.jenisBarang',
+                'workOrderActualItems.workOrderPlanningItem.itemBarang.bentukBarang',
+                'workOrderActualItems.workOrderPlanningItem.itemBarang.gradeBarang',
+                'workOrderActualItems.workOrderActualPelaksanas.pelaksana'
+            ])->find($id);
+
+            if (!$workOrderActual) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Work order actual tidak ditemukan'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data work order actual berhasil diambil',
+                'data' => $workOrderActual
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error fetching work order actual: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil data work order actual',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function saveWorkOrderActual(Request $request)
     {
         // Validasi request tidak boleh kosong

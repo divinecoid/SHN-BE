@@ -3,6 +3,7 @@
 use App\Http\Controllers\Transactions\KonversiBarangController;
 use App\Http\Controllers\Transactions\SplitBarangController;
 use App\Http\Controllers\Transactions\MergeBarangController;
+use App\Http\Controllers\Transactions\ItemBarangRequestController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\RegisterController;
@@ -194,6 +195,7 @@ Route::prefix('grade-barang')->middleware('checkrole:admin')->group(function () 
 Route::prefix('item-barang')->middleware('checkrole')->group(function () {
     Route::get('/', [ItemBarangController::class, 'index']);
     Route::get('/bulk', [ItemBarangController::class, 'bulk']);
+    Route::get('/by-gudang/{gudangId}', [ItemBarangController::class, 'getByGudang']);
     Route::get('{id}', [ItemBarangController::class, 'show']);
     Route::post('/', [ItemBarangController::class, 'store']);
     Route::put('{id}', [ItemBarangController::class, 'update']);
@@ -454,6 +456,8 @@ Route::prefix('work-order-planning')->middleware('checkrole')->group(function ()
 
   // WorkOrderActual routes
   Route::prefix('work-order-actual')->middleware('checkrole')->group(function () {
+    Route::get('/', [WorkOrderActualController::class, 'index']);
+    Route::get('/{id}', [WorkOrderActualController::class, 'show']);
     Route::post('/', [WorkOrderActualController::class, 'saveWorkOrderActual']);
   });
 
@@ -473,7 +477,6 @@ Route::prefix('invoice-pod')->middleware('checkrole')->group(function () {
     Route::post('/generate-invoice-pod', [InvoicePodController::class, 'generateInvoicePod']);
     Route::post('/view-invoice', [InvoicePodController::class, 'viewInvoice']);
     Route::post('/view-pod', [InvoicePodController::class, 'viewPod']);
-    Route::get('/eligible-for-invoice-pod', [InvoicePodController::class, 'eligibleForInvoicePod']);
 });
 
 
@@ -520,4 +523,19 @@ Route::prefix('merge-barang')->middleware('checkrole')->group(function () {
 Route::prefix('split-barang')->middleware('checkrole')->group(function () {
     Route::get('/', [SplitBarangController::class, 'index']);
     Route::patch('/', [SplitBarangController::class, 'update']);
+});
+
+// Item Barang Request routes
+Route::prefix('item-barang-request')->middleware('checkrole')->group(function () {
+    Route::get('/', [ItemBarangRequestController::class, 'index']);
+    Route::get('pending', [ItemBarangRequestController::class, 'getPendingRequests']);
+    Route::get('{id}', [ItemBarangRequestController::class, 'show']);
+    Route::post('/', [ItemBarangRequestController::class, 'store']);
+    Route::put('{id}', [ItemBarangRequestController::class, 'update']);
+    Route::patch('{id}', [ItemBarangRequestController::class, 'update']);
+    Route::delete('{id}', [ItemBarangRequestController::class, 'destroy']);
+    
+    // Approval routes
+    Route::patch('{id}/approve', [ItemBarangRequestController::class, 'approve']);
+    Route::patch('{id}/reject', [ItemBarangRequestController::class, 'reject']);
 });
