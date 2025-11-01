@@ -440,6 +440,9 @@ Route::prefix('work-order-planning')->middleware('checkrole')->group(function ()
     Route::post('get-saran-plat-utuh', [SaranPlatController::class, 'getSaranPlatUtuh']);
     Route::get('{id}/print-spk', [WorkOrderPlanningController::class, 'printSpkWorkOrder']);
     
+    // Get all canvas images by Work Order ID
+    Route::get('{id}/images', [WorkOrderPlanningController::class, 'getWorkOrderImages']);
+    
     // Saran Plat/Shaft Dasar routes
     Route::post('saran-plat-dasar', [SaranPlatController::class, 'addSaranPlatDasar']);
     Route::patch('saran-plat-dasar/{saranId}/set-selected', [SaranPlatController::class, 'setSelectedPlatDasar']);

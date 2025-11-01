@@ -73,6 +73,11 @@ class WorkOrderPlanningController extends Controller
             'items.*.pelaksana.*.jam_selesai' => 'nullable|date_format:H:i',
             'items.*.pelaksana.*.catatan' => 'nullable|string|max:500',
             'items.*.jenis_potongan' => 'nullable|in:utuh,potongan',
+            'items.*.saran_plat_dasar' => 'nullable|array',
+            'items.*.saran_plat_dasar.*.item_barang_id' => 'required|exists:ref_item_barang,id',
+            'items.*.saran_plat_dasar.*.quantity' => 'nullable|numeric|min:0',
+            'items.*.saran_plat_dasar.*.canvas_image' => 'nullable|string',
+            'items.*.saran_plat_dasar.*.canvas_layout' => 'nullable|string',
         ]);
         if ($validator->fails()) {
             return $this->errorResponse($validator->errors()->first(), 422);
@@ -145,10 +150,41 @@ class WorkOrderPlanningController extends Controller
                     // Insert saran plat dasar ke item jika ada
                     if (isset($item['saran_plat_dasar']) && is_array($item['saran_plat_dasar'])) {
                         foreach ($item['saran_plat_dasar'] as $saranData) {
+                            $canvasFile = null;
+                            
+                            // Handle canvas_image base64 data
+                            if (isset($saranData['canvas_image']) && !empty($saranData['canvas_image'])) {
+                                try {
+                                    // Create folder structure: canvas_woitemitemid/
+                                    $folderName = 'canvas_woitem' . $workOrderPlanningItem->id . '_' . $saranData['item_barang_id'];
+                                    
+                                    // Generate filename as canvas_image.jpg
+                                    $filename = 'canvas_image';
+                                    
+                                    // Save base64 image using FileHelper
+                                    $result = FileHelper::saveBase64AsJpg(
+                                        $saranData['canvas_image'], 
+                                        $folderName, 
+                                        $filename
+                                    );
+                                    
+                                    if ($result['success']) {
+                                        $canvasFile = $result['data']['path'];
+                                    }
+                                } catch (\Exception $e) {
+                                    Log::error('Failed to save canvas image: ' . $e->getMessage());
+                                    // Continue without canvas file if saving fails
+                                }
+                            }
+                            
+                            // Calculate and update sisa_luas if canvas_layout is provided
+                            $this->updateSisaLuas($saranData);
+                            
                             SaranPlatShaftDasar::create([
                                 'wo_planning_item_id' => $workOrderPlanningItem->id,
                                 'item_barang_id' => $saranData['item_barang_id'],
                                 'quantity' => $saranData['quantity'] ?? null,
+                                'canvas_file' => $canvasFile,
                             ]);
                         }
                     }
@@ -424,6 +460,9 @@ class WorkOrderPlanningController extends Controller
             'saran_plat_dasar' => 'nullable|array',
             'saran_plat_dasar.*.item_barang_id' => 'nullable|exists:ref_item_barang,id',
             'saran_plat_dasar.*.is_selected' => 'nullable|boolean',
+            'saran_plat_dasar.*.quantity' => 'nullable|numeric|min:0',
+            'saran_plat_dasar.*.canvas_image' => 'nullable|string',
+            'saran_plat_dasar.*.canvas_layout' => 'nullable|string',
         ]);
 
         $data = WorkOrderPlanningItem::find($id);
@@ -466,10 +505,42 @@ class WorkOrderPlanningController extends Controller
                 // Tambah saran plat dasar yang baru
                 foreach ($request->saran_plat_dasar as $saranData) {
                     if (!empty($saranData['item_barang_id'])) {
+                        $canvasFile = null;
+                        
+                        // Handle canvas_image base64 data
+                        if (isset($saranData['canvas_image']) && !empty($saranData['canvas_image'])) {
+                            try {
+                                // Create folder structure: canvas_woitemitemid/
+                                $folderName = 'canvas_woitem' . $data->id . '_' . $saranData['item_barang_id'];
+                                
+                                // Generate filename as canvas_image.jpg
+                                $filename = 'canvas_image';
+                                
+                                // Save base64 image using FileHelper
+                                $result = FileHelper::saveBase64AsJpg(
+                                    $saranData['canvas_image'], 
+                                    $folderName, 
+                                    $filename
+                                );
+                                
+                                if ($result['success']) {
+                                    $canvasFile = $result['data']['path'];
+                                }
+                            } catch (\Exception $e) {
+                                Log::error('Failed to save canvas image: ' . $e->getMessage());
+                                // Continue without canvas file if saving fails
+                            }
+                        }
+                        
+                        // Calculate and update sisa_luas if canvas_layout is provided
+                        $this->updateSisaLuas($saranData);
+                        
                         SaranPlatShaftDasar::create([
                             'wo_planning_item_id' => $data->id,
                             'item_barang_id' => $saranData['item_barang_id'],
+                            'quantity' => $saranData['quantity'] ?? null,
                             'is_selected' => $saranData['is_selected'] ?? false,
+                            'canvas_file' => $canvasFile,
                         ]);
                     }
                 }
@@ -919,6 +990,117 @@ class WorkOrderPlanningController extends Controller
         return $this->successResponse($mappedData);
     }
 
+    /**
+     * Get semua canvas images dari Work Order berdasarkan WO ID
+     * Loop ke dalam child WO items dan ambil path image dari saran plat dasar
+     */
+    public function getWorkOrderImages($id)
+    {
+        try {
+            // Cari Work Order dengan relasi ke items dan saran plat dasar
+            $workOrder = WorkOrderPlanning::with([
+                'workOrderPlanningItems.hasManySaranPlatShaftDasar.itemBarang'
+            ])->find($id);
 
+            if (!$workOrder) {
+                return $this->errorResponse('Work Order tidak ditemukan', 404);
+            }
+
+            $images = [];
+
+            // Loop melalui setiap item dalam work order
+            foreach ($workOrder->workOrderPlanningItems as $item) {
+                // Loop melalui setiap saran plat dasar dalam item
+                foreach ($item->hasManySaranPlatShaftDasar as $saran) {
+                    // Jika ada canvas_file (path image), tambahkan ke array
+                    if (!empty($saran->canvas_file)) {
+                        $base64Image = null;
+                        $filePath = storage_path('app/public/' . $saran->canvas_file);
+                        
+                        // Cek apakah file exists dan convert ke base64
+                        if (file_exists($filePath)) {
+                            $imageData = file_get_contents($filePath);
+                            $base64Image = 'data:image/jpeg;base64,' . base64_encode($imageData);
+                        }
+
+                        $images[] = [
+                            'wo_id' => $workOrder->id,
+                            'wo_unique_id' => $workOrder->wo_unique_id,
+                            'wo_item_id' => $item->id,
+                            'wo_item_unique_id' => $item->wo_item_unique_id,
+                            'saran_id' => $saran->id,
+                            'item_barang_id' => $saran->item_barang_id,
+                            'item_barang_name' => $saran->itemBarang->nama_item_barang ?? null,
+                            'canvas_file_path' => $saran->canvas_file,
+                            'canvas_image_base64' => $base64Image,
+                            'is_selected' => $saran->is_selected ?? false,
+                            'quantity' => $saran->quantity,
+                            'created_at' => $saran->created_at,
+                            'updated_at' => $saran->updated_at,
+                        ];
+                    }
+                }
+            }
+
+            // Response dengan informasi work order dan semua images
+            $response = [
+                'work_order' => [
+                    'id' => $workOrder->id,
+                    'wo_unique_id' => $workOrder->wo_unique_id,
+                    'nomor_wo' => $workOrder->nomor_wo,
+                    'tanggal_wo' => $workOrder->tanggal_wo,
+                    'status' => $workOrder->status,
+                    'prioritas' => $workOrder->prioritas,
+                ],
+                'total_images' => count($images),
+                'images' => $images
+            ];
+
+            return $this->successResponse($response, 'Canvas images berhasil diambil');
+
+        } catch (\Exception $e) {
+            return $this->errorResponse('Gagal mengambil canvas images: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Update sisa luas item barang based on canvas layout
+     */
+    private function updateSisaLuas($saranData)
+    {
+        try {
+            // Check if canvas_layout is provided and item_barang_id exists
+            if (!isset($saranData['canvas_layout']) || empty($saranData['canvas_layout']) || !isset($saranData['item_barang_id'])) {
+                return;
+            }
+
+            // Parse canvas layout JSON
+            $canvasLayout = json_decode($saranData['canvas_layout'], true);
+            
+            if (!$canvasLayout || !isset($canvasLayout['metadata'])) {
+                return;
+            }
+
+            $metadata = $canvasLayout['metadata'];
+            
+            // Get containerArea and totalArea from metadata
+            $containerArea = $metadata['containerArea'] ?? 0;
+            $totalArea = $metadata['totalArea'] ?? 0;
+            
+            // Calculate sisa luas = containerArea - totalArea
+            $sisaLuas = $containerArea - $totalArea;
+            
+            // Update item barang sisa_luas
+            if ($sisaLuas >= 0) {
+                \App\Models\MasterData\ItemBarang::where('id', $saranData['item_barang_id'])
+                    ->update(['sisa_luas' => $sisaLuas]);
+                    
+                Log::info("Updated sisa_luas for item_barang_id {$saranData['item_barang_id']}: {$sisaLuas}");
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to update sisa_luas: ' . $e->getMessage());
+        }
+    }
 
 }
