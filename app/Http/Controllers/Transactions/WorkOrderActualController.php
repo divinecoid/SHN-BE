@@ -57,6 +57,99 @@ class WorkOrderActualController extends Controller
     }
 
     /**
+     * Report header Work Order Actual (atribut parent saja)
+     */
+    public function report(Request $request)
+    {
+        try {
+            $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
+
+            $query = WorkOrderActual::query()
+                ->join('trx_work_order_planning', 'trx_work_order_actual.work_order_planning_id', '=', 'trx_work_order_planning.id')
+                ->leftJoin('ref_pelanggan', 'trx_work_order_planning.id_pelanggan', '=', 'ref_pelanggan.id')
+                ->leftJoin('ref_gudang', 'trx_work_order_planning.id_gudang', '=', 'ref_gudang.id')
+                ->leftJoin('trx_sales_order', 'trx_work_order_planning.id_sales_order', '=', 'trx_sales_order.id')
+                ->addSelect([
+                    // Actual header
+                    'trx_work_order_actual.id',
+                    'trx_work_order_actual.work_order_planning_id',
+                    'trx_work_order_actual.tanggal_actual',
+                    'trx_work_order_actual.status',
+                    'trx_work_order_actual.catatan',
+                    'trx_work_order_actual.foto_bukti',
+                    'trx_work_order_actual.created_at',
+                    'trx_work_order_actual.updated_at',
+                    // Planning header context
+                    'trx_work_order_planning.nomor_wo',
+                    'trx_work_order_planning.tanggal_wo',
+                    'trx_work_order_planning.id_pelanggan',
+                    'trx_work_order_planning.id_gudang',
+                    'trx_work_order_planning.id_pelaksana',
+                    'trx_work_order_planning.prioritas',
+                    'trx_work_order_planning.handover_method',
+                    // Names and references
+                    'ref_pelanggan.nama_pelanggan',
+                    'ref_gudang.nama_gudang',
+                    'trx_sales_order.nomor_so',
+                ]);
+
+            // Search & sort
+            $query = $this->applyFilter($query, $request, [
+                'trx_work_order_actual.status',
+                'trx_work_order_planning.nomor_wo',
+                'trx_sales_order.nomor_so',
+                'ref_pelanggan.nama_pelanggan',
+                'ref_gudang.nama_gudang',
+            ]);
+
+            // Specific filters
+            if ($request->filled('status')) {
+                $query->where('trx_work_order_actual.status', $request->input('status'));
+            }
+            if ($request->filled('id_pelanggan')) {
+                $query->where('trx_work_order_planning.id_pelanggan', $request->input('id_pelanggan'));
+            }
+            if ($request->filled('id_gudang')) {
+                $query->where('trx_work_order_planning.id_gudang', $request->input('id_gudang'));
+            }
+            if ($request->filled('nomor_wo')) {
+                $query->where('trx_work_order_planning.nomor_wo', 'like', "%" . $request->input('nomor_wo') . "%");
+            }
+            if ($request->filled('nomor_so')) {
+                $query->where('trx_sales_order.nomor_so', 'like', "%" . $request->input('nomor_so') . "%");
+            }
+
+            // Date range filter for actual
+            $start = $request->input('tanggal_actual_start');
+            $end = $request->input('tanggal_actual_end');
+            if ($start && $end) {
+                $query->whereBetween('trx_work_order_actual.tanggal_actual', [$start, $end]);
+            } elseif ($start) {
+                $query->whereDate('trx_work_order_actual.tanggal_actual', '>=', $start);
+            } elseif ($end) {
+                $query->whereDate('trx_work_order_actual.tanggal_actual', '<=', $end);
+            }
+
+            // Default sort to avoid ambiguous 'id' with joins
+            if (!$request->filled('sort') && !$request->filled('sort_by')) {
+                $query->orderBy('trx_work_order_actual.tanggal_actual', 'desc');
+            }
+
+            $data = $query->paginate($perPage);
+            $items = collect($data->items());
+
+            return response()->json($this->paginateResponse($data, $items));
+        } catch (\Exception $e) {
+            Log::error('Error fetching work order actual report: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil report work order actual',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Display the specified work order actual
      */
     public function show($id)

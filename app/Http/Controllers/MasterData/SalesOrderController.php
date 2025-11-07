@@ -456,6 +456,102 @@ class SalesOrderController extends Controller
     }
 
     /**
+     * Report endpoint: list Sales Orders with summary and basic filters
+     *
+     * Query params:
+     * - per_page, search, sort/sort_by/order (via ApiFilterTrait)
+     * - tanggal_mulai, tanggal_akhir, pelanggan_id, gudang_id, status
+     * - min_total, max_total (filter by total_harga_so)
+     */
+    public function report(Request $request)
+    {
+        $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
+
+        // Base query with lightweight relations and items count
+        $query = SalesOrder::with([
+            'pelanggan:id,nama_pelanggan',
+            'gudang:id,kode,nama_gudang',
+        ])->withCount('salesOrderItems');
+
+        // Apply generic search/sort
+        $query = $this->applyFilter($query, $request, ['nomor_so', 'syarat_pembayaran', 'status']);
+
+        // Date range filters
+        if ($request->filled('tanggal_mulai')) {
+            $query->where('tanggal_so', '>=', $request->tanggal_mulai);
+        }
+        if ($request->filled('tanggal_akhir')) {
+            $query->where('tanggal_so', '<=', $request->tanggal_akhir);
+        }
+
+        // Entity filters
+        if ($request->filled('pelanggan_id')) {
+            $query->where('pelanggan_id', $request->pelanggan_id);
+        }
+        if ($request->filled('gudang_id')) {
+            $query->where('gudang_id', $request->gudang_id);
+        }
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Total range filters
+        if ($request->filled('min_total')) {
+            $query->where('total_harga_so', '>=', (float)$request->min_total);
+        }
+        if ($request->filled('max_total')) {
+            $query->where('total_harga_so', '<=', (float)$request->max_total);
+        }
+
+        // Default sort by latest date
+        if (!$request->filled('sort') && !$request->filled('sort_by')) {
+            $query->orderBy('tanggal_so', 'desc');
+        }
+
+        // Paginated data
+        $data = $query->paginate($perPage);
+        $items = collect($data->items())->map(function ($item) {
+            return [
+                'id' => $item->id,
+                'nomor_so' => $item->nomor_so,
+                'tanggal_so' => $item->tanggal_so,
+                'tanggal_pengiriman' => $item->tanggal_pengiriman,
+                'status' => $item->status,
+                'pelanggan' => [
+                    'id' => $item->pelanggan->id ?? null,
+                    'nama_pelanggan' => $item->pelanggan->nama_pelanggan ?? null,
+                ],
+                'gudang' => [
+                    'id' => $item->gudang->id ?? null,
+                    'kode' => $item->gudang->kode ?? null,
+                    'nama_gudang' => $item->gudang->nama_gudang ?? null,
+                ],
+                'subtotal' => $item->subtotal,
+                'total_diskon' => $item->total_diskon,
+                'ppn_amount' => $item->ppn_amount,
+                'total_harga_so' => $item->total_harga_so,
+                'items_count' => $item->sales_order_items_count,
+            ];
+        });
+
+        // Summary for filtered dataset (non-paginated)
+        $summaryQuery = clone $query;
+        $ids = (clone $summaryQuery)->pluck('id');
+        $summary = [
+            'orders_count' => $ids->count(),
+            'items_count' => \App\Models\MasterData\SalesOrderItem::whereIn('sales_order_id', $ids)->count(),
+            'subtotal_sum' => (clone $summaryQuery)->sum('subtotal'),
+            'total_diskon_sum' => (clone $summaryQuery)->sum('total_diskon'),
+            'ppn_amount_sum' => (clone $summaryQuery)->sum('ppn_amount'),
+            'total_amount_sum' => (clone $summaryQuery)->sum('total_harga_so'),
+        ];
+
+        $response = $this->paginateResponse($data, $items);
+        $response['summary'] = $summary;
+        return response()->json($response);
+    }
+
+    /**
      * Cancel delete request (user)
      */
     public function cancelDeleteRequest($id)
