@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Traits\ApiFilterTrait;
 use App\Models\Transactions\StockOpname;
 use App\Models\Transactions\StockOpnameDetail;
+use App\Models\MasterData\ItemBarang;
 use App\Http\Controllers\MasterData\ItemBarangController;
 
 class StockOpnameController extends Controller
@@ -223,6 +224,109 @@ class StockOpnameController extends Controller
         }
         $data->forceDelete();
         return $this->successResponse(null, 'Data berhasil dihapus permanen');
+    }
+
+    /**
+     * Get stock opname details by stock opname id
+     */
+    public function getDetails(string $id)
+    {
+        $stockOpname = StockOpname::find($id);
+        if (!$stockOpname) {
+            return $this->errorResponse('Stock opname tidak ditemukan', 404);
+        }
+
+        $details = StockOpnameDetail::with(['itemBarang'])
+            ->where('stock_opname_id', $stockOpname->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return $this->successResponse($details, 'Detail stock opname berhasil diambil');
+    }
+
+    /**
+     * Add detail to stock opname
+     */
+    public function addDetail(Request $request, string $id)
+    {
+        $stockOpname = StockOpname::find($id);
+        if (!$stockOpname) {
+            return $this->errorResponse('Stock opname tidak ditemukan', 404);
+        }
+
+        // Validasi bahwa stock opname belum cancelled atau completed
+        if ($stockOpname->status === 'cancelled') {
+            return $this->errorResponse('Tidak dapat menambahkan detail ke stock opname yang sudah dibatalkan', 422);
+        }
+
+        if ($stockOpname->status === 'completed') {
+            return $this->errorResponse('Tidak dapat menambahkan detail ke stock opname yang sudah selesai', 422);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'kode_barang' => 'required|exists:ref_item_barang,kode_barang',
+            'stok_sistem' => 'nullable|integer|min:0',
+            'stok_fisik' => 'required|integer|min:0',
+            'catatan' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->errorResponse($validator->errors()->first(), 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Find item barang by kode_barang
+            $itemBarang = ItemBarang::where('kode_barang', $request->kode_barang)->first();
+            if (!$itemBarang) {
+                DB::rollBack();
+                return $this->errorResponse('Item barang dengan kode tersebut tidak ditemukan', 404);
+            }
+
+            // Check if item is frozen
+            $isFrozen = !is_null($itemBarang->frozen_at);
+            
+            // Validate stok_sistem based on freeze status
+            if ($isFrozen) {
+                // If item is frozen, stok_sistem is required
+                if (!$request->has('stok_sistem') || is_null($request->stok_sistem)) {
+                    DB::rollBack();
+                    return $this->errorResponse('Stok sistem wajib diisi karena item barang dalam status beku', 422);
+                }
+                $stokSistem = $request->stok_sistem;
+            } else {
+                // If item is not frozen, stok_sistem must be null
+                $stokSistem = null;
+            }
+
+            // Check if item barang already exists in this stock opname detail
+            $existingDetail = StockOpnameDetail::where('stock_opname_id', $stockOpname->id)
+                ->where('item_barang_id', $itemBarang->id)
+                ->first();
+
+            if ($existingDetail) {
+                DB::rollBack();
+                return $this->errorResponse('Item barang sudah ada di detail stock opname ini', 422);
+            }
+
+            // Create detail
+            $detail = StockOpnameDetail::create([
+                'stock_opname_id' => $stockOpname->id,
+                'item_barang_id' => $itemBarang->id,
+                'stok_sistem' => $stokSistem,
+                'stok_fisik' => $request->stok_fisik,
+                'catatan' => $request->catatan,
+            ]);
+
+            DB::commit();
+
+            $detail->load(['itemBarang']);
+            return $this->successResponse($detail, 'Detail stock opname berhasil ditambahkan');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->errorResponse('Gagal menambahkan detail: ' . $e->getMessage(), 500);
+        }
     }
 
     /**
