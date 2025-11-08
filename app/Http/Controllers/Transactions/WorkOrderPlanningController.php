@@ -202,6 +202,7 @@ class WorkOrderPlanningController extends Controller
                         'qty' => $item['qty'] ?? 0,
                         'panjang' => $item['panjang'] ?? 0,
                         'lebar' => $item['lebar'] ?? 0,
+                        'berat' => $item['berat'] ?? 0,
                         'tebal' => $item['tebal'] ?? 0,
                         'jenis_barang_id' => $item['jenis_barang_id'] ?? null,
                         'berat' => $item['berat'] ?? 0,
@@ -237,8 +238,8 @@ class WorkOrderPlanningController extends Controller
                             // Handle canvas_image base64 data
                             if (isset($saranData['canvas_image']) && !empty($saranData['canvas_image'])) {
                                 try {
-                                    // Create folder structure: canvas_woitemitemid/
-                                    $folderName = 'canvas_woitem' . $workOrderPlanningItem->id . '_' . $saranData['item_barang_id'];
+                                    // Simpan di dalam root folder canvas_woitem
+                                    $folderName = 'canvas_woitem/' . $workOrderPlanningItem->id . '_' . $saranData['item_barang_id'];
                                     
                                     // Generate filename as canvas_image.jpg
                                     $filename = 'canvas_image';
@@ -527,6 +528,7 @@ class WorkOrderPlanningController extends Controller
             'panjang' => 'required|numeric|min:0',
             'lebar' => 'nullable|numeric|min:0',
             'tebal' => 'required|numeric|min:0',
+            'berat' => 'nullable|numeric|min:0',
             'jenis_barang_id' => 'nullable|exists:jenis_barangs,id',
             'bentuk_barang_id' => 'nullable|exists:bentuk_barangs,id',
             'grade_barang_id' => 'nullable|exists:grade_barangs,id',
@@ -592,8 +594,8 @@ class WorkOrderPlanningController extends Controller
                         // Handle canvas_image base64 data
                         if (isset($saranData['canvas_image']) && !empty($saranData['canvas_image'])) {
                             try {
-                                // Create folder structure: canvas_woitemitemid/
-                                $folderName = 'canvas_woitem' . $data->id . '_' . $saranData['item_barang_id'];
+                                // Simpan di dalam root folder canvas_woitem
+                                $folderName = 'canvas_woitem/' . $data->id . '_' . $saranData['item_barang_id'];
                                 
                                 // Generate filename as canvas_image.jpg
                                 $filename = 'canvas_image';

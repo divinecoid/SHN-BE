@@ -21,6 +21,7 @@ class ItemBarang extends Model
         'panjang',
         'lebar',
         'tebal',
+        'berat',
         'quantity',
         'quantity_tebal_sama',
         'jenis_potongan',
@@ -42,6 +43,10 @@ class ItemBarang extends Model
     protected $casts = [
         'jenis_potongan' => 'string',
         'is_available' => 'boolean',
+        'panjang' => 'decimal:2',
+        'lebar' => 'decimal:2',
+        'tebal' => 'decimal:2',
+        'berat' => 'decimal:2',
     ];
     
     public function jenisBarang()

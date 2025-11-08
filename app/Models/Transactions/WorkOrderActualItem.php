@@ -30,9 +30,10 @@ class WorkOrderActualItem extends Model
         'satuan',
         'diskon',
         'catatan',
+        'foto_bukti',
     ];
 
-    protected $hidden = ['deleted_at'];
+    protected $hidden = ['deleted_at', 'berat_actual'];
 
     protected $casts = [
         'panjang_actual' => 'decimal:2',
@@ -42,6 +43,27 @@ class WorkOrderActualItem extends Model
         'berat_actual' => 'decimal:2',
         'diskon' => 'decimal:2',
     ];
+
+    // Expose atribut 'berat' di API sebagai alias dari 'berat_actual'
+    // Tambahkan juga qty_planning dan berat_planning agar mudah ditampilkan di UI
+    protected $appends = ['berat', 'qty_planning', 'berat_planning'];
+
+    public function getBeratAttribute()
+    {
+        return $this->berat_actual;
+    }
+
+    public function getQtyPlanningAttribute()
+    {
+        // Ambil qty dari item planning terkait (fallback ke null jika tidak ada)
+        return optional($this->workOrderPlanningItem)->qty;
+    }
+
+    public function getBeratPlanningAttribute()
+    {
+        // Ambil berat dari item planning terkait (fallback ke null jika tidak ada)
+        return optional($this->workOrderPlanningItem)->berat;
+    }
 
     public function workOrderActual()
     {
@@ -71,7 +93,7 @@ class WorkOrderActualItem extends Model
 
     public function platDasar()
     {
-        return $this->belongsTo(ItemBarang::class);
+        return $this->belongsTo(ItemBarang::class, 'plat_dasar_id', 'id');
     }
     
     public function hasManyPelaksana()

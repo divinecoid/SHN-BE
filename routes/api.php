@@ -468,6 +468,9 @@ Route::prefix('work-order-planning')->middleware('checkrole')->group(function ()
     // Report endpoint (header only)
     Route::get('report', [WorkOrderActualController::class, 'report']);
     Route::get('/{id}', [WorkOrderActualController::class, 'show']);
+    // Image retrieval (stream file)
+    Route::get('{id}/image', [WorkOrderActualController::class, 'streamActualImage']);
+    Route::get('item/{itemId}/image', [WorkOrderActualController::class, 'streamActualItemImage']);
     Route::post('/', [WorkOrderActualController::class, 'saveWorkOrderActual']);
   });
 
