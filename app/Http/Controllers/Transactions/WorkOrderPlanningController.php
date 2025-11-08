@@ -50,6 +50,88 @@ class WorkOrderPlanningController extends Controller
         return response()->json($this->paginateResponse($data, $items));
     }
 
+    /**
+     * Report header Work Order Planning (atribut parent saja)
+     */
+    public function report(Request $request)
+    {
+        $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
+
+        $query = WorkOrderPlanning::query()
+            ->leftJoin('ref_pelanggan', 'trx_work_order_planning.id_pelanggan', '=', 'ref_pelanggan.id')
+            ->leftJoin('ref_gudang', 'trx_work_order_planning.id_gudang', '=', 'ref_gudang.id')
+            ->leftJoin('trx_sales_order', 'trx_work_order_planning.id_sales_order', '=', 'trx_sales_order.id')
+            ->addSelect([
+                'trx_work_order_planning.id',
+                'trx_work_order_planning.wo_unique_id',
+                'trx_work_order_planning.nomor_wo',
+                'trx_work_order_planning.tanggal_wo',
+                'trx_work_order_planning.id_sales_order',
+                'trx_work_order_planning.id_pelanggan',
+                'trx_work_order_planning.id_gudang',
+                'trx_work_order_planning.id_pelaksana',
+                'trx_work_order_planning.prioritas',
+                'trx_work_order_planning.status',
+                'trx_work_order_planning.handover_method',
+                'trx_work_order_planning.created_at',
+                'trx_work_order_planning.updated_at',
+                'ref_pelanggan.nama_pelanggan',
+                'ref_gudang.nama_gudang',
+                'trx_sales_order.nomor_so',
+            ]);
+
+        // Generic search & sort
+        $query = $this->applyFilter($query, $request, [
+            'trx_work_order_planning.nomor_wo',
+            'trx_sales_order.nomor_so',
+            'ref_pelanggan.nama_pelanggan',
+            'ref_gudang.nama_gudang',
+            'trx_work_order_planning.status',
+            'trx_work_order_planning.prioritas',
+        ]);
+
+        // Specific filters
+        if ($request->filled('status')) {
+            $query->where('trx_work_order_planning.status', $request->input('status'));
+        }
+        if ($request->filled('prioritas')) {
+            $query->where('trx_work_order_planning.prioritas', $request->input('prioritas'));
+        }
+        if ($request->filled('id_pelanggan')) {
+            $query->where('trx_work_order_planning.id_pelanggan', $request->input('id_pelanggan'));
+        }
+        if ($request->filled('id_gudang')) {
+            $query->where('trx_work_order_planning.id_gudang', $request->input('id_gudang'));
+        }
+        if ($request->filled('nomor_wo')) {
+            $query->where('trx_work_order_planning.nomor_wo', 'like', "%" . $request->input('nomor_wo') . "%");
+        }
+        if ($request->filled('nomor_so')) {
+            $query->where('trx_sales_order.nomor_so', 'like', "%" . $request->input('nomor_so') . "%");
+        }
+
+        // Date range filter
+        $start = $request->input('tanggal_wo_start');
+        $end = $request->input('tanggal_wo_end');
+        if ($start && $end) {
+            $query->whereBetween('trx_work_order_planning.tanggal_wo', [$start, $end]);
+        } elseif ($start) {
+            $query->whereDate('trx_work_order_planning.tanggal_wo', '>=', $start);
+        } elseif ($end) {
+            $query->whereDate('trx_work_order_planning.tanggal_wo', '<=', $end);
+        }
+
+        // Default sort to avoid ambiguous 'id' with joins
+        if (!$request->filled('sort') && !$request->filled('sort_by')) {
+            $query->orderBy('trx_work_order_planning.tanggal_wo', 'desc');
+        }
+
+        $data = $query->paginate($perPage);
+        $items = collect($data->items());
+
+        return response()->json($this->paginateResponse($data, $items));
+    }
+
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [ 
@@ -120,6 +202,7 @@ class WorkOrderPlanningController extends Controller
                         'qty' => $item['qty'] ?? 0,
                         'panjang' => $item['panjang'] ?? 0,
                         'lebar' => $item['lebar'] ?? 0,
+                        'berat' => $item['berat'] ?? 0,
                         'tebal' => $item['tebal'] ?? 0,
                         'jenis_barang_id' => $item['jenis_barang_id'] ?? null,
                         'berat' => $item['berat'] ?? 0,
@@ -155,8 +238,8 @@ class WorkOrderPlanningController extends Controller
                             // Handle canvas_image base64 data
                             if (isset($saranData['canvas_image']) && !empty($saranData['canvas_image'])) {
                                 try {
-                                    // Create folder structure: canvas_woitemitemid/
-                                    $folderName = 'canvas_woitem' . $workOrderPlanningItem->id . '_' . $saranData['item_barang_id'];
+                                    // Simpan di dalam root folder canvas_woitem
+                                    $folderName = 'canvas_woitem/' . $workOrderPlanningItem->id . '_' . $saranData['item_barang_id'];
                                     
                                     // Generate filename as canvas_image.jpg
                                     $filename = 'canvas_image';
@@ -445,6 +528,7 @@ class WorkOrderPlanningController extends Controller
             'panjang' => 'required|numeric|min:0',
             'lebar' => 'nullable|numeric|min:0',
             'tebal' => 'required|numeric|min:0',
+            'berat' => 'nullable|numeric|min:0',
             'jenis_barang_id' => 'nullable|exists:jenis_barangs,id',
             'bentuk_barang_id' => 'nullable|exists:bentuk_barangs,id',
             'grade_barang_id' => 'nullable|exists:grade_barangs,id',
@@ -510,8 +594,8 @@ class WorkOrderPlanningController extends Controller
                         // Handle canvas_image base64 data
                         if (isset($saranData['canvas_image']) && !empty($saranData['canvas_image'])) {
                             try {
-                                // Create folder structure: canvas_woitemitemid/
-                                $folderName = 'canvas_woitem' . $data->id . '_' . $saranData['item_barang_id'];
+                                // Simpan di dalam root folder canvas_woitem
+                                $folderName = 'canvas_woitem/' . $data->id . '_' . $saranData['item_barang_id'];
                                 
                                 // Generate filename as canvas_image.jpg
                                 $filename = 'canvas_image';

@@ -111,6 +111,7 @@ class ItemBarangController extends Controller
             'panjang' => 'nullable|numeric|min:0',
             'lebar' => 'nullable|numeric|min:0',
             'tebal' => 'nullable|numeric|min:0',
+            'berat' => 'nullable|numeric|min:0',
             'quantity' => 'nullable|numeric|min:0',
             'quantity_tebal_sama' => 'nullable|numeric|min:0',
             'jenis_potongan' => 'nullable|string',
@@ -159,6 +160,7 @@ class ItemBarangController extends Controller
         $input = $request->only([
             'jenis_barang_id', 'bentuk_barang_id', 'grade_barang_id',
             'nama_item_barang', 'sisa_luas', 'panjang', 'lebar', 'tebal',
+            'berat',
             'quantity', 'jenis_potongan',
             'is_edit', 'is_onprogress_po', 'user_id', 'gudang_id'
         ]);
@@ -215,6 +217,7 @@ class ItemBarangController extends Controller
             'panjang' => 'nullable|numeric|min:0',
             'lebar' => 'nullable|numeric|min:0',
             'tebal' => 'nullable|numeric|min:0',
+            'berat' => 'nullable|numeric|min:0',
             'quantity' => 'nullable|numeric|min:0',
             'quantity_tebal_sama' => 'nullable|numeric|min:0',
             'jenis_potongan' => 'nullable|string',
@@ -236,6 +239,7 @@ class ItemBarangController extends Controller
             'panjang',
             'lebar',
             'tebal',
+            'berat',
             'quantity',
             'quantity_tebal_sama',
             'jenis_potongan',

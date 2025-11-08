@@ -384,6 +384,9 @@ Route::prefix('sales-order')->middleware('checkrole')->group(function () {
     Route::get('/', [SalesOrderController::class, 'index']);
     Route::post('/', [SalesOrderController::class, 'store']);
     
+    // Report endpoint
+    Route::get('report', [SalesOrderController::class, 'report']);
+
     // Sales Order Header routes (header attributes only)
     Route::get('header', [SalesOrderController::class, 'getSalesOrderHeader']);
     Route::get('header/{id}', [SalesOrderController::class, 'getSalesOrderHeaderById']);
@@ -420,6 +423,8 @@ Route::prefix('purchase-order')->middleware('checkrole')->group(function () {
 Route::prefix('work-order-planning')->middleware('checkrole')->group(function () {
     Route::get('/', [WorkOrderPlanningController::class, 'index']);
     Route::get('{id}', [WorkOrderPlanningController::class, 'show']);
+    // Report endpoint (header only)
+    Route::get('report', [WorkOrderPlanningController::class, 'report']);
     Route::post('/', [WorkOrderPlanningController::class, 'store']);
     Route::put('{id}', [WorkOrderPlanningController::class, 'update']);
     Route::patch('{id}', [WorkOrderPlanningController::class, 'update']);
@@ -464,7 +469,12 @@ Route::prefix('work-order-planning')->middleware('checkrole')->group(function ()
   // WorkOrderActual routes
   Route::prefix('work-order-actual')->middleware('checkrole')->group(function () {
     Route::get('/', [WorkOrderActualController::class, 'index']);
+    // Report endpoint (header only)
+    Route::get('report', [WorkOrderActualController::class, 'report']);
     Route::get('/{id}', [WorkOrderActualController::class, 'show']);
+    // Image retrieval (stream file)
+    Route::get('{id}/image', [WorkOrderActualController::class, 'streamActualImage']);
+    Route::get('item/{itemId}/image', [WorkOrderActualController::class, 'streamActualItemImage']);
     Route::post('/', [WorkOrderActualController::class, 'saveWorkOrderActual']);
   });
 
