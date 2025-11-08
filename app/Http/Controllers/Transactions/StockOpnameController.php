@@ -227,6 +227,57 @@ class StockOpnameController extends Controller
     }
 
     /**
+     * Get list item barang with checked flag based on stock opname detail
+     */
+    public function getItemBarangList(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'gudang_id' => 'required|exists:ref_gudang,id',
+            'stock_opname_id' => 'nullable|exists:trx_stock_opname,id',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->errorResponse($validator->errors()->first(), 422);
+        }
+
+        $gudangId = $request->gudang_id;
+        $stockOpnameId = $request->input('stock_opname_id');
+
+        // Get item barang by gudang_id
+        $query = ItemBarang::with(['jenisBarang', 'bentukBarang', 'gradeBarang', 'gudang'])
+            ->where('gudang_id', $gudangId);
+
+        // Apply filter if needed
+        $query = $this->applyFilter($query, $request, ['kode_barang', 'nama_item_barang']);
+
+        // Get all items (no pagination for now, or add pagination if needed)
+        $items = $query->get();
+
+        // Get stock opname detail item_barang_ids if stock_opname_id is provided
+        $checkedItemBarangIds = [];
+        if ($stockOpnameId) {
+            $stockOpname = StockOpname::find($stockOpnameId);
+            if (!$stockOpname) {
+                return $this->errorResponse('Stock opname tidak ditemukan', 404);
+            }
+
+            // Get all item_barang_id from stock opname detail
+            $checkedItemBarangIds = StockOpnameDetail::where('stock_opname_id', $stockOpnameId)
+                ->pluck('item_barang_id')
+                ->toArray();
+        }
+
+        // Transform items with checked flag
+        $itemsWithChecked = $items->map(function ($item) use ($checkedItemBarangIds) {
+            $itemArray = $item->toArray();
+            $itemArray['checked'] = in_array($item->id, $checkedItemBarangIds);
+            return $itemArray;
+        });
+
+        return $this->successResponse($itemsWithChecked, 'List item barang berhasil diambil');
+    }
+
+    /**
      * Get stock opname details by stock opname id
      */
     public function getDetails(string $id)

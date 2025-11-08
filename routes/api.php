@@ -215,6 +215,7 @@ Route::prefix('item-barang')->middleware('checkrole:admin')->group(function () {
 Route::prefix('stock-opname')->middleware('checkrole')->group(function () {
     Route::get('/', [StockOpnameController::class, 'index']);
     Route::post('/', [StockOpnameController::class, 'store']);
+    Route::get('/item-barang-list', [StockOpnameController::class, 'getItemBarangList']);
     Route::get('{id}/details', [StockOpnameController::class, 'getDetails']);
     Route::post('{id}/detail', [StockOpnameController::class, 'addDetail']);
     Route::patch('{id}/cancel', [StockOpnameController::class, 'cancel']);
