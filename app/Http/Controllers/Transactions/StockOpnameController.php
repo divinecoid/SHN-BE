@@ -96,6 +96,7 @@ class StockOpnameController extends Controller
                 'pic_user_id' => $request->pic_user_id,
                 'gudang_id' => $request->gudang_id,
                 'catatan' => $request->catatan,
+                'status' => 'active', // Set status default ke 'active' saat dibuat
             ]);
 
             DB::commit();
@@ -222,5 +223,55 @@ class StockOpnameController extends Controller
         }
         $data->forceDelete();
         return $this->successResponse(null, 'Data berhasil dihapus permanen');
+    }
+
+    /**
+     * Cancel stock opname
+     */
+    public function cancel(string $id)
+    {
+        $stockOpname = StockOpname::find($id);
+        if (!$stockOpname) {
+            return $this->errorResponse('Data tidak ditemukan', 404);
+        }
+
+        // Validasi bahwa stock opname belum cancelled atau completed
+        if ($stockOpname->status === 'cancelled') {
+            return $this->errorResponse('Stock opname sudah dibatalkan', 422);
+        }
+
+        if ($stockOpname->status === 'completed') {
+            return $this->errorResponse('Stock opname yang sudah selesai tidak dapat dibatalkan', 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Unfreeze items jika ada yang di-freeze
+            $gudangId = $stockOpname->gudang_id;
+            $unfreezeRequest = new Request(['gudang_id' => $gudangId]);
+            $unfreezeResponse = $this->itemBarangController->unfreezeItems($unfreezeRequest);
+            
+            // Check if unfreeze failed
+            if (method_exists($unfreezeResponse, 'getStatusCode') && $unfreezeResponse->getStatusCode() !== 200) {
+                DB::rollBack();
+                $unfreezeData = $unfreezeResponse->getData();
+                $message = isset($unfreezeData->message) ? $unfreezeData->message : 'Gagal melepas status beku barang';
+                return $this->errorResponse($message, $unfreezeResponse->getStatusCode());
+            }
+
+            // Update status menjadi cancelled
+            $stockOpname->update([
+                'status' => 'cancelled',
+            ]);
+
+            DB::commit();
+
+            $stockOpname->load(['picUser', 'gudang', 'stockOpnameDetails.itemBarang']);
+            return $this->successResponse($stockOpname, 'Stock opname berhasil dibatalkan');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->errorResponse('Gagal membatalkan stock opname: ' . $e->getMessage(), 500);
+        }
     }
 }

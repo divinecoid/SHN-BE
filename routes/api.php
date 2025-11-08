@@ -34,6 +34,7 @@ use App\Http\Controllers\Transactions\WorkOrderActualController;
 use App\Http\Controllers\Transactions\SaranPlatController;
 use App\Http\Controllers\Transactions\DashboardController;
 use App\Http\Controllers\Transactions\PurchaseOrderController;
+use App\Http\Controllers\Transactions\StockOpnameController;
 use App\Http\Controllers\Output\InvoicePodController;
 use App\Http\Controllers\Transactions\StockMutationController;
 use App\Http\Controllers\MasterData\DocumentSequenceController;
@@ -213,8 +214,9 @@ Route::prefix('item-barang')->middleware('checkrole:admin')->group(function () {
 });
 Route::prefix('stock-opname')->middleware('checkrole')->group(function () {
     Route::get('/', [StockOpnameController::class, 'index']);
-    Route::get('{id}', [StockOpnameController::class, 'show']);
     Route::post('/', [StockOpnameController::class, 'store']);
+    Route::patch('{id}/cancel', [StockOpnameController::class, 'cancel']);
+    Route::get('{id}', [StockOpnameController::class, 'show']);
     Route::put('{id}', [StockOpnameController::class, 'update']);
     Route::patch('{id}', [StockOpnameController::class, 'update']);
 });

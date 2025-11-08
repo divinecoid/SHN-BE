@@ -17,6 +17,7 @@ class StockOpname extends Model
         'pic_user_id',
         'gudang_id',
         'catatan',
+        'status',
     ];
 
     protected $hidden = ['deleted_at'];
