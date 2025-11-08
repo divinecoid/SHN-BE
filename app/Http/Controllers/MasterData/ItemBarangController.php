@@ -342,4 +342,59 @@ class ItemBarangController extends Controller
         $items = collect($data->items());
         return response()->json($this->paginateResponse($data, $items));
     }
+
+    public function freezeItems(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'gudang_id' => 'required|exists:ref_gudang,id',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->errorResponse($validator->errors()->first(), 422);
+        }
+
+        $gudangId = $request->input('gudang_id');
+        $currentUserId = auth()->id();
+
+        if (!$currentUserId) {
+            return $this->errorResponse('User tidak terautentikasi', 401);
+        }
+
+        // Update semua items yang memiliki gudang_id tersebut
+        $updatedCount = ItemBarang::where('gudang_id', $gudangId)
+            ->update([
+                'frozen_at' => now(),
+                'frozen_by' => $currentUserId
+            ]);
+
+        return $this->successResponse([
+            'updated_count' => $updatedCount,
+            'gudang_id' => $gudangId
+        ], 'Barang berhasil dibekukan');
+    }
+
+    public function unfreezeItems(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'gudang_id' => 'required|exists:ref_gudang,id',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->errorResponse($validator->errors()->first(), 422);
+        }
+
+        $gudangId = $request->input('gudang_id');
+
+        // Update semua items yang memiliki gudang_id tersebut, set frozen_at dan frozen_by menjadi null
+        $updatedCount = ItemBarang::where('gudang_id', $gudangId)
+            ->update([
+                'frozen_at' => null,
+                'frozen_by' => null
+            ]);
+
+        return $this->successResponse([
+            'updated_count' => $updatedCount,
+            'gudang_id' => $gudangId
+        ], 'Barang berhasil dilepaskan dari status beku');
+    }
 }

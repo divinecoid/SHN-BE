@@ -208,6 +208,15 @@ Route::prefix('item-barang')->middleware('checkrole:admin')->group(function () {
     Route::delete('{id}/force', [ItemBarangController::class, 'forceDelete']);
     Route::get('with-trashed/all', [ItemBarangController::class, 'indexWithTrashed']);
     Route::get('with-trashed/trashed', [ItemBarangController::class, 'indexTrashed']);
+    Route::post('/freeze', [ItemBarangController::class, 'freezeItems']);
+    Route::post('/unfreeze', [ItemBarangController::class, 'unfreezeItems']);
+});
+Route::prefix('stock-opname')->middleware('checkrole')->group(function () {
+    Route::get('/', [StockOpnameController::class, 'index']);
+    Route::get('{id}', [StockOpnameController::class, 'show']);
+    Route::post('/', [StockOpnameController::class, 'store']);
+    Route::put('{id}', [StockOpnameController::class, 'update']);
+    Route::patch('{id}', [StockOpnameController::class, 'update']);
 });
 Route::prefix('stock')->middleware('checkrole')->group(function () {
     Route::get('/check', [ItemBarangController::class, 'checkStock']);
