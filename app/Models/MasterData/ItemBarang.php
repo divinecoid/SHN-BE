@@ -33,7 +33,9 @@ class ItemBarang extends Model
         'convert_date',
         'split_date',
         'merge_date',
-        'gudang_id'
+        'gudang_id',
+        'frozen_at',
+        'frozen_by'
     ];
 
     protected $hidden = [
@@ -64,5 +66,9 @@ class ItemBarang extends Model
     public function gudang()
     {
         return $this->belongsTo(Gudang::class, 'gudang_id');
+    }
+    public function stockOpnameDetails()
+    {
+        return $this->hasMany(StockOpnameDetail::class, 'item_barang_id');
     }
 }
