@@ -218,6 +218,7 @@ Route::prefix('stock-opname')->middleware('checkrole')->group(function () {
     Route::get('/item-barang-list', [StockOpnameController::class, 'getItemBarangList']);
     Route::get('{id}/details', [StockOpnameController::class, 'getDetails']);
     Route::post('{id}/detail', [StockOpnameController::class, 'addDetail']);
+    Route::patch('{id}/complete', [StockOpnameController::class, 'complete']);
     Route::patch('{id}/cancel', [StockOpnameController::class, 'cancel']);
     Route::get('{id}', [StockOpnameController::class, 'show']);
     Route::put('{id}', [StockOpnameController::class, 'update']);

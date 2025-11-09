@@ -381,6 +381,56 @@ class StockOpnameController extends Controller
     }
 
     /**
+     * Complete stock opname
+     */
+    public function complete(string $id)
+    {
+        $stockOpname = StockOpname::find($id);
+        if (!$stockOpname) {
+            return $this->errorResponse('Stock opname tidak ditemukan', 404);
+        }
+
+        // Validasi bahwa stock opname belum cancelled atau completed
+        if ($stockOpname->status === 'cancelled') {
+            return $this->errorResponse('Stock opname yang sudah dibatalkan tidak dapat diselesaikan', 422);
+        }
+
+        if ($stockOpname->status === 'completed') {
+            return $this->errorResponse('Stock opname sudah selesai', 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Unfreeze items jika ada yang di-freeze
+            $gudangId = $stockOpname->gudang_id;
+            $unfreezeRequest = new Request(['gudang_id' => $gudangId]);
+            $unfreezeResponse = $this->itemBarangController->unfreezeItems($unfreezeRequest);
+            
+            // Check if unfreeze failed
+            if (method_exists($unfreezeResponse, 'getStatusCode') && $unfreezeResponse->getStatusCode() !== 200) {
+                DB::rollBack();
+                $unfreezeData = $unfreezeResponse->getData();
+                $message = isset($unfreezeData->message) ? $unfreezeData->message : 'Gagal melepas status beku barang';
+                return $this->errorResponse($message, $unfreezeResponse->getStatusCode());
+            }
+
+            // Update status menjadi completed
+            $stockOpname->update([
+                'status' => 'completed',
+            ]);
+
+            DB::commit();
+
+            $stockOpname->load(['picUser', 'gudang']);
+            return $this->successResponse($stockOpname, 'Stock opname berhasil diselesaikan');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->errorResponse('Gagal menyelesaikan stock opname: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
      * Cancel stock opname
      */
     public function cancel(string $id)
