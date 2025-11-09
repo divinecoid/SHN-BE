@@ -55,10 +55,15 @@ Accept: application/json
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `kode_barang` | string | Yes | Kode barang yang akan ditambahkan ke detail - harus exists di tabel `ref_item_barang` dengan field `kode_barang` |
+| `kode_barang` | string | Yes | Kode barang yang akan ditambahkan ke detail - harus exists di tabel `ref_item_barang` dengan field `kode_barang`. **Barang harus berada di gudang yang sama dengan stock opname** |
 | `stok_sistem` | integer | Conditional | **Wajib diisi** jika item barang dalam status beku (frozen_at tidak null). **Tidak boleh diisi** jika item tidak beku (akan otomatis menjadi null) |
 | `stok_fisik` | integer | Yes | Stok fisik hasil stock opname. Minimum: 0 |
 | `catatan` | string | No | Catatan tambahan untuk detail stock opname |
+
+**Catatan Validasi Gudang:**
+- Barang yang di-scan harus memiliki gudang yang ditetapkan (gudang_id tidak null)
+- Barang harus berada di gudang yang sama dengan stock opname
+- Jika barang berada di gudang yang berbeda, akan return error dengan nama gudang tempat barang berada
 
 ---
 
@@ -148,6 +153,15 @@ Accept: application/json
 }
 ```
 
+#### Contoh: Kode barang tidak ditemukan
+```json
+{
+  "success": false,
+  "message": "Kode barang tidak ditemukan",
+  "data": null
+}
+```
+
 ### 2. Validation Error (422 Unprocessable Entity)
 
 #### Contoh: kode_barang tidak ada
@@ -168,11 +182,20 @@ Accept: application/json
 }
 ```
 
-#### Contoh: Item barang dengan kode tidak ditemukan
+#### Contoh: Barang tidak memiliki gudang yang ditetapkan
 ```json
 {
   "success": false,
-  "message": "Item barang dengan kode tersebut tidak ditemukan",
+  "message": "Barang tidak memiliki gudang yang ditetapkan",
+  "data": null
+}
+```
+
+#### Contoh: Barang tidak berada di gudang stock opname
+```json
+{
+  "success": false,
+  "message": "Barang tidak berada di gudang stock opname. Barang berada di gudang: Gudang Utama",
   "data": null
 }
 ```
@@ -250,22 +273,39 @@ Accept: application/json
 2. **Validasi Status** - Memastikan stock opname belum `cancelled` atau `completed`
 3. **Validasi Request** - Memvalidasi semua field yang dikirim
 4. **Begin Transaction** - Memulai database transaction
-5. **Cari Item Barang** - Mencari item barang berdasarkan `kode_barang`
-6. **Cek Status Freeze** - Mengecek apakah item di-freeze (frozen_at tidak null)
-7. **Validasi Stok Sistem**:
-   - Jika item di-freeze: `stok_sistem` wajib diisi, jika tidak akan error
-   - Jika item tidak di-freeze: `stok_sistem` akan diset ke null (tidak peduli dikirim atau tidak)
-8. **Check Duplikasi** - Memastikan item barang belum ada di detail stock opname ini
-9. **Create Detail** - Membuat record detail stock opname dengan `stok_sistem` yang sesuai
-10. **Commit Transaction** - Commit semua perubahan
-11. **Load Relationships** - Load relasi `itemBarang`
-12. **Return Success Response**
+5. **Cari Item Barang** - Mencari item barang berdasarkan `kode_barang` beserta relasi `gudang`
+6. **Validasi Kode Barang** - Memastikan kode barang ditemukan di database
+7. **Validasi Gudang Barang** - Memastikan barang memiliki gudang yang ditetapkan (gudang_id tidak null)
+8. **Validasi Lokasi Gudang** - Memastikan barang berada di gudang yang sama dengan stock opname
+   - Jika barang tidak berada di gudang stock opname, akan return error dengan nama gudang tempat barang berada
+9. **Cek Status Freeze** - Mengecek apakah item di-freeze (frozen_at tidak null)
+10. **Validasi Stok Sistem**:
+    - Jika item di-freeze: `stok_sistem` wajib diisi, jika tidak akan error
+    - Jika item tidak di-freeze: `stok_sistem` akan diset ke null (tidak peduli dikirim atau tidak)
+11. **Check Duplikasi** - Memastikan item barang belum ada di detail stock opname ini
+12. **Create Detail** - Membuat record detail stock opname dengan `stok_sistem` yang sesuai
+13. **Commit Transaction** - Commit semua perubahan
+14. **Load Relationships** - Load relasi `itemBarang`
+15. **Return Success Response**
 
 ---
 
 ## Catatan Penting
 
-1. **Stok Sistem (stok_sistem)**: 
+1. **Validasi Kode Barang**: 
+   - Kode barang harus exists di tabel `ref_item_barang`
+   - Jika kode barang tidak ditemukan, akan return error: "Kode barang tidak ditemukan" (404)
+
+2. **Validasi Gudang Barang**: 
+   - Barang harus memiliki gudang yang ditetapkan (gudang_id tidak null)
+   - Jika barang tidak memiliki gudang, akan return error: "Barang tidak memiliki gudang yang ditetapkan" (422)
+
+3. **Validasi Lokasi Gudang**: 
+   - Barang harus berada di gudang yang sama dengan stock opname
+   - Jika barang berada di gudang yang berbeda, akan return error dengan format: "Barang tidak berada di gudang stock opname. Barang berada di gudang: [nama_gudang]" (422)
+   - Error message akan menampilkan nama gudang tempat barang sebenarnya berada
+
+4. **Stok Sistem (stok_sistem)**: 
    - **Jika item di-FREEZE** (frozen_at tidak null):
      - `stok_sistem` **WAJIB diisi** (required)
      - Harus berupa integer dan minimum 0
@@ -275,19 +315,19 @@ Accept: application/json
      - Jika dikirim, akan diabaikan dan diset ke null
      - Tidak perlu dikirim dalam request
 
-2. **Stok Fisik (stok_fisik)**: 
+5. **Stok Fisik (stok_fisik)**: 
    - Field `stok_fisik` wajib diisi
    - Harus integer dan minimum 0
 
-3. **Duplikasi**: 
+6. **Duplikasi**: 
    - Setiap item barang hanya bisa ditambahkan sekali per stock opname
    - Jika item barang sudah ada di detail, akan return error
 
-4. **Status Stock Opname**: 
+7. **Status Stock Opname**: 
    - Hanya stock opname dengan status `draft` atau `active` yang dapat ditambahkan detail
    - Stock opname dengan status `cancelled` atau `completed` tidak dapat ditambahkan detail
 
-5. **Transaction**: 
+8. **Transaction**: 
    - Semua operasi dilakukan dalam satu transaction
    - Jika ada error di step manapun, semua perubahan akan di-rollback
 

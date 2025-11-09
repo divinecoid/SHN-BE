@@ -29,7 +29,7 @@ class StockOpnameController extends Controller
     public function index(Request $request)
     {
         $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
-        $query = StockOpname::with(['picUser', 'gudang', 'stockOpnameDetails.itemBarang']);
+        $query = StockOpname::with(['picUser', 'gudang'])->orderBy('created_at', 'desc');
         $query = $this->applyFilter($query, $request, []);
         $data = $query->paginate($perPage);
         $items = collect($data->items());
@@ -329,10 +329,23 @@ class StockOpnameController extends Controller
             DB::beginTransaction();
 
             // Find item barang by kode_barang
-            $itemBarang = ItemBarang::where('kode_barang', $request->kode_barang)->first();
+            $itemBarang = ItemBarang::with('gudang')->where('kode_barang', $request->kode_barang)->first();
             if (!$itemBarang) {
                 DB::rollBack();
-                return $this->errorResponse('Item barang dengan kode tersebut tidak ditemukan', 404);
+                return $this->errorResponse('Kode barang tidak ditemukan', 404);
+            }
+
+            // Check if item has a warehouse assigned
+            if (is_null($itemBarang->gudang_id)) {
+                DB::rollBack();
+                return $this->errorResponse('Barang tidak memiliki gudang yang ditetapkan', 422);
+            }
+
+            // Check if item is in the stock opname warehouse
+            if ($itemBarang->gudang_id !== $stockOpname->gudang_id) {
+                DB::rollBack();
+                $gudangNama = $itemBarang->gudang ? $itemBarang->gudang->nama_gudang : 'Tidak diketahui';
+                return $this->errorResponse("Barang tidak berada di gudang stock opname. Barang berada di gudang: {$gudangNama}", 422);
             }
 
             // Check if item is frozen
