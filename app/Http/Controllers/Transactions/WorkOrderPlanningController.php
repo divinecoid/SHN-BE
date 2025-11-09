@@ -32,7 +32,6 @@ class WorkOrderPlanningController extends Controller
 
     public function index(Request $request)
     {
-        $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
         $query = WorkOrderPlanning::query()
             ->leftJoin('ref_pelanggan', 'trx_work_order_planning.id_pelanggan', '=', 'ref_pelanggan.id')
             ->leftJoin('ref_gudang', 'trx_work_order_planning.id_gudang', '=', 'ref_gudang.id')
@@ -45,6 +44,26 @@ class WorkOrderPlanningController extends Controller
             ])
             ->withCount(['workOrderPlanningItems as count']);
         $query = $this->applyFilter($query, $request, ['sales_order.nomor_so', 'nomor_wo', 'tanggal_wo', 'prioritas', 'status']);
+
+        // Optional date range filter based on created_at (WO Planning)
+        $start = $request->input('date_start');
+        $end = $request->input('date_end');
+        if ($start && $end) {
+            $query->whereBetween('trx_work_order_planning.created_at', [$start, $end]);
+        } elseif ($start) {
+            $query->where('trx_work_order_planning.created_at', '>=', $start);
+        } elseif ($end) {
+            $query->where('trx_work_order_planning.created_at', '<=', $end);
+        }
+
+        // Conditional pagination: paginate only if per_page or page provided; otherwise return all on a single page
+        $shouldPaginate = $request->filled('per_page') || $request->filled('page');
+        $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
+        if (!$shouldPaginate) {
+            $total = (clone $query)->count();
+            $perPage = $total > 0 ? $total : 1;
+        }
+
         $data = $query->paginate($perPage);
         $items = collect($data->items());
         return response()->json($this->paginateResponse($data, $items));

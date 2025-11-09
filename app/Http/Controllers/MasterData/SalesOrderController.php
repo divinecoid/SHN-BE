@@ -24,11 +24,46 @@ class SalesOrderController extends Controller
 
     public function index(Request $request)
     {
-        $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
-        $query = SalesOrder::with(['salesOrderItems.jenisBarang', 'salesOrderItems.bentukBarang', 'salesOrderItems.gradeBarang', 'pelanggan', 'gudang', 'deleteRequestedBy', 'deleteApprovedBy']);
+        // Base query
+        $query = SalesOrder::with([
+            'salesOrderItems.jenisBarang',
+            'salesOrderItems.bentukBarang',
+            'salesOrderItems.gradeBarang',
+            'pelanggan',
+            'gudang',
+            'deleteRequestedBy',
+            'deleteApprovedBy'
+        ])->withCount('salesOrderItems');
+
+        // Generic search/sort
         $query = $this->applyFilter($query, $request, ['nomor_so', 'syarat_pembayaran', 'status']);
+
+        // Optional date range filter by tanggal_so
+        $start = $request->input('date_start');
+        $end = $request->input('date_end');
+        if ($start && $end) {
+            $query->whereBetween('tanggal_so', [$start, $end]);
+        } elseif ($start) {
+            $query->whereDate('tanggal_so', '>=', $start);
+        } elseif ($end) {
+            $query->whereDate('tanggal_so', '<=', $end);
+        }
+
+        // Conditional pagination: paginate only if per_page or page provided; otherwise return all on a single page
+        $shouldPaginate = $request->filled('per_page') || $request->filled('page');
+        $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
+        if (!$shouldPaginate) {
+            $total = (clone $query)->count();
+            $perPage = $total > 0 ? $total : 1;
+        }
+
         $data = $query->paginate($perPage);
-        $items = collect($data->items());
+        $items = collect($data->items())->map(function ($item) {
+            $arrayItem = $item->toArray();
+            // Alias count to a friendly key for clients
+            $arrayItem['items_count'] = $item->sales_order_items_count ?? 0;
+            return $arrayItem;
+        });
         return response()->json($this->paginateResponse($data, $items));
     }
 
@@ -386,7 +421,8 @@ class SalesOrderController extends Controller
         $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
         
         // Query Sales Order with minimal relationships (only pelanggan and gudang for basic info)
-        $query = SalesOrder::with(['pelanggan:id,nama_pelanggan', 'gudang:id,kode,nama_gudang']);
+        $query = SalesOrder::with(['pelanggan:id,nama_pelanggan', 'gudang:id,kode,nama_gudang'])
+            ->withCount('salesOrderItems');
         
         // Apply filters
         $query = $this->applyFilter($query, $request, ['nomor_so', 'syarat_pembayaran', 'status']);
@@ -414,7 +450,11 @@ class SalesOrderController extends Controller
         $query->orderBy('tanggal_so', 'desc');
         
         $data = $query->paginate($perPage);
-        $items = collect($data->items());
+        $items = collect($data->items())->map(function ($item) {
+            $arrayItem = $item->toArray();
+            $arrayItem['items_count'] = $item->sales_order_items_count ?? 0;
+            return $arrayItem;
+        });
         
         return response()->json($this->paginateResponse($data, $items));
     }

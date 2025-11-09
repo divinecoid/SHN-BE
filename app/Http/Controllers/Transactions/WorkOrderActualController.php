@@ -27,8 +27,6 @@ class WorkOrderActualController extends Controller
     {
         try {
             // List ringkas untuk halaman daftar: kurangi atribut agar hemat bandwidth
-            $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
-
             $query = WorkOrderActual::query()
                 ->select([
                     'trx_work_order_actual.id',
@@ -71,12 +69,23 @@ class WorkOrderActualController extends Controller
                 $query->where('trx_sales_order.nomor_so', 'like', "%" . $request->input('nomor_so') . "%");
             }
 
-            // Filter periode berdasarkan tanggal actual jika ada
-            if ($request->filled('date_from') && $request->filled('date_to')) {
-                $query->whereBetween('trx_work_order_actual.tanggal_actual', [
-                    $request->input('date_from'),
-                    $request->input('date_to')
-                ]);
+            // Optional date range filter based on created_at (WO Actual)
+            $start = $request->input('date_start') ?? $request->input('date_from');
+            $end = $request->input('date_end') ?? $request->input('date_to');
+            if ($start && $end) {
+                $query->whereBetween('trx_work_order_actual.created_at', [$start, $end]);
+            } elseif ($start) {
+                $query->where('trx_work_order_actual.created_at', '>=', $start);
+            } elseif ($end) {
+                $query->where('trx_work_order_actual.created_at', '<=', $end);
+            }
+
+            // Conditional pagination: paginate only if per_page or page provided; otherwise return all on a single page
+            $shouldPaginate = $request->filled('per_page') || $request->filled('page');
+            $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
+            if (!$shouldPaginate) {
+                $total = (clone $query)->count();
+                $perPage = $total > 0 ? $total : 1;
             }
 
             $data = $query->paginate($perPage);
