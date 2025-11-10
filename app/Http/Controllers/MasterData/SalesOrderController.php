@@ -24,11 +24,8 @@ class SalesOrderController extends Controller
 
     public function index(Request $request)
     {
-        // Base query
+        // Base query (remove salesOrderItems eager load, just count)
         $query = SalesOrder::with([
-            'salesOrderItems.jenisBarang',
-            'salesOrderItems.bentukBarang',
-            'salesOrderItems.gradeBarang',
             'pelanggan',
             'gudang',
             'deleteRequestedBy',
@@ -60,8 +57,11 @@ class SalesOrderController extends Controller
         $data = $query->paginate($perPage);
         $items = collect($data->items())->map(function ($item) {
             $arrayItem = $item->toArray();
-            // Alias count to a friendly key for clients
+
+            // Hapus detail item sales_order_items, tampilkan hanya items_count
+            unset($arrayItem['sales_order_items']);
             $arrayItem['items_count'] = $item->sales_order_items_count ?? 0;
+
             return $arrayItem;
         });
         return response()->json($this->paginateResponse($data, $items));
