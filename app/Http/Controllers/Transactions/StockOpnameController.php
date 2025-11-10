@@ -492,4 +492,66 @@ class StockOpnameController extends Controller
             return $this->errorResponse('Gagal membatalkan stock opname: ' . $e->getMessage(), 500);
         }
     }
+
+    /**
+     * Reconcile stock opname - adjust stok item barang berdasarkan stock opname detail
+     */
+    public function reconcile(string $id)
+    {
+        $stockOpname = StockOpname::find($id);
+        if (!$stockOpname) {
+            return $this->errorResponse('Stock opname tidak ditemukan', 404);
+        }
+
+        // Validasi bahwa stock opname sudah completed
+        if ($stockOpname->status !== 'completed') {
+            if ($stockOpname->status === 'reconciled') {
+                return $this->errorResponse('Stock opname sudah di-reconcile', 422);
+            }
+            if ($stockOpname->status === 'cancelled') {
+                return $this->errorResponse('Stock opname yang sudah dibatalkan tidak dapat di-reconcile', 422);
+            }
+            return $this->errorResponse('Stock opname harus dalam status completed sebelum dapat di-reconcile', 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Get all stock opname details
+            $stockOpnameDetails = StockOpnameDetail::where('stock_opname_id', $stockOpname->id)->get();
+
+            if ($stockOpnameDetails->isEmpty()) {
+                DB::rollBack();
+                return $this->errorResponse('Stock opname tidak memiliki detail yang dapat di-reconcile', 422);
+            }
+
+            // Update quantity di item barang berdasarkan stok_fisik dari stock opname detail
+            foreach ($stockOpnameDetails as $detail) {
+                $itemBarang = ItemBarang::find($detail->item_barang_id);
+                
+                if (!$itemBarang) {
+                    DB::rollBack();
+                    return $this->errorResponse("Item barang dengan ID {$detail->item_barang_id} tidak ditemukan", 404);
+                }
+
+                // Update quantity dengan stok_fisik dari stock opname detail
+                $itemBarang->update([
+                    'quantity' => $detail->stok_fisik
+                ]);
+            }
+
+            // Update status menjadi reconciled
+            $stockOpname->update([
+                'status' => 'reconciled',
+            ]);
+
+            DB::commit();
+
+            $stockOpname->load(['picUser', 'gudang', 'stockOpnameDetails.itemBarang']);
+            return $this->successResponse($stockOpname, 'Stock opname berhasil di-reconcile dan stok item barang telah disesuaikan');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->errorResponse('Gagal melakukan reconcile stock opname: ' . $e->getMessage(), 500);
+        }
+    }
 }
