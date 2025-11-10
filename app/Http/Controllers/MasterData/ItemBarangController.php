@@ -111,6 +111,7 @@ class ItemBarangController extends Controller
             'panjang' => 'nullable|numeric|min:0',
             'lebar' => 'nullable|numeric|min:0',
             'tebal' => 'nullable|numeric|min:0',
+            'berat' => 'nullable|numeric|min:0',
             'quantity' => 'nullable|numeric|min:0',
             'quantity_tebal_sama' => 'nullable|numeric|min:0',
             'jenis_potongan' => 'nullable|string',
@@ -159,6 +160,7 @@ class ItemBarangController extends Controller
         $input = $request->only([
             'jenis_barang_id', 'bentuk_barang_id', 'grade_barang_id',
             'nama_item_barang', 'sisa_luas', 'panjang', 'lebar', 'tebal',
+            'berat',
             'quantity', 'jenis_potongan',
             'is_edit', 'is_onprogress_po', 'user_id', 'gudang_id'
         ]);
@@ -176,9 +178,16 @@ class ItemBarangController extends Controller
         return $this->successResponse($data, 'Data berhasil ditambahkan');
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
-        $data = ItemBarang::with(['jenisBarang', 'bentukBarang', 'gradeBarang'])->find($id);
+        $query = ItemBarang::with(['jenisBarang', 'bentukBarang', 'gradeBarang', 'gudang']);
+        
+        // Filter berdasarkan gudang_id jika ada
+        if ($request->has('gudang_id') && $request->gudang_id) {
+            $query->where('gudang_id', $request->gudang_id);
+        }
+        
+        $data = $query->find($id);
         if (!$data) {
             return $this->errorResponse('Data tidak ditemukan', 404);
         }
@@ -187,7 +196,14 @@ class ItemBarangController extends Controller
 
     public function update(Request $request, $id)
     {
-        $data = ItemBarang::find($id);
+        $query = ItemBarang::query();
+        
+        // Filter berdasarkan gudang_id jika ada
+        if ($request->has('gudang_id') && $request->gudang_id) {
+            $query->where('gudang_id', $request->gudang_id);
+        }
+        
+        $data = $query->find($id);
         if (!$data) {
             return $this->errorResponse('Data tidak ditemukan', 404);
         }
@@ -201,6 +217,7 @@ class ItemBarangController extends Controller
             'panjang' => 'nullable|numeric|min:0',
             'lebar' => 'nullable|numeric|min:0',
             'tebal' => 'nullable|numeric|min:0',
+            'berat' => 'nullable|numeric|min:0',
             'quantity' => 'nullable|numeric|min:0',
             'quantity_tebal_sama' => 'nullable|numeric|min:0',
             'jenis_potongan' => 'nullable|string',
@@ -222,6 +239,7 @@ class ItemBarangController extends Controller
             'panjang',
             'lebar',
             'tebal',
+            'berat',
             'quantity',
             'quantity_tebal_sama',
             'jenis_potongan',
@@ -232,7 +250,7 @@ class ItemBarangController extends Controller
             return $value !== null && $value !== '';
         });
         $data->update($updateData);
-        $data->load(['jenisBarang', 'bentukBarang', 'gradeBarang']);
+        $data->load(['jenisBarang', 'bentukBarang', 'gradeBarang', 'gudang']);
         return $this->successResponse($data, 'Data berhasil diperbarui');
     }
 
@@ -340,6 +358,28 @@ class ItemBarangController extends Controller
         $query = $this->applyFilter($query, $request, ['kode_barang', 'nama_item_barang']);
         $data = $query->paginate($perPage);
         $items = collect($data->items());
+        return response()->json($this->paginateResponse($data, $items));
+    }
+
+    public function getByGudang(Request $request, $gudangId)
+    {
+        $perPage = (int) ($request->input('per_page', $this->getPerPageDefault()));
+        $query = ItemBarang::with(['jenisBarang', 'bentukBarang', 'gradeBarang', 'gudang']);
+
+        // Filter berdasarkan gudang_id (required)
+        $query->where('gudang_id', $gudangId);
+
+        // Search functionality untuk nama_item_barang
+        if ($request->filled('search')) {
+            $query->where('nama_item_barang', 'like', '%' . $request->input('search') . '%');
+        }
+
+        // Apply additional filters and sorting
+        $query = $this->applyFilter($query, $request, ['kode_barang', 'nama_item_barang']);
+        
+        $data = $query->paginate($perPage);
+        $items = collect($data->items());
+        
         return response()->json($this->paginateResponse($data, $items));
     }
 
