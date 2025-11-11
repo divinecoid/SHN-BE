@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Controllers\Dashboard\PurchaseOrderDashboardController;
+use App\Http\Controllers\Dashboard\SalesOrderDashboardController;
+use App\Http\Controllers\Dashboard\WorkOrderActualDashboardController;
+use App\Http\Controllers\Dashboard\WorkOrderPlanningDashboardController;
 use App\Http\Controllers\Transactions\KonversiBarangController;
 use App\Http\Controllers\Transactions\SplitBarangController;
 use App\Http\Controllers\Transactions\MergeBarangController;
@@ -35,6 +39,7 @@ use App\Http\Controllers\Transactions\WorkOrderActualController;
 use App\Http\Controllers\Transactions\SaranPlatController;
 use App\Http\Controllers\Transactions\DashboardController;
 use App\Http\Controllers\Transactions\PurchaseOrderController;
+use App\Http\Controllers\Transactions\StockOpnameController;
 use App\Http\Controllers\Output\InvoicePodController;
 use App\Http\Controllers\Transactions\StockMutationController;
 use App\Http\Controllers\MasterData\DocumentSequenceController;
@@ -210,6 +215,16 @@ Route::prefix('item-barang')->middleware('checkrole:admin')->group(function () {
     Route::delete('{id}/force', [ItemBarangController::class, 'forceDelete']);
     Route::get('with-trashed/all', [ItemBarangController::class, 'indexWithTrashed']);
     Route::get('with-trashed/trashed', [ItemBarangController::class, 'indexTrashed']);
+    Route::post('/freeze', [ItemBarangController::class, 'freezeItems']);
+    Route::post('/unfreeze', [ItemBarangController::class, 'unfreezeItems']);
+});
+Route::prefix('stock-opname')->middleware('checkrole')->group(function () {
+    Route::get('/', [StockOpnameController::class, 'index']);
+    Route::post('/', [StockOpnameController::class, 'store']);
+    Route::patch('{id}/cancel', [StockOpnameController::class, 'cancel']);
+    Route::get('{id}', [StockOpnameController::class, 'show']);
+    Route::put('{id}', [StockOpnameController::class, 'update']);
+    Route::patch('{id}', [StockOpnameController::class, 'update']);
 });
 Route::prefix('stock')->middleware('checkrole')->group(function () {
     Route::get('/check', [ItemBarangController::class, 'checkStock']);
@@ -551,4 +566,11 @@ Route::prefix('item-barang-request')->middleware('checkrole')->group(function ()
     // Approval routes
     Route::patch('{id}/approve', [ItemBarangRequestController::class, 'approve']);
     Route::patch('{id}/reject', [ItemBarangRequestController::class, 'reject']);
+});
+
+Route::prefix('dashboard')->middleware('checkrole')->group(function() {
+    Route::get('/sales-order', [SalesOrderDashboardController::class, 'index']);
+    Route::get('/work-order-planning', [WorkOrderPlanningDashboardController::class, 'index']);
+    Route::get('/work-order-actual', [WorkOrderActualDashboardController::class, 'index']);
+    Route::get('/purchase-order', [PurchaseOrderDashboardController::class, 'index']);
 });
