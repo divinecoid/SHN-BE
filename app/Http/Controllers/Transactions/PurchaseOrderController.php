@@ -21,9 +21,28 @@ class PurchaseOrderController extends Controller
 
     public function index(Request $request)
     {
-        $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
         $query = PurchaseOrder::with(['purchaseOrderItems.jenisBarang', 'purchaseOrderItems.bentukBarang', 'purchaseOrderItems.gradeBarang', 'purchaseOrderItems.itemBarang', 'supplier']);
         $query = $this->applyFilter($query, $request, ['nomor_po', 'tanggal_po', 'tanggal_jatuh_tempo', 'status']);
+
+        // Optional date range filter by tanggal_po
+        $start = $request->input('date_start');
+        $end = $request->input('date_end');
+        if ($start && $end) {
+            $query->whereBetween('tanggal_po', [$start, $end]);
+        } elseif ($start) {
+            $query->whereDate('tanggal_po', '>=', $start);
+        } elseif ($end) {
+            $query->whereDate('tanggal_po', '<=', $end);
+        }
+
+        // Conditional pagination: paginate only if per_page or page provided; otherwise return all on a single page
+        $shouldPaginate = $request->filled('per_page') || $request->filled('page');
+        $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
+        if (!$shouldPaginate) {
+            $total = (clone $query)->count();
+            $perPage = $total > 0 ? $total : 1;
+        }
+
         $data = $query->paginate($perPage);
         $items = collect($data->items());
         return response()->json($this->paginateResponse($data, $items));
@@ -33,6 +52,8 @@ class PurchaseOrderController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'tanggal_po' => 'nullable|date',
+            'tanggal_penerimaan' => 'nullable|date',
+            'tanggal_pembayaran' => 'nullable|date',
             'tanggal_jatuh_tempo' => 'required|date',
             'id_supplier' => 'required|exists:ref_supplier,id',
             'total_amount' => 'nullable|numeric|min:0',
@@ -68,6 +89,8 @@ class PurchaseOrderController extends Controller
             // Membuat header Purchase Order dengan default values
             $purchaseOrderData = $request->only([
                 'tanggal_jatuh_tempo',
+                'tanggal_penerimaan',
+                'tanggal_pembayaran',
                 'id_supplier',
                 'total_amount',
                 'catatan',
@@ -241,6 +264,8 @@ class PurchaseOrderController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'tanggal_po' => 'nullable|date',
+            'tanggal_penerimaan' => 'nullable|date',
+            'tanggal_pembayaran' => 'nullable|date',
             'tanggal_jatuh_tempo' => 'required|date',
             'id_supplier' => 'required|exists:ref_supplier,id',
             'total_amount' => 'nullable|numeric|min:0',
@@ -271,6 +296,8 @@ class PurchaseOrderController extends Controller
         try {
             $data->update($request->only([
                 'tanggal_po',
+                'tanggal_penerimaan',
+                'tanggal_pembayaran',
                 'tanggal_jatuh_tempo',
                 'id_supplier',
                 'total_amount',

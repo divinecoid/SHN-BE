@@ -15,16 +15,16 @@ class StockOpnameDetail extends Model
     protected $fillable = [
         'stock_opname_id',
         'item_barang_id',
-        'status',
-        'stok_buku',
-        'stok_asli',
+        'stok_sistem',
+        'stok_fisik',
+        'catatan',
     ];
 
     protected $hidden = ['deleted_at'];
 
     protected $casts = [
-        'stok_buku' => 'integer',
-        'stok_asli' => 'integer',
+        'stok_sistem' => 'integer',
+        'stok_fisik' => 'integer',
     ];
 
     /**

@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Traits\ApiFilterTrait;
 use App\Models\Transactions\StockOpname;
 use App\Models\Transactions\StockOpnameDetail;
+use App\Models\MasterData\ItemBarang;
 use App\Http\Controllers\MasterData\ItemBarangController;
 
 class StockOpnameController extends Controller
@@ -28,7 +29,7 @@ class StockOpnameController extends Controller
     public function index(Request $request)
     {
         $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
-        $query = StockOpname::with(['picUser', 'gudang', 'stockOpnameDetails.itemBarang']);
+        $query = StockOpname::with(['picUser', 'gudang'])->orderBy('created_at', 'desc');
         $query = $this->applyFilter($query, $request, []);
         $data = $query->paginate($perPage);
         $items = collect($data->items());
@@ -226,6 +227,223 @@ class StockOpnameController extends Controller
     }
 
     /**
+     * Get list item barang with checked flag based on stock opname detail
+     */
+    public function getItemBarangList(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'gudang_id' => 'required|exists:ref_gudang,id',
+            'stock_opname_id' => 'nullable|exists:trx_stock_opname,id',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->errorResponse($validator->errors()->first(), 422);
+        }
+
+        $gudangId = $request->gudang_id;
+        $stockOpnameId = $request->input('stock_opname_id');
+
+        // Get item barang by gudang_id
+        $query = ItemBarang::with(['jenisBarang', 'bentukBarang', 'gradeBarang', 'gudang'])
+            ->where('gudang_id', $gudangId);
+
+        // Apply filter if needed
+        $query = $this->applyFilter($query, $request, ['kode_barang', 'nama_item_barang']);
+
+        // Get all items (no pagination for now, or add pagination if needed)
+        $items = $query->get();
+
+        // Get stock opname detail item_barang_ids if stock_opname_id is provided
+        $checkedItemBarangIds = [];
+        if ($stockOpnameId) {
+            $stockOpname = StockOpname::find($stockOpnameId);
+            if (!$stockOpname) {
+                return $this->errorResponse('Stock opname tidak ditemukan', 404);
+            }
+
+            // Get all item_barang_id from stock opname detail
+            $checkedItemBarangIds = StockOpnameDetail::where('stock_opname_id', $stockOpnameId)
+                ->pluck('item_barang_id')
+                ->toArray();
+        }
+
+        // Transform items with checked flag
+        $itemsWithChecked = $items->map(function ($item) use ($checkedItemBarangIds) {
+            $itemArray = $item->toArray();
+            $itemArray['checked'] = in_array($item->id, $checkedItemBarangIds);
+            return $itemArray;
+        });
+
+        return $this->successResponse($itemsWithChecked, 'List item barang berhasil diambil');
+    }
+
+    /**
+     * Get stock opname details by stock opname id
+     */
+    public function getDetails(string $id)
+    {
+        $stockOpname = StockOpname::find($id);
+        if (!$stockOpname) {
+            return $this->errorResponse('Stock opname tidak ditemukan', 404);
+        }
+
+        $details = StockOpnameDetail::with(['itemBarang'])
+            ->where('stock_opname_id', $stockOpname->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return $this->successResponse($details, 'Detail stock opname berhasil diambil');
+    }
+
+    /**
+     * Add detail to stock opname
+     */
+    public function addDetail(Request $request, string $id)
+    {
+        $stockOpname = StockOpname::find($id);
+        if (!$stockOpname) {
+            return $this->errorResponse('Stock opname tidak ditemukan', 404);
+        }
+
+        // Validasi bahwa stock opname belum cancelled atau completed
+        if ($stockOpname->status === 'cancelled') {
+            return $this->errorResponse('Tidak dapat menambahkan detail ke stock opname yang sudah dibatalkan', 422);
+        }
+
+        if ($stockOpname->status === 'completed') {
+            return $this->errorResponse('Tidak dapat menambahkan detail ke stock opname yang sudah selesai', 422);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'kode_barang' => 'required|exists:ref_item_barang,kode_barang',
+            'stok_sistem' => 'nullable|integer|min:0',
+            'stok_fisik' => 'required|integer|min:0',
+            'catatan' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->errorResponse($validator->errors()->first(), 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Find item barang by kode_barang
+            $itemBarang = ItemBarang::with('gudang')->where('kode_barang', $request->kode_barang)->first();
+            if (!$itemBarang) {
+                DB::rollBack();
+                return $this->errorResponse('Kode barang tidak ditemukan', 404);
+            }
+
+            // Check if item has a warehouse assigned
+            if (is_null($itemBarang->gudang_id)) {
+                DB::rollBack();
+                return $this->errorResponse('Barang tidak memiliki gudang yang ditetapkan', 422);
+            }
+
+            // Check if item is in the stock opname warehouse
+            if ($itemBarang->gudang_id !== $stockOpname->gudang_id) {
+                DB::rollBack();
+                $gudangNama = $itemBarang->gudang ? $itemBarang->gudang->nama_gudang : 'Tidak diketahui';
+                return $this->errorResponse("Barang tidak berada di gudang stock opname. Barang berada di gudang: {$gudangNama}", 422);
+            }
+
+            // Check if item is frozen
+            $isFrozen = !is_null($itemBarang->frozen_at);
+            
+            // Validate stok_sistem based on freeze status
+            if ($isFrozen) {
+                // If item is frozen, stok_sistem is required
+                if (!$request->has('stok_sistem') || is_null($request->stok_sistem)) {
+                    DB::rollBack();
+                    return $this->errorResponse('Stok sistem wajib diisi karena item barang dalam status beku', 422);
+                }
+                $stokSistem = $request->stok_sistem;
+            } else {
+                // If item is not frozen, stok_sistem must be null
+                $stokSistem = null;
+            }
+
+            // Check if item barang already exists in this stock opname detail
+            $existingDetail = StockOpnameDetail::where('stock_opname_id', $stockOpname->id)
+                ->where('item_barang_id', $itemBarang->id)
+                ->first();
+
+            if ($existingDetail) {
+                DB::rollBack();
+                return $this->errorResponse('Item barang sudah ada di detail stock opname ini', 422);
+            }
+
+            // Create detail
+            $detail = StockOpnameDetail::create([
+                'stock_opname_id' => $stockOpname->id,
+                'item_barang_id' => $itemBarang->id,
+                'stok_sistem' => $stokSistem,
+                'stok_fisik' => $request->stok_fisik,
+                'catatan' => $request->catatan,
+            ]);
+
+            DB::commit();
+
+            $detail->load(['itemBarang']);
+            return $this->successResponse($detail, 'Detail stock opname berhasil ditambahkan');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->errorResponse('Gagal menambahkan detail: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Complete stock opname
+     */
+    public function complete(string $id)
+    {
+        $stockOpname = StockOpname::find($id);
+        if (!$stockOpname) {
+            return $this->errorResponse('Stock opname tidak ditemukan', 404);
+        }
+
+        // Validasi bahwa stock opname belum cancelled atau completed
+        if ($stockOpname->status === 'cancelled') {
+            return $this->errorResponse('Stock opname yang sudah dibatalkan tidak dapat diselesaikan', 422);
+        }
+
+        if ($stockOpname->status === 'completed') {
+            return $this->errorResponse('Stock opname sudah selesai', 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Unfreeze items jika ada yang di-freeze
+            $gudangId = $stockOpname->gudang_id;
+            $unfreezeRequest = new Request(['gudang_id' => $gudangId]);
+            $unfreezeResponse = $this->itemBarangController->unfreezeItems($unfreezeRequest);
+            
+            // Check if unfreeze failed
+            if (method_exists($unfreezeResponse, 'getStatusCode') && $unfreezeResponse->getStatusCode() !== 200) {
+                DB::rollBack();
+                $unfreezeData = $unfreezeResponse->getData();
+                $message = isset($unfreezeData->message) ? $unfreezeData->message : 'Gagal melepas status beku barang';
+                return $this->errorResponse($message, $unfreezeResponse->getStatusCode());
+            }
+
+            // Update status menjadi completed
+            $stockOpname->update([
+                'status' => 'completed',
+            ]);
+
+            DB::commit();
+
+            $stockOpname->load(['picUser', 'gudang']);
+            return $this->successResponse($stockOpname, 'Stock opname berhasil diselesaikan');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->errorResponse('Gagal menyelesaikan stock opname: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
      * Cancel stock opname
      */
     public function cancel(string $id)
@@ -272,6 +490,68 @@ class StockOpnameController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return $this->errorResponse('Gagal membatalkan stock opname: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Reconcile stock opname - adjust stok item barang berdasarkan stock opname detail
+     */
+    public function reconcile(string $id)
+    {
+        $stockOpname = StockOpname::find($id);
+        if (!$stockOpname) {
+            return $this->errorResponse('Stock opname tidak ditemukan', 404);
+        }
+
+        // Validasi bahwa stock opname sudah completed
+        if ($stockOpname->status !== 'completed') {
+            if ($stockOpname->status === 'reconciled') {
+                return $this->errorResponse('Stock opname sudah di-reconcile', 422);
+            }
+            if ($stockOpname->status === 'cancelled') {
+                return $this->errorResponse('Stock opname yang sudah dibatalkan tidak dapat di-reconcile', 422);
+            }
+            return $this->errorResponse('Stock opname harus dalam status completed sebelum dapat di-reconcile', 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Get all stock opname details
+            $stockOpnameDetails = StockOpnameDetail::where('stock_opname_id', $stockOpname->id)->get();
+
+            if ($stockOpnameDetails->isEmpty()) {
+                DB::rollBack();
+                return $this->errorResponse('Stock opname tidak memiliki detail yang dapat di-reconcile', 422);
+            }
+
+            // Update quantity di item barang berdasarkan stok_fisik dari stock opname detail
+            foreach ($stockOpnameDetails as $detail) {
+                $itemBarang = ItemBarang::find($detail->item_barang_id);
+                
+                if (!$itemBarang) {
+                    DB::rollBack();
+                    return $this->errorResponse("Item barang dengan ID {$detail->item_barang_id} tidak ditemukan", 404);
+                }
+
+                // Update quantity dengan stok_fisik dari stock opname detail
+                $itemBarang->update([
+                    'quantity' => $detail->stok_fisik
+                ]);
+            }
+
+            // Update status menjadi reconciled
+            $stockOpname->update([
+                'status' => 'reconciled',
+            ]);
+
+            DB::commit();
+
+            $stockOpname->load(['picUser', 'gudang', 'stockOpnameDetails.itemBarang']);
+            return $this->successResponse($stockOpname, 'Stock opname berhasil di-reconcile dan stok item barang telah disesuaikan');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->errorResponse('Gagal melakukan reconcile stock opname: ' . $e->getMessage(), 500);
         }
     }
 }
