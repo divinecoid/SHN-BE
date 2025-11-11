@@ -437,4 +437,26 @@ class ItemBarangController extends Controller
             'gudang_id' => $gudangId
         ], 'Barang berhasil dilepaskan dari status beku');
     }
+
+    public function getByGudang(Request $request, $gudangId)
+    {
+        $perPage = (int) ($request->input('per_page', $this->getPerPageDefault()));
+        $query = ItemBarang::with(['jenisBarang', 'bentukBarang', 'gradeBarang', 'gudang']);
+
+        // Filter berdasarkan gudang_id (required)
+        $query->where('gudang_id', $gudangId);
+
+        // Search functionality untuk nama_item_barang
+        if ($request->filled('search')) {
+            $query->where('nama_item_barang', 'like', '%' . $request->input('search') . '%');
+        }
+
+        // Apply additional filters and sorting
+        $query = $this->applyFilter($query, $request, ['kode_barang', 'nama_item_barang']);
+        
+        $data = $query->paginate($perPage);
+        $items = collect($data->items());
+        
+        return response()->json($this->paginateResponse($data, $items));
+    }
 }

@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Controllers\Dashboard\PurchaseOrderDashboardController;
+use App\Http\Controllers\Dashboard\SalesOrderDashboardController;
+use App\Http\Controllers\Dashboard\WorkOrderActualDashboardController;
+use App\Http\Controllers\Dashboard\WorkOrderPlanningDashboardController;
 use App\Http\Controllers\Transactions\KonversiBarangController;
 use App\Http\Controllers\Transactions\SplitBarangController;
 use App\Http\Controllers\Transactions\MergeBarangController;
@@ -567,4 +571,11 @@ Route::prefix('item-barang-request')->middleware('checkrole')->group(function ()
     // Approval routes
     Route::patch('{id}/approve', [ItemBarangRequestController::class, 'approve']);
     Route::patch('{id}/reject', [ItemBarangRequestController::class, 'reject']);
+});
+
+Route::prefix('dashboard')->middleware('checkrole')->group(function() {
+    Route::get('/sales-order', [SalesOrderDashboardController::class, 'index']);
+    Route::get('/work-order-planning', [WorkOrderPlanningDashboardController::class, 'index']);
+    Route::get('/work-order-actual', [WorkOrderActualDashboardController::class, 'index']);
+    Route::get('/purchase-order', [PurchaseOrderDashboardController::class, 'index']);
 });
