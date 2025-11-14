@@ -403,6 +403,9 @@ Route::prefix('sales-order')->middleware('checkrole')->group(function () {
     // Report endpoint
     Route::get('report', [SalesOrderController::class, 'report']);
 
+    // Sales Order for WO Planning (return items with remaining qty after WO Planning)
+    Route::get('sales-order-for-woplanning', [SalesOrderController::class, 'salesOrderForWOPlanning']);
+
     // Sales Order Header routes (header attributes only)
     Route::get('header', [SalesOrderController::class, 'getSalesOrderHeader']);
     Route::get('header/{id}', [SalesOrderController::class, 'getSalesOrderHeaderById']);

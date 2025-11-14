@@ -45,6 +45,13 @@ class WorkOrderPlanningController extends Controller
             ->withCount(['workOrderPlanningItems as count']);
         $query = $this->applyFilter($query, $request, ['sales_order.nomor_so', 'nomor_wo', 'tanggal_wo', 'prioritas', 'status']);
 
+        if ($request->filled('status')) {
+            $query->where('trx_work_order_planning.status', $request->input('status'));
+        }
+        if ($request->filled('exclude_status')) {
+            $query->where('trx_work_order_planning.status', '!=', $request->input('exclude_status'));
+        }
+
         // Optional date range filter based on created_at (WO Planning)
         $start = $request->input('date_start');
         $end = $request->input('date_end');
