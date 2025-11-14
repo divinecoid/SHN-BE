@@ -144,6 +144,7 @@ class SalesOrderController extends Controller
                     'grade_barang_id' => $item['grade_barang_id'],
                     'harga' => $item['harga'],
                     'satuan' => $item['satuan'],
+                    'jenis_potongan' => $item['jenis_potongan'],
                     'diskon' => $item['diskon'] ?? 0,
                     'catatan' => $item['catatan'] ?? null,
                 ]);
@@ -251,6 +252,7 @@ class SalesOrderController extends Controller
                     'grade_barang_id' => $item['grade_barang_id'],
                     'harga' => $item['harga'],
                     'satuan' => $item['satuan'],
+                    'jenis_potongan' => $item['jenis_potongan'],
                     'diskon' => $item['diskon'] ?? 0,
                     'catatan' => $item['catatan'] ?? null,
                 ]);
