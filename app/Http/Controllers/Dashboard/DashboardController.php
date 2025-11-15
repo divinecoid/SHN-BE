@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
 use App\Models\MasterData\SalesOrder;
+use App\Models\Output\InvoicePod;
 use App\Models\Transactions\PurchaseOrder;
 use App\Models\Transactions\WorkOrderActual;
 use App\Models\Transactions\WorkOrderPlanning;

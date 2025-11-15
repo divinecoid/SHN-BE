@@ -38,6 +38,7 @@ use App\Http\Controllers\Transactions\PurchaseOrderController;
 use App\Http\Controllers\Transactions\StockOpnameController;
 use App\Http\Controllers\Output\InvoicePodController;
 use App\Http\Controllers\Transactions\StockMutationController;
+use App\Http\Controllers\Transactions\PaymentController;
 use App\Http\Controllers\MasterData\DocumentSequenceController;
 
 
@@ -506,6 +507,15 @@ Route::prefix('invoice-pod')->middleware('checkrole')->group(function () {
     Route::post('/generate-invoice-pod', [InvoicePodController::class, 'generateInvoicePod']);
     Route::post('/view-invoice', [InvoicePodController::class, 'viewInvoice']);
     Route::post('/view-pod', [InvoicePodController::class, 'viewPod']);
+});
+
+
+// Payment routes
+Route::prefix('payment')->middleware('checkrole')->group(function () {
+    Route::get('/', [PaymentController::class, 'index']);
+    Route::get('/summary', [PaymentController::class, 'summary']);
+    Route::post('/submit-payment', [PaymentController::class, 'submitPayment']);
+    Route::get('/payment-detail', [PaymentController::class, 'paymentDetail']);
 });
 
 

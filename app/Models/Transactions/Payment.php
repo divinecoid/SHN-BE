@@ -1,0 +1,38 @@
+<?php
+
+namespace App\Models\Transactions;
+
+use App\Models\Output\InvoicePod;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Traits\HideTimestampsInRelations;
+
+class Payment extends Model
+{
+    use SoftDeletes, HideTimestampsInRelations;
+
+    protected $table = 'trx_payment';
+
+    protected $fillable = [
+        'invoice_pod_id',
+        'jumlah_payment',
+        'tanggal_payment',
+        'catatan',
+    ];
+
+    protected $hidden = ['deleted_at'];
+
+    protected $casts = [
+        'tanggal_payment' => 'date',
+        'jumlah_payment' => 'decimal:2',
+    ];
+
+    /**
+     * Get the invoice POD
+     */
+    public function invoicePod()
+    {
+        return $this->belongsTo(InvoicePod::class, 'invoice_pod_id');
+    }
+}
+

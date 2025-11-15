@@ -86,4 +86,9 @@ class InvoicePod extends Model
     {
         return $this->hasMany(InvoicePodItem::class, 'invoicepod_id');
     }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class, 'invoice_pod_id');
+    }
 }
