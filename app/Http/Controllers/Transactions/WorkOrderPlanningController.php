@@ -43,6 +43,63 @@ class WorkOrderPlanningController extends Controller
                 'trx_sales_order.nomor_so',
             ])
             ->withCount(['workOrderPlanningItems as count']);
+        
+        // Filter by tanggal WO
+        if ($request->filled('tanggal_wo_from') || $request->filled('tanggal_wo_to')) {
+            $tanggalWoFrom = $request->input('tanggal_wo_from');
+            $tanggalWoTo = $request->input('tanggal_wo_to');
+            
+            if ($tanggalWoFrom && $tanggalWoTo) {
+                $query->whereBetween('trx_work_order_planning.tanggal_wo', [$tanggalWoFrom, $tanggalWoTo]);
+            } elseif ($tanggalWoFrom) {
+                $query->whereDate('trx_work_order_planning.tanggal_wo', '>=', $tanggalWoFrom);
+            } elseif ($tanggalWoTo) {
+                $query->whereDate('trx_work_order_planning.tanggal_wo', '<=', $tanggalWoTo);
+            }
+        }
+        
+        // Filter by No.WO
+        if ($request->filled('nomor_wo')) {
+            $query->where('trx_work_order_planning.nomor_wo', 'like', '%' . $request->input('nomor_wo') . '%');
+        }
+        
+        // Filter by No.SO
+        if ($request->filled('nomor_so')) {
+            $query->where('trx_sales_order.nomor_so', 'like', '%' . $request->input('nomor_so') . '%');
+        }
+        
+        // Filter by nama customer
+        if ($request->filled('nama_customer')) {
+            $query->where('ref_pelanggan.nama_pelanggan', 'like', '%' . $request->input('nama_customer') . '%');
+        }
+        
+        // Filter by gudang
+        if ($request->filled('gudang')) {
+            $query->where('trx_work_order_planning.id_gudang', $request->input('gudang'));
+        }
+        
+        // Filter by status
+        if ($request->filled('status')) {
+            $query->where('trx_work_order_planning.status', $request->input('status'));
+        }
+        
+        // Filter by jumlah item
+        if ($request->filled('jumlah_item')) {
+            $exactCount = (int)$request->input('jumlah_item');
+            $query->whereRaw('(SELECT COUNT(*) FROM trx_work_order_planning_item WHERE trx_work_order_planning_item.work_order_planning_id = trx_work_order_planning.id) = ?', [$exactCount]);
+        } elseif ($request->filled('jumlah_item_min') || $request->filled('jumlah_item_max')) {
+            $minCount = $request->filled('jumlah_item_min') ? (int)$request->input('jumlah_item_min') : null;
+            $maxCount = $request->filled('jumlah_item_max') ? (int)$request->input('jumlah_item_max') : null;
+            
+            if ($minCount !== null && $maxCount !== null) {
+                $query->whereRaw('(SELECT COUNT(*) FROM trx_work_order_planning_item WHERE trx_work_order_planning_item.work_order_planning_id = trx_work_order_planning.id) BETWEEN ? AND ?', [$minCount, $maxCount]);
+            } elseif ($minCount !== null) {
+                $query->whereRaw('(SELECT COUNT(*) FROM trx_work_order_planning_item WHERE trx_work_order_planning_item.work_order_planning_id = trx_work_order_planning.id) >= ?', [$minCount]);
+            } elseif ($maxCount !== null) {
+                $query->whereRaw('(SELECT COUNT(*) FROM trx_work_order_planning_item WHERE trx_work_order_planning_item.work_order_planning_id = trx_work_order_planning.id) <= ?', [$maxCount]);
+            }
+        }
+        
         $query = $this->applyFilter($query, $request, ['sales_order.nomor_so', 'nomor_wo', 'tanggal_wo', 'prioritas', 'status']);
 
         // Optional date range filter based on created_at (WO Planning)

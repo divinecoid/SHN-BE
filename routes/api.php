@@ -1,9 +1,6 @@
 <?php
 
-use App\Http\Controllers\Dashboard\PurchaseOrderDashboardController;
-use App\Http\Controllers\Dashboard\SalesOrderDashboardController;
-use App\Http\Controllers\Dashboard\WorkOrderActualDashboardController;
-use App\Http\Controllers\Dashboard\WorkOrderPlanningDashboardController;
+use App\Http\Controllers\Dashboard\DashboardController;
 use App\Http\Controllers\Transactions\KonversiBarangController;
 use App\Http\Controllers\Transactions\SplitBarangController;
 use App\Http\Controllers\Transactions\MergeBarangController;
@@ -37,7 +34,6 @@ use App\Http\Controllers\FileController;
 use App\Http\Controllers\Transactions\WorkOrderPlanningController;
 use App\Http\Controllers\Transactions\WorkOrderActualController;
 use App\Http\Controllers\Transactions\SaranPlatController;
-use App\Http\Controllers\Transactions\DashboardController;
 use App\Http\Controllers\Transactions\PurchaseOrderController;
 use App\Http\Controllers\Transactions\StockOpnameController;
 use App\Http\Controllers\Output\InvoicePodController;
@@ -513,11 +509,6 @@ Route::prefix('invoice-pod')->middleware('checkrole')->group(function () {
 });
 
 
-Route::prefix('dashboard')->middleware('checkrole')->group(function () {
-    Route::get('/workshop', [DashboardController::class, 'workshop']);
-});
-
-
 //document sequence routes
 Route::prefix('document-sequence')->middleware('checkrole')->group(function () {
     Route::get('/', [DocumentSequenceController::class, 'index']);
@@ -574,8 +565,9 @@ Route::prefix('item-barang-request')->middleware('checkrole')->group(function ()
 });
 
 Route::prefix('dashboard')->middleware('checkrole')->group(function() {
-    Route::get('/sales-order', [SalesOrderDashboardController::class, 'index']);
-    Route::get('/work-order-planning', [WorkOrderPlanningDashboardController::class, 'index']);
-    Route::get('/work-order-actual', [WorkOrderActualDashboardController::class, 'index']);
-    Route::get('/purchase-order', [PurchaseOrderDashboardController::class, 'index']);
+    Route::get('/workshop', [DashboardController::class, 'workshop']);
+    Route::get('/sales-order', [DashboardController::class, 'salesOrder']);
+    Route::get('/work-order-planning', [DashboardController::class, 'workOrderPlanning']);
+    Route::get('/work-order-actual', [DashboardController::class, 'workOrderActual']);
+    Route::get('/purchase-order', [DashboardController::class, 'purchaseOrder']);
 });

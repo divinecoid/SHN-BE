@@ -24,6 +24,40 @@ class PenerimaanBarangController extends Controller
         $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
         $query = PenerimaanBarang::with(['purchaseOrder', 'stockMutation', 'gudang', 'penerimaanBarangDetails']);
         $query = $query->orderBy('id', 'desc');
+        
+        // Filter by date range
+        if ($request->filled('date_from') || $request->filled('date_to')) {
+            $dateFrom = $request->input('date_from');
+            $dateTo = $request->input('date_to');
+            
+            if ($dateFrom && $dateTo) {
+                $query->whereBetween('created_at', [$dateFrom, $dateTo]);
+            } elseif ($dateFrom) {
+                $query->whereDate('created_at', '>=', $dateFrom);
+            } elseif ($dateTo) {
+                $query->whereDate('created_at', '<=', $dateTo);
+            }
+        }
+        
+        // Filter by gudang
+        if ($request->filled('gudang')) {
+            $query->where('id_gudang', $request->input('gudang'));
+        }
+        
+        // Filter by nomor PO
+        if ($request->filled('nomor_po')) {
+            $query->whereHas('purchaseOrder', function ($q) use ($request) {
+                $q->where('nomor_po', 'like', '%' . $request->input('nomor_po') . '%');
+            });
+        }
+        
+        // Filter by nomor mutasi
+        if ($request->filled('nomor_mutasi')) {
+            $query->whereHas('stockMutation', function ($q) use ($request) {
+                $q->where('nomor_mutasi', 'like', '%' . $request->input('nomor_mutasi') . '%');
+            });
+        }
+        
         $query = $this->applyFilter($query, $request, ['catatan']);
         
         $data = $query->paginate($perPage);
