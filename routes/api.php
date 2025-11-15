@@ -516,6 +516,7 @@ Route::prefix('payment')->middleware('checkrole')->group(function () {
     Route::get('/summary', [PaymentController::class, 'summary']);
     Route::post('/submit-payment', [PaymentController::class, 'submitPayment']);
     Route::get('/payment-detail', [PaymentController::class, 'paymentDetail']);
+    Route::post('/generate-receipt', [PaymentController::class, 'generateReceipt']);
 });
 
 

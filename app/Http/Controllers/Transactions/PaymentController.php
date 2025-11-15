@@ -10,11 +10,19 @@ use App\Http\Traits\ApiFilterTrait;
 use App\Models\Output\InvoicePod;
 use App\Models\Transactions\WorkOrderPlanning;
 use App\Models\Transactions\Payment;
+use App\Http\Controllers\MasterData\DocumentSequenceController;
 use Carbon\Carbon;
 
 class PaymentController extends Controller
 {
     use ApiFilterTrait;
+
+    protected $documentSequenceController;
+
+    public function __construct()
+    {
+        $this->documentSequenceController = new DocumentSequenceController();
+    }
 
     /**
      * Display a listing of invoices with payment information.
@@ -260,5 +268,115 @@ class PaymentController extends Controller
                 ],
             ],
         ]);
+    }
+
+    /**
+     * Generate receipt/kwitansi for a payment.
+     */
+    public function generateReceipt(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'invoice_id' => 'required|exists:out_invoicepod,id',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->errorResponse($validator->errors()->first(), 422);
+        }
+
+        DB::beginTransaction();
+        try {
+            $invoice = InvoicePod::with(['salesOrder.pelanggan', 'invoicePodItems'])
+                ->find($request->invoice_id);
+
+            if (!$invoice) {
+                return $this->errorResponse('Invoice tidak ditemukan', 404);
+            }
+
+            // Find latest payment for this invoice (can generate receipt multiple times)
+            $payment = Payment::where('invoice_pod_id', $invoice->id)
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            if (!$payment) {
+                DB::rollBack();
+                return $this->errorResponse('Tidak ada payment untuk invoice ini', 400);
+            }
+
+            // Load relationships for payment
+            $payment->load(['invoicePod.salesOrder.pelanggan', 'invoicePod.invoicePodItems']);
+
+            // Check if receipt number already exists, if yes use existing, if no generate new
+            if ($payment->nomor_receipt) {
+                // Use existing receipt number
+                $nomorReceipt = $payment->nomor_receipt;
+            } else {
+                // Generate new receipt number using DocumentSequenceController
+                $nomorReceiptResponse = $this->documentSequenceController->generateDocumentSequence('receipt');
+                if ($nomorReceiptResponse->getStatusCode() !== 200) {
+                    DB::rollBack();
+                    return $this->errorResponse('Gagal generate nomor receipt', 500);
+                }
+                $nomorReceipt = $nomorReceiptResponse->getData()->data;
+
+                // Update payment with receipt number and mark as generated
+                $payment->nomor_receipt = $nomorReceipt;
+                $payment->has_generated_receipt = true;
+                $payment->save();
+
+                // Update sequence counter after successfully generating receipt
+                $this->documentSequenceController->increaseSequence('receipt');
+            }
+
+            DB::commit();
+
+            // Format response
+            return $this->successResponse([
+                'payment' => [
+                    'id' => $payment->id,
+                    'jumlah_payment' => (float) $payment->jumlah_payment,
+                    'tanggal_payment' => $payment->tanggal_payment ? Carbon::parse($payment->tanggal_payment)->format('Y-m-d') : null,
+                    'catatan' => $payment->catatan,
+                    'has_generated_receipt' => $payment->has_generated_receipt,
+                ],
+                'receipt' => [
+                    'nomor_receipt' => $nomorReceipt,
+                    'tanggal_generate' => now()->setTimezone('Asia/Jakarta')->format('Y-m-d H:i:s'),
+                ],
+                'invoice' => [
+                    'id' => $payment->invoicePod->id ?? null,
+                    'nomor_invoice' => $payment->invoicePod->nomor_invoice ?? null,
+                    'tanggal_cetak_invoice' => $payment->invoicePod->tanggal_cetak_invoice ? Carbon::parse($payment->invoicePod->tanggal_cetak_invoice)->timezone('Asia/Jakarta')->toDateTimeString() : null,
+                    'total_harga_invoice' => (float) ($payment->invoicePod->total_harga_invoice ?? 0),
+                    'discount_invoice' => (float) ($payment->invoicePod->discount_invoice ?? 0),
+                    'biaya_lain' => (float) ($payment->invoicePod->biaya_lain ?? 0),
+                    'ppn_invoice' => (float) ($payment->invoicePod->ppn_invoice ?? 0),
+                    'grand_total' => (float) ($payment->invoicePod->grand_total ?? 0),
+                    'uang_muka' => (float) ($payment->invoicePod->uang_muka ?? 0),
+                    'sisa_bayar' => (float) ($payment->invoicePod->sisa_bayar ?? 0),
+                    'status_bayar' => $payment->invoicePod->status_bayar ?? null,
+                    'handover_method' => $payment->invoicePod->handover_method ?? null,
+                    'invoice_pod_items' => $payment->invoicePod->invoicePodItems->map(function ($item) {
+                        return [
+                            'id' => $item->id,
+                            'nama_item' => $item->nama_item,
+                            'unit' => $item->unit,
+                            'dimensi_potong' => $item->dimensi_potong,
+                            'qty' => (int) $item->qty,
+                            'total_kg' => (float) $item->total_kg,
+                            'harga_per_unit' => (float) $item->harga_per_unit,
+                            'total_harga' => (float) $item->total_harga,
+                        ];
+                    }),
+                ],
+                'customer' => [
+                    'id' => $payment->invoicePod->salesOrder->pelanggan->id ?? null,
+                    'nama_pelanggan' => $payment->invoicePod->salesOrder->pelanggan->nama_pelanggan ?? null,
+                ],
+            ], 'Receipt berhasil digenerate');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->errorResponse('Gagal generate receipt: ' . $e->getMessage(), 500);
+        }
     }
 }

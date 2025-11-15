@@ -18,6 +18,8 @@ class Payment extends Model
         'jumlah_payment',
         'tanggal_payment',
         'catatan',
+        'has_generated_receipt',
+        'nomor_receipt',
     ];
 
     protected $hidden = ['deleted_at'];
@@ -25,6 +27,7 @@ class Payment extends Model
     protected $casts = [
         'tanggal_payment' => 'date',
         'jumlah_payment' => 'decimal:2',
+        'has_generated_receipt' => 'boolean',
     ];
 
     /**

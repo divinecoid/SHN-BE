@@ -20,5 +20,6 @@ class DocumentSequence extends Model
         'invoice',
         'mutasi',
         'barang',
+        'receipt',
     ];
 }
