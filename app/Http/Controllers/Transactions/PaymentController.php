@@ -10,6 +10,7 @@ use App\Http\Traits\ApiFilterTrait;
 use App\Models\Output\InvoicePod;
 use App\Models\Transactions\WorkOrderPlanning;
 use App\Models\Transactions\Payment;
+use Carbon\Carbon;
 
 class PaymentController extends Controller
 {
@@ -99,13 +100,12 @@ class PaymentController extends Controller
             }
 
             // Update payment information
-            $invoice->uang_muka = $invoice->uang_muka + $jumlahPayment;
             $invoice->sisa_bayar = $invoice->sisa_bayar - $jumlahPayment;
             
             // Update payment status
             if ($invoice->sisa_bayar <= 0) {
                 $invoice->status_bayar = 'paid';
-            } elseif ($invoice->uang_muka > 0) {
+            } elseif ($invoice->sisa_bayar < $invoice->grand_total && $invoice->sisa_bayar > 0) {
                 $invoice->status_bayar = 'partial';
             } else {
                 $invoice->status_bayar = 'pending';
@@ -120,6 +120,14 @@ class PaymentController extends Controller
 
             $invoice->save();
 
+            // Create payment detail record
+            $payment = Payment::create([
+                'invoice_pod_id' => $invoice->id,
+                'jumlah_payment' => $jumlahPayment,
+                'tanggal_payment' => $request->tanggal_payment ? Carbon::parse($request->tanggal_payment)->format('Y-m-d') : now()->format('Y-m-d'),
+                'catatan' => $request->catatan ?? null,
+            ]);
+
             DB::commit();
 
             // Load relationships for response
@@ -133,7 +141,12 @@ class PaymentController extends Controller
                 'uang_muka' => $invoice->uang_muka,
                 'sisa_bayar' => $invoice->sisa_bayar,
                 'status_bayar' => $invoice->status_bayar,
-                'jumlah_payment' => $jumlahPayment,
+                'payment' => [
+                    'id' => $payment->id,
+                    'jumlah_payment' => (float) $payment->jumlah_payment,
+                    'tanggal_payment' => $payment->tanggal_payment ? Carbon::parse($payment->tanggal_payment)->format('Y-m-d') : null,
+                    'catatan' => $payment->catatan,
+                ],
             ], 'Pembayaran berhasil diproses');
 
         } catch (\Exception $e) {
@@ -160,8 +173,8 @@ class PaymentController extends Controller
             // Sebagian (partial) - Invoice dengan status_bayar = 'partial'
             $sebagian = InvoicePod::where('status_bayar', 'partial')->count();
 
-            // Total Dibayar - Sum dari semua uang_muka
-            $totalDibayar = InvoicePod::sum('uang_muka');
+            // Total Dibayar - Sum dari semua jumlah_payment di payment
+            $totalDibayar = Payment::sum('jumlah_payment');
 
             return $this->successResponse([
                 'total_invoice' => $totalInvoice,

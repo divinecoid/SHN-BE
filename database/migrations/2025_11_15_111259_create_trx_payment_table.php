@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('invoice_pod_id')->constrained('out_invoicepod')->onDelete('restrict');
             $table->decimal('jumlah_payment', 15, 2);
             $table->date('tanggal_payment');
-            $table->string('catatan');
+            $table->string('catatan')->nullable();
             $table->timestamps();
         });
     }

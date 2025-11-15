@@ -8,6 +8,7 @@ use App\Models\Traits\HideTimestampsInRelations;
 use App\Models\Transactions\WorkOrderPlanning;
 use App\Models\MasterData\SalesOrder;
 use App\Models\Transactions\WorkOrderActual;
+use App\Models\Transactions\Payment;
 
 class InvoicePod extends Model
 {
