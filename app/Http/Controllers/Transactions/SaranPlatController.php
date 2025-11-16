@@ -28,7 +28,8 @@ class SaranPlatController extends Controller
             'bentuk_barang_id' => 'required|exists:ref_bentuk_barang,id',
             'grade_barang_id' => 'required|exists:ref_grade_barang,id',
             'tebal' => 'required|numeric',
-            'sisa_luas' => 'required|numeric',
+            'sisa_panjang' => 'required|numeric',
+            'sisa_lebar' => 'required|numeric',
         ]);
 
         if ($validator->fails()) {
@@ -44,13 +45,15 @@ class SaranPlatController extends Controller
             ->where('bentuk_barang_id', $request->bentuk_barang_id)
             ->where('grade_barang_id', $request->grade_barang_id)
             ->where('tebal', $request->tebal)
-            ->where('sisa_luas', '>=', $request->sisa_luas)
+            ->where('sisa_panjang', '>=', $request->sisa_panjang)
+            ->where('sisa_lebar', '>=', $request->sisa_lebar)
             ->where(function($query) use ($currentUserId) {
                 $query->where('is_edit', false)
                       ->orWhereNull('is_edit')
                       ->orWhere('user_id', $currentUserId); // Kalau yang edit user yang sama, tetap return
             })
-            ->orderBy('sisa_luas', 'asc')
+            ->orderBy('sisa_panjang', 'asc')
+            ->orderBy('sisa_lebar', 'asc')
             ->get();
 
         // Mapping data untuk response
@@ -62,7 +65,8 @@ class SaranPlatController extends Controller
                     (is_null($item->panjang) ? '' : ($item->panjang . ' x ')) .
                     (is_null($item->lebar) ? '' : ($item->lebar . ' x ')) .
                     (is_null($item->tebal) ? '' : $item->tebal),
-                'sisa_luas' => $item->sisa_luas,
+                'sisa_panjang' => $item->sisa_panjang,
+                'sisa_lebar' => $item->sisa_lebar,
             ];
         });
         return $this->successResponse($data);
@@ -105,7 +109,8 @@ class SaranPlatController extends Controller
                       ->orWhereNull('is_edit')
                       ->orWhere('user_id', $currentUserId); // Kalau yang edit user yang sama, tetap return
             })
-            ->orderBy('sisa_luas', 'asc')
+            ->orderBy('sisa_panjang', 'asc')
+            ->orderBy('sisa_lebar', 'asc')
             ->get();
 
         // Mapping data untuk response
@@ -117,7 +122,8 @@ class SaranPlatController extends Controller
                     (is_null($item->panjang) ? '' : ($item->panjang . ' x ')) .
                     (is_null($item->lebar) ? '' : ($item->lebar . ' x ')) .
                     (is_null($item->tebal) ? '' : $item->tebal),
-                'sisa_luas' => $item->sisa_luas,
+                'sisa_panjang' => $item->sisa_panjang,
+                'sisa_lebar' => $item->sisa_lebar,
             ];
         });
         return $this->successResponse($data);
