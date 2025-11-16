@@ -15,6 +15,7 @@ class Payment extends Model
 
     protected $fillable = [
         'invoice_pod_id',
+        'purchase_order_id',
         'jumlah_payment',
         'tanggal_payment',
         'catatan',
@@ -36,6 +37,11 @@ class Payment extends Model
     public function invoicePod()
     {
         return $this->belongsTo(InvoicePod::class, 'invoice_pod_id');
+    }
+
+    public function purchaseOrder()
+    {
+        return $this->belongsTo(PurchaseOrder::class, 'purchase_order_id');
     }
 }
 

@@ -144,5 +144,47 @@ class DashboardController extends Controller
             'work_orders' => $customResponse,
         ]);
     }
+
+    public function general(Request $request)
+    {
+        $dateRange = $this->getDateRange($request);
+
+        // Total jumlah Purchase Order (count)
+        $totalJumlahPO = PurchaseOrder::whereBetween('tanggal_po', [$dateRange['date_from'], $dateRange['date_to']])
+            ->count();
+
+        // Total rupiah Purchase Order (sum of total_amount)
+        $totalRupiahPO = PurchaseOrder::whereBetween('tanggal_po', [$dateRange['date_from'], $dateRange['date_to']])
+            ->sum('total_amount') ?? 0;
+
+        // Total AR (Accounts Receivable) - sum of sisa_bayar from invoices with outstanding balance
+        // Filter berdasarkan tanggal cetak invoice
+        $totalAR = InvoicePod::where('sisa_bayar', '>', 0)
+            ->whereNotNull('sisa_bayar')
+            ->whereNotNull('tanggal_cetak_invoice')
+            ->whereBetween('tanggal_cetak_invoice', [$dateRange['date_from'], $dateRange['date_to']])
+            ->sum('sisa_bayar') ?? 0;
+
+        // Total AP (Accounts Payable) - sum of total_amount from unpaid purchase orders
+        // Filter berdasarkan tanggal PO (konsisten dengan total_jumlah_po dan total_rupiah_po)
+        $totalAP = PurchaseOrder::where(function ($query) {
+                $query->where('status', '!=', 'paid')
+                    ->orWhereNull('tanggal_pembayaran');
+            })
+            ->whereNotNull('total_amount')
+            ->whereBetween('tanggal_po', [$dateRange['date_from'], $dateRange['date_to']])
+            ->sum('total_amount') ?? 0;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'General Dashboard',
+            'data' => [
+                'total_jumlah_po' => $totalJumlahPO,
+                'total_rupiah_po' => (float) $totalRupiahPO,
+                'total_ar' => (float) $totalAR,
+                'total_ap' => (float) $totalAP,
+            ],
+        ]);
+    }
 }
 

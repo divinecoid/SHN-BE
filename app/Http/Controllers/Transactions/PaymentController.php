@@ -10,6 +10,7 @@ use App\Http\Traits\ApiFilterTrait;
 use App\Models\Output\InvoicePod;
 use App\Models\Transactions\WorkOrderPlanning;
 use App\Models\Transactions\Payment;
+use App\Models\Transactions\PurchaseOrder;
 use App\Http\Controllers\MasterData\DocumentSequenceController;
 use Carbon\Carbon;
 
@@ -164,6 +165,107 @@ class PaymentController extends Controller
     }
 
     /**
+     * Submit payment for a purchase order.
+     */
+    public function submitPurchaseOrderPayment(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'nomor_po' => 'required|exists:trx_purchase_order,nomor_po',
+            'jumlah_payment' => 'required|numeric|min:0.01',
+            'tanggal_payment' => 'nullable|date',
+            'catatan' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->errorResponse($validator->errors()->first(), 422);
+        }
+
+        DB::beginTransaction();
+        try {
+            $purchaseOrder = PurchaseOrder::with('payments')
+                ->where('nomor_po', $request->nomor_po)
+                ->first();
+            
+            if (!$purchaseOrder) {
+                return $this->errorResponse('Purchase Order tidak ditemukan', 404);
+            }
+
+            $jumlahPayment = (float) $request->jumlah_payment;
+
+            // Calculate current total payment and remaining balance
+            $totalPayment = $purchaseOrder->payments->sum('jumlah_payment');
+            $sisaBayar = (float) $purchaseOrder->total_amount - $totalPayment;
+
+            // Validate that payment doesn't exceed remaining balance
+            if ($jumlahPayment > $sisaBayar) {
+                DB::rollBack();
+                return $this->errorResponse('Jumlah pembayaran melebihi sisa bayar. Sisa bayar: ' . number_format($sisaBayar, 2, ',', '.'), 422);
+            }
+
+            // Calculate new remaining balance after payment
+            $sisaBayarBaru = $sisaBayar - $jumlahPayment;
+            
+            // Update payment status
+            if ($sisaBayarBaru <= 0) {
+                $purchaseOrder->status_bayar = 'paid';
+            } elseif ($sisaBayarBaru < $purchaseOrder->total_amount && $sisaBayarBaru > 0) {
+                $purchaseOrder->status_bayar = 'partial';
+            } else {
+                $purchaseOrder->status_bayar = 'pending';
+            }
+
+            // Update catatan if provided
+            if ($request->has('catatan') && $request->catatan) {
+                $purchaseOrder->catatan = ($purchaseOrder->catatan ? $purchaseOrder->catatan . "\n" : '') . 
+                    date('Y-m-d H:i:s') . ' - Payment: ' . number_format($jumlahPayment, 2, ',', '.') . 
+                    ($request->catatan ? ' - ' . $request->catatan : '');
+            }
+
+            $purchaseOrder->save();
+
+            // Create payment detail record
+            $payment = Payment::create([
+                'purchase_order_id' => $purchaseOrder->id,
+                'jumlah_payment' => $jumlahPayment,
+                'tanggal_payment' => $request->tanggal_payment ? Carbon::parse($request->tanggal_payment)->format('Y-m-d') : now()->format('Y-m-d'),
+                'catatan' => $request->catatan ?? null,
+            ]);
+
+            // Update jumlah_dibayar (recalculate total payments)
+            $purchaseOrder->refresh();
+            $purchaseOrder->load('payments');
+            $totalPaymentBaru = $purchaseOrder->payments->sum('jumlah_payment');
+            $purchaseOrder->jumlah_dibayar = $totalPaymentBaru;
+            $purchaseOrder->save();
+
+            DB::commit();
+
+            // Load relationships for response
+            $purchaseOrder->load(['supplier']);
+
+            return $this->successResponse([
+                'id' => $purchaseOrder->id,
+                'nomor_po' => $purchaseOrder->nomor_po,
+                'nama_supplier' => $purchaseOrder->supplier->nama_supplier ?? null,
+                'total_amount' => (float) $purchaseOrder->total_amount,
+                'jumlah_dibayar' => (float) $purchaseOrder->jumlah_dibayar,
+                'sisa_bayar' => (float) $sisaBayarBaru,
+                'status_bayar' => $purchaseOrder->status_bayar,
+                'payment' => [
+                    'id' => $payment->id,
+                    'jumlah_payment' => (float) $payment->jumlah_payment,
+                    'tanggal_payment' => $payment->tanggal_payment ? Carbon::parse($payment->tanggal_payment)->format('Y-m-d') : null,
+                    'catatan' => $payment->catatan,
+                ],
+            ], 'Pembayaran purchase order berhasil diproses');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->errorResponse('Gagal memproses pembayaran purchase order: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
      * Get payment summary statistics.
      */
     public function summary(Request $request)
@@ -265,6 +367,89 @@ class PaymentController extends Controller
                 'summary' => [
                     'total_payment' => (float) $totalPayment,
                     'total_payment_count' => $payments->count(),
+                ],
+            ],
+        ]);
+    }
+
+    /**
+     * Get payment detail for a purchase order.
+     */
+    public function purchaseOrderPaymentDetail(Request $request)
+    {
+        $purchaseOrderId = $request->query('purchase_order_id');
+        $nomorPo = $request->query('nomor_po');
+
+        if (!$purchaseOrderId && !$nomorPo) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Purchase Order ID atau nomor PO harus disertakan',
+                'data' => null,
+            ], 400);
+        }
+
+        $query = PurchaseOrder::with(['payments', 'supplier']);
+
+        if ($purchaseOrderId) {
+            $purchaseOrder = $query->find($purchaseOrderId);
+        } else {
+            $purchaseOrder = $query->where('nomor_po', $nomorPo)->first();
+        }
+
+        if (!$purchaseOrder) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Purchase Order tidak ditemukan',
+                'data' => null,
+            ], 404);
+        }
+
+        // Format payment details
+        $payments = $purchaseOrder->payments->map(function ($payment) {
+            return [
+                'id' => $payment->id,
+                'jumlah_payment' => (float) $payment->jumlah_payment,
+                'tanggal_payment' => $payment->tanggal_payment ? Carbon::parse($payment->tanggal_payment)->format('Y-m-d') : null,
+                'catatan' => $payment->catatan,
+                'created_at' => $payment->created_at ? Carbon::parse($payment->created_at)->timezone('Asia/Jakarta')->toDateTimeString() : null,
+            ];
+        });
+
+        // Calculate total payment from payments (for validation)
+        $totalPayment = $purchaseOrder->payments->sum('jumlah_payment');
+        
+        // Use jumlah_dibayar from database (should be the same as totalPayment)
+        $jumlahDibayar = (float) ($purchaseOrder->jumlah_dibayar ?? $totalPayment);
+        
+        // Calculate remaining balance
+        $sisaBayar = (float) $purchaseOrder->total_amount - $jumlahDibayar;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Detail payment purchase order berhasil diambil',
+            'data' => [
+                'purchase_order' => [
+                    'id' => $purchaseOrder->id,
+                    'nomor_po' => $purchaseOrder->nomor_po,
+                    'tanggal_po' => $purchaseOrder->tanggal_po ? Carbon::parse($purchaseOrder->tanggal_po)->timezone('Asia/Jakarta')->toDateTimeString() : null,
+                    'tanggal_penerimaan' => $purchaseOrder->tanggal_penerimaan ? Carbon::parse($purchaseOrder->tanggal_penerimaan)->timezone('Asia/Jakarta')->toDateTimeString() : null,
+                    'tanggal_jatuh_tempo' => $purchaseOrder->tanggal_jatuh_tempo ? Carbon::parse($purchaseOrder->tanggal_jatuh_tempo)->timezone('Asia/Jakarta')->toDateTimeString() : null,
+                    'tanggal_pembayaran' => $purchaseOrder->tanggal_pembayaran ? Carbon::parse($purchaseOrder->tanggal_pembayaran)->timezone('Asia/Jakarta')->toDateTimeString() : null,
+                    'total_amount' => (float) $purchaseOrder->total_amount,
+                    'jumlah_dibayar' => (float) $jumlahDibayar,
+                    'status' => $purchaseOrder->status,
+                    'status_bayar' => $purchaseOrder->status_bayar,
+                    'catatan' => $purchaseOrder->catatan,
+                ],
+                'supplier' => [
+                    'id' => $purchaseOrder->supplier->id ?? null,
+                    'nama_supplier' => $purchaseOrder->supplier->nama_supplier ?? null,
+                ],
+                'payments' => $payments,
+                'summary' => [
+                    'total_payment' => (float) $totalPayment,
+                    'total_payment_count' => $payments->count(),
+                    'sisa_bayar' => (float) $sisaBayar,
                 ],
             ],
         ]);
