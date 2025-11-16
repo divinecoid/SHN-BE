@@ -564,4 +564,161 @@ class PaymentController extends Controller
             return $this->errorResponse('Gagal generate receipt: ' . $e->getMessage(), 500);
         }
     }
+
+    /**
+     * Get financial report combining payment invoice and payment purchase order.
+     */
+    public function financialReport(Request $request)
+    {
+        try {
+            $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
+            
+            // Get date range from request (optional)
+            $dateFrom = $request->query('date_from');
+            $dateTo = $request->query('date_to');
+            
+            // Query all payments with relationships
+            $query = Payment::with(['invoicePod.salesOrder.pelanggan', 'purchaseOrder.supplier']);
+            
+            // Apply date filter if provided
+            if ($dateFrom || $dateTo) {
+                if ($dateFrom && $dateTo) {
+                    $query->whereBetween('tanggal_payment', [
+                        Carbon::parse($dateFrom)->startOfDay(),
+                        Carbon::parse($dateTo)->endOfDay()
+                    ]);
+                } elseif ($dateFrom) {
+                    $query->where('tanggal_payment', '>=', Carbon::parse($dateFrom)->startOfDay());
+                } elseif ($dateTo) {
+                    $query->where('tanggal_payment', '<=', Carbon::parse($dateTo)->endOfDay());
+                }
+            }
+            
+            // Apply search filter
+            if ($search = $request->input('search')) {
+                $query->where(function ($q) use ($search) {
+                    $q->whereHas('invoicePod', function ($subQ) use ($search) {
+                        $subQ->where('nomor_invoice', 'like', "%{$search}%")
+                            ->orWhereHas('salesOrder.pelanggan', function ($pelQ) use ($search) {
+                                $pelQ->where('nama_pelanggan', 'like', "%{$search}%");
+                            });
+                    })
+                    ->orWhereHas('purchaseOrder', function ($subQ) use ($search) {
+                        $subQ->where('nomor_po', 'like', "%{$search}%")
+                            ->orWhereHas('supplier', function ($supQ) use ($search) {
+                                $supQ->where('nama_supplier', 'like', "%{$search}%");
+                            });
+                    })
+                    ->orWhere('nomor_receipt', 'like', "%{$search}%");
+                });
+            }
+            
+            // Order by tanggal_payment descending (newest first)
+            $query->orderBy('tanggal_payment', 'desc')->orderBy('created_at', 'desc');
+            
+            $payments = $query->get();
+            
+            // Format payments into unified structure
+            $formattedPayments = $payments->map(function ($payment) {
+                $paymentData = [
+                    'id' => $payment->id,
+                    'tanggal_payment' => $payment->tanggal_payment ? Carbon::parse($payment->tanggal_payment)->format('Y-m-d') : null,
+                    'jumlah_payment' => (float) $payment->jumlah_payment,
+                    'catatan' => $payment->catatan,
+                    'nomor_receipt' => $payment->nomor_receipt,
+                    'has_generated_receipt' => $payment->has_generated_receipt,
+                    'created_at' => $payment->created_at ? Carbon::parse($payment->created_at)->timezone('Asia/Jakarta')->toDateTimeString() : null,
+                ];
+                
+                // Check if payment is for invoice or purchase order
+                if ($payment->invoice_pod_id) {
+                    // Invoice Payment
+                    $paymentData['type'] = 'invoice';
+                    $paymentData['invoice'] = [
+                        'id' => $payment->invoicePod->id ?? null,
+                        'nomor_invoice' => $payment->invoicePod->nomor_invoice ?? null,
+                        'grand_total' => (float) ($payment->invoicePod->grand_total ?? 0),
+                        'sisa_bayar' => (float) ($payment->invoicePod->sisa_bayar ?? 0),
+                        'status_bayar' => $payment->invoicePod->status_bayar ?? null,
+                    ];
+                    $paymentData['customer'] = [
+                        'id' => $payment->invoicePod->salesOrder->pelanggan->id ?? null,
+                        'nama_pelanggan' => $payment->invoicePod->salesOrder->pelanggan->nama_pelanggan ?? null,
+                        'nomor_so' => $payment->invoicePod->salesOrder->nomor_so ?? null,
+                    ];
+                    $paymentData['supplier'] = null;
+                    $paymentData['purchase_order'] = null;
+                } elseif ($payment->purchase_order_id) {
+                    // Purchase Order Payment
+                    $paymentData['type'] = 'purchase_order';
+                    $paymentData['purchase_order'] = [
+                        'id' => $payment->purchaseOrder->id ?? null,
+                        'nomor_po' => $payment->purchaseOrder->nomor_po ?? null,
+                        'total_amount' => (float) ($payment->purchaseOrder->total_amount ?? 0),
+                        'jumlah_dibayar' => (float) ($payment->purchaseOrder->jumlah_dibayar ?? 0),
+                        'sisa_bayar' => (float) (($payment->purchaseOrder->total_amount ?? 0) - ($payment->purchaseOrder->jumlah_dibayar ?? 0)),
+                        'status_bayar' => $payment->purchaseOrder->status_bayar ?? null,
+                    ];
+                    $paymentData['supplier'] = [
+                        'id' => $payment->purchaseOrder->supplier->id ?? null,
+                        'nama_supplier' => $payment->purchaseOrder->supplier->nama_supplier ?? null,
+                    ];
+                    $paymentData['invoice'] = null;
+                    $paymentData['customer'] = null;
+                }
+                
+                return $paymentData;
+            });
+            
+            // Calculate summary
+            $totalInvoicePayment = $payments->filter(function ($payment) {
+                return $payment->invoice_pod_id !== null;
+            })->sum('jumlah_payment');
+            
+            $totalPOPayment = $payments->filter(function ($payment) {
+                return $payment->purchase_order_id !== null;
+            })->sum('jumlah_payment');
+            
+            $totalPayment = $payments->sum('jumlah_payment');
+            
+            // Paginate results
+            $currentPage = (int)($request->input('page', 1));
+            $offset = ($currentPage - 1) * $perPage;
+            $paginatedItems = $formattedPayments->slice($offset, $perPage)->values();
+            $total = $formattedPayments->count();
+            $lastPage = (int)ceil($total / $perPage);
+            
+            // Calculate cash growth: total_payment - total_po_payment
+            // This represents net cash inflow (invoice payments - PO payments)
+            $cashGrowth = $totalPayment - $totalPOPayment;
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Financial report berhasil diambil',
+                'data' => $paginatedItems,
+                'summary' => [
+                    'total_invoice_payment' => (float) $totalInvoicePayment,
+                    'total_po_payment' => (float) $totalPOPayment,
+                    'total_payment' => (float) $totalPayment,
+                    'cash_growth' => (float) $cashGrowth,
+                    'total_invoice_count' => $payments->filter(function ($payment) {
+                        return $payment->invoice_pod_id !== null;
+                    })->count(),
+                    'total_po_count' => $payments->filter(function ($payment) {
+                        return $payment->purchase_order_id !== null;
+                    })->count(),
+                    'total_count' => $payments->count(),
+                ],
+                'pagination' => [
+                    'current_page' => $currentPage,
+                    'per_page' => $perPage,
+                    'last_page' => $lastPage,
+                    'total' => $total,
+                ],
+            ]);
+            
+        } catch (\Exception $e) {
+            return $this->errorResponse('Gagal mengambil financial report: ' . $e->getMessage(), 500);
+        }
+    }
 }

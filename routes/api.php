@@ -517,6 +517,7 @@ Route::prefix('invoice-pod')->middleware('checkrole')->group(function () {
 Route::prefix('payment')->middleware('checkrole')->group(function () {
     Route::get('/', [PaymentController::class, 'index']);
     Route::get('/summary', [PaymentController::class, 'summary']);
+    Route::get('/financial-report', [PaymentController::class, 'financialReport']);
     Route::post('/submit-payment', [PaymentController::class, 'submitPayment']);
     Route::get('/payment-detail', [PaymentController::class, 'paymentDetail']);
     Route::post('/generate-receipt', [PaymentController::class, 'generateReceipt']);
@@ -582,8 +583,8 @@ Route::prefix('item-barang-request')->middleware('checkrole')->group(function ()
 });
 
 Route::prefix('dashboard')->middleware('checkrole')->group(function() {
-    Route::get('/general', [DashboardController::class, 'general']);
     Route::get('/workshop', [DashboardController::class, 'workshop']);
+    Route::get('/general', [DashboardController::class, 'general']);
     Route::get('/sales-order', [DashboardController::class, 'salesOrder']);
     Route::get('/work-order-planning', [DashboardController::class, 'workOrderPlanning']);
     Route::get('/work-order-actual', [DashboardController::class, 'workOrderActual']);
