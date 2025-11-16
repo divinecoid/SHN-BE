@@ -165,15 +165,18 @@ class DashboardController extends Controller
             ->whereBetween('tanggal_cetak_invoice', [$dateRange['date_from'], $dateRange['date_to']])
             ->sum('sisa_bayar') ?? 0;
 
-        // Total AP (Accounts Payable) - sum of total_amount from unpaid purchase orders
+        // Total AP (Accounts Payable) - sum of sisa_bayar from unpaid/partial paid purchase orders
+        // Sisa bayar = total_amount - jumlah_dibayar
         // Filter berdasarkan tanggal PO (konsisten dengan total_jumlah_po dan total_rupiah_po)
-        $totalAP = PurchaseOrder::where(function ($query) {
-                $query->where('status', '!=', 'paid')
-                    ->orWhereNull('tanggal_pembayaran');
-            })
+        // Hanya PO dengan status_bayar = 'pending' atau 'partial' yang dihitung
+        $totalAP = PurchaseOrder::whereIn('status_bayar', ['pending', 'partial'])
             ->whereNotNull('total_amount')
             ->whereBetween('tanggal_po', [$dateRange['date_from'], $dateRange['date_to']])
-            ->sum('total_amount') ?? 0;
+            ->get()
+            ->sum(function ($po) {
+                $jumlahDibayar = (float) ($po->jumlah_dibayar ?? 0);
+                return (float) $po->total_amount - $jumlahDibayar;
+            }) ?? 0;
 
         return response()->json([
             'success' => true,
