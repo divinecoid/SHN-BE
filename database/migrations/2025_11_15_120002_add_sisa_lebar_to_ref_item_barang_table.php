@@ -6,23 +6,17 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::table('ref_item_barang', function (Blueprint $table) {
-            $table->decimal('sisa_panjang', 15, 2)->nullable()->after('sisa_luas');
+            $table->decimal('sisa_lebar', 15, 2)->nullable()->after('sisa_panjang');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::table('ref_item_barang', function (Blueprint $table) {
-            $table->dropColumn('sisa_panjang');
+            $table->dropColumn('sisa_lebar');
         });
     }
 };
