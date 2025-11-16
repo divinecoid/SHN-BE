@@ -335,6 +335,8 @@ class PaymentController extends Controller
                 'jumlah_payment' => (float) $payment->jumlah_payment,
                 'tanggal_payment' => $payment->tanggal_payment ? Carbon::parse($payment->tanggal_payment)->format('Y-m-d') : null,
                 'catatan' => $payment->catatan,
+                'nomor_receipt' => $payment->nomor_receipt,
+                'has_generated_receipt' => !is_null($payment->nomor_receipt),
                 'created_at' => $payment->created_at ? Carbon::parse($payment->created_at)->timezone('Asia/Jakarta')->toDateTimeString() : null,
             ];
         });
@@ -411,6 +413,8 @@ class PaymentController extends Controller
                 'jumlah_payment' => (float) $payment->jumlah_payment,
                 'tanggal_payment' => $payment->tanggal_payment ? Carbon::parse($payment->tanggal_payment)->format('Y-m-d') : null,
                 'catatan' => $payment->catatan,
+                'nomor_receipt' => $payment->nomor_receipt,
+                'has_generated_receipt' => !is_null($payment->nomor_receipt),
                 'created_at' => $payment->created_at ? Carbon::parse($payment->created_at)->timezone('Asia/Jakarta')->toDateTimeString() : null,
             ];
         });
@@ -461,7 +465,7 @@ class PaymentController extends Controller
     public function generateReceipt(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'invoice_id' => 'required|exists:out_invoicepod,id',
+            'payment_id' => 'required|exists:trx_payment,id',
         ]);
 
         if ($validator->fails()) {
@@ -470,25 +474,22 @@ class PaymentController extends Controller
 
         DB::beginTransaction();
         try {
-            $invoice = InvoicePod::with(['salesOrder.pelanggan', 'invoicePodItems'])
-                ->find($request->invoice_id);
-
-            if (!$invoice) {
-                return $this->errorResponse('Invoice tidak ditemukan', 404);
-            }
-
-            // Find latest payment for this invoice (can generate receipt multiple times)
-            $payment = Payment::where('invoice_pod_id', $invoice->id)
-                ->orderBy('created_at', 'desc')
-                ->first();
+            // Find payment directly by payment_id
+            $payment = Payment::find($request->payment_id);
 
             if (!$payment) {
-                DB::rollBack();
-                return $this->errorResponse('Tidak ada payment untuk invoice ini', 400);
+                return $this->errorResponse('Payment tidak ditemukan', 404);
             }
 
-            // Load relationships for payment
-            $payment->load(['invoicePod.salesOrder.pelanggan', 'invoicePod.invoicePodItems']);
+            // Load relationships based on payment type (invoice or purchase order)
+            if ($payment->invoice_pod_id) {
+                $payment->load(['invoicePod.salesOrder.pelanggan', 'invoicePod.invoicePodItems']);
+            } elseif ($payment->purchase_order_id) {
+                $payment->load(['purchaseOrder.supplier']);
+            } else {
+                DB::rollBack();
+                return $this->errorResponse('Payment tidak memiliki invoice atau purchase order', 400);
+            }
 
             // Check if receipt number already exists, if yes use existing, if no generate new
             if ($payment->nomor_receipt) {
@@ -503,9 +504,8 @@ class PaymentController extends Controller
                 }
                 $nomorReceipt = $nomorReceiptResponse->getData()->data;
 
-                // Update payment with receipt number and mark as generated
+                // Update payment with receipt number
                 $payment->nomor_receipt = $nomorReceipt;
-                $payment->has_generated_receipt = true;
                 $payment->save();
 
                 // Update sequence counter after successfully generating receipt
@@ -514,20 +514,25 @@ class PaymentController extends Controller
 
             DB::commit();
 
-            // Format response
-            return $this->successResponse([
+            // Format response based on payment type
+            $responseData = [
                 'payment' => [
                     'id' => $payment->id,
                     'jumlah_payment' => (float) $payment->jumlah_payment,
                     'tanggal_payment' => $payment->tanggal_payment ? Carbon::parse($payment->tanggal_payment)->format('Y-m-d') : null,
                     'catatan' => $payment->catatan,
-                    'has_generated_receipt' => $payment->has_generated_receipt,
+                    'has_generated_receipt' => !is_null($payment->nomor_receipt),
                 ],
                 'receipt' => [
                     'nomor_receipt' => $nomorReceipt,
                     'tanggal_generate' => now()->setTimezone('Asia/Jakarta')->format('Y-m-d H:i:s'),
                 ],
-                'invoice' => [
+            ];
+
+            // Add invoice or purchase order data based on payment type
+            if ($payment->invoice_pod_id && $payment->invoicePod) {
+                $responseData['type'] = 'invoice';
+                $responseData['invoice'] = [
                     'id' => $payment->invoicePod->id ?? null,
                     'nomor_invoice' => $payment->invoicePod->nomor_invoice ?? null,
                     'tanggal_cetak_invoice' => $payment->invoicePod->tanggal_cetak_invoice ? Carbon::parse($payment->invoicePod->tanggal_cetak_invoice)->timezone('Asia/Jakarta')->toDateTimeString() : null,
@@ -551,13 +556,34 @@ class PaymentController extends Controller
                             'harga_per_unit' => (float) $item->harga_per_unit,
                             'total_harga' => (float) $item->total_harga,
                         ];
-                    }),
-                ],
-                'customer' => [
+                    })->toArray(),
+                ];
+                $responseData['customer'] = [
                     'id' => $payment->invoicePod->salesOrder->pelanggan->id ?? null,
                     'nama_pelanggan' => $payment->invoicePod->salesOrder->pelanggan->nama_pelanggan ?? null,
-                ],
-            ], 'Receipt berhasil digenerate');
+                ];
+                $responseData['purchase_order'] = null;
+                $responseData['supplier'] = null;
+            } elseif ($payment->purchase_order_id && $payment->purchaseOrder) {
+                $responseData['type'] = 'purchase_order';
+                $responseData['purchase_order'] = [
+                    'id' => $payment->purchaseOrder->id ?? null,
+                    'nomor_po' => $payment->purchaseOrder->nomor_po ?? null,
+                    'tanggal_po' => $payment->purchaseOrder->tanggal_po ? Carbon::parse($payment->purchaseOrder->tanggal_po)->timezone('Asia/Jakarta')->toDateTimeString() : null,
+                    'total_amount' => (float) ($payment->purchaseOrder->total_amount ?? 0),
+                    'jumlah_dibayar' => (float) ($payment->purchaseOrder->jumlah_dibayar ?? 0),
+                    'sisa_bayar' => (float) (($payment->purchaseOrder->total_amount ?? 0) - ($payment->purchaseOrder->jumlah_dibayar ?? 0)),
+                    'status_bayar' => $payment->purchaseOrder->status_bayar ?? null,
+                ];
+                $responseData['supplier'] = [
+                    'id' => $payment->purchaseOrder->supplier->id ?? null,
+                    'nama_supplier' => $payment->purchaseOrder->supplier->nama_supplier ?? null,
+                ];
+                $responseData['invoice'] = null;
+                $responseData['customer'] = null;
+            }
+
+            return $this->successResponse($responseData, 'Receipt berhasil digenerate');
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -626,7 +652,7 @@ class PaymentController extends Controller
                     'jumlah_payment' => (float) $payment->jumlah_payment,
                     'catatan' => $payment->catatan,
                     'nomor_receipt' => $payment->nomor_receipt,
-                    'has_generated_receipt' => $payment->has_generated_receipt,
+                    'has_generated_receipt' => !is_null($payment->nomor_receipt),
                     'created_at' => $payment->created_at ? Carbon::parse($payment->created_at)->timezone('Asia/Jakarta')->toDateTimeString() : null,
                 ];
                 
