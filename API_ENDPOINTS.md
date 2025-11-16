@@ -950,38 +950,40 @@
 
   ### Utility Endpoints
 
-  #### 13. Get Saran Plat Dasar
-  - **POST** `/api/work-order-planning/get-saran-plat-dasar`
-  - **Description**: Mendapatkan saran plat dasar berdasarkan kriteria (jenis, bentuk, grade barang, tebal, dan sisa_luas). Hanya menampilkan item yang jenis_potongan = 'potongan' dan tidak sedang diedit (is_edit = false atau null)
-  - **Request Body**:
-  ```json
-  {
-    "jenis_barang_id": 1,
-    "bentuk_barang_id": 1,
-    "grade_barang_id": 1,
-    "tebal": 10,
-    "sisa_luas": 100
-  }
-  ```
-  - **Response**: List item barang yang memenuhi kriteria, dengan jenis, bentuk, grade barang yang sama, tebal yang sama, sisa_luas lebih besar dari parameter, jenis_potongan = 'potongan', dan tidak sedang diedit (is_edit = false atau null), diurutkan berdasarkan sisa_luas (ascending).
-  - **Response Format**:
-  ```json
-  {
-    "success": true,
-    "data": [
-      {
-        "id": 1,
-        "nama": "Aluminium Shaft Grade A",
-        "ukuran": "80.5 x 45.2 x 5.0",
-        "sisa_luas": 3640.60
-      }
-    ]
-  }
-  ```
+#### 13. Get Saran Plat Dasar
+- **POST** `/api/work-order-planning/get-saran-plat-dasar`
+- **Description**: Mendapatkan saran plat dasar berdasarkan kriteria (jenis, bentuk, grade barang, tebal, sisa_panjang dan sisa_lebar). Hanya menampilkan item yang tidak sedang diedit (is_edit = false atau null)
+- **Request Body**:
+```json
+{
+  "jenis_barang_id": 1,
+  "bentuk_barang_id": 1,
+  "grade_barang_id": 1,
+  "tebal": 10,
+  "sisa_panjang": 300,
+  "sisa_lebar": 2
+}
+```
+- **Response**: List item barang yang memenuhi kriteria, dengan jenis, bentuk, grade barang yang sama, tebal yang sama, `sisa_panjang >= sisa_panjang` dan `sisa_lebar >= sisa_lebar`, diurutkan berdasarkan `sisa_panjang` lalu `sisa_lebar` (ascending).
+- **Response Format**:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "nama": "Aluminium Shaft Grade A",
+      "ukuran": "80.5 x 45.2 x 5.0",
+      "sisa_panjang": 200,
+      "sisa_lebar": 0
+    }
+  ]
+}
+```
 
-  #### 13.1. Get Saran Plat Utuh
-  - **POST** `/api/work-order-planning/get-saran-plat-utuh`
-  - **Description**: Mendapatkan saran plat dasar untuk jenis potongan 'utuh' berdasarkan kriteria (jenis, bentuk, grade barang, tebal, panjang, dan lebar). Hanya menampilkan item yang jenis_potongan = 'utuh' dan tidak sedang diedit (is_edit = false atau null)
+-#### 13.1. Get Saran Plat Utuh
+- **POST** `/api/work-order-planning/get-saran-plat-utuh`
+- **Description**: Mendapatkan saran plat dasar untuk jenis potongan 'utuh' berdasarkan kriteria (jenis, bentuk, grade barang, tebal, panjang, dan lebar). Hanya menampilkan item yang jenis_potongan = 'utuh' dan tidak sedang diedit (is_edit = false atau null), diurutkan berdasarkan `sisa_panjang` lalu `sisa_lebar` ascending.
   - **Request Body**:
   ```json
   {

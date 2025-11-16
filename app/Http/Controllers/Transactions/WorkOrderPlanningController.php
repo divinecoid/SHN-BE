@@ -1199,13 +1199,44 @@ class WorkOrderPlanningController extends Controller
             
             // Calculate sisa luas = containerArea - totalArea
             $sisaLuas = $containerArea - $totalArea;
-            
-            // Update item barang sisa_luas
+            $containerWidth = $canvasLayout['baseContainer']['width'] ?? null;
+            $containerHeight = $canvasLayout['baseContainer']['height'] ?? null;
+            if ($containerWidth === null || $containerHeight === null) {
+                if (!empty($metadata['containerSize']) && strpos($metadata['containerSize'], '×') !== false) {
+                    $parts = explode('×', $metadata['containerSize']);
+                    $containerWidth = isset($parts[0]) ? (float) $parts[0] : null;
+                    $containerHeight = isset($parts[1]) ? (float) $parts[1] : null;
+                }
+            }
+
+            $boxes = $canvasLayout['boxes'] ?? [];
+            $totalWidthUsed = 0.0;
+            $totalHeightUsed = 0.0;
+            foreach ($boxes as $box) {
+                $w = isset($box['width']) ? (float) $box['width'] : 0.0;
+                $h = isset($box['height']) ? (float) $box['height'] : 0.0;
+                $totalWidthUsed += $w;
+                $totalHeightUsed += $h;
+            }
+
+            $sisaPanjang = ($containerWidth !== null) ? ($containerWidth - $totalWidthUsed) : null;
+            $sisaLebar = ($containerHeight !== null) ? ($containerHeight - $totalHeightUsed) : null;
+
+            $updateData = [];
             if ($sisaLuas >= 0) {
+                $updateData['sisa_luas'] = $sisaLuas;
+            }
+            if ($sisaPanjang !== null) {
+                $updateData['sisa_panjang'] = $sisaPanjang < 0 ? 0 : $sisaPanjang;
+            }
+            if ($sisaLebar !== null) {
+                $updateData['sisa_lebar'] = $sisaLebar < 0 ? 0 : $sisaLebar;
+            }
+
+            if (!empty($updateData)) {
                 \App\Models\MasterData\ItemBarang::where('id', $saranData['item_barang_id'])
-                    ->update(['sisa_luas' => $sisaLuas]);
-                    
-                Log::info("Updated sisa_luas for item_barang_id {$saranData['item_barang_id']}: {$sisaLuas}");
+                    ->update($updateData);
+                Log::info("Updated sisa metrics for item_barang_id {$saranData['item_barang_id']}: " . json_encode($updateData));
             }
             
         } catch (\Exception $e) {
