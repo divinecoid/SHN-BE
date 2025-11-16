@@ -18,8 +18,8 @@ class ItemBarang extends Model
         'grade_barang_id',
         'nama_item_barang',
         'sisa_luas',
-        'sisa_panjang',
-        'sisa_lebar',
+
+
         'panjang',
         'lebar',
         'tebal',
@@ -51,8 +51,8 @@ class ItemBarang extends Model
         'lebar' => 'decimal:2',
         'tebal' => 'decimal:2',
         'berat' => 'decimal:2',
-        'sisa_panjang' => 'decimal:2',
-        'sisa_lebar' => 'decimal:2',
+
+
     ];
     
     public function jenisBarang()

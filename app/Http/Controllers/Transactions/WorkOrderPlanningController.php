@@ -1219,19 +1219,13 @@ class WorkOrderPlanningController extends Controller
                 $totalHeightUsed += $h;
             }
 
-            $sisaPanjang = ($containerWidth !== null) ? ($containerWidth - $totalWidthUsed) : null;
-            $sisaLebar = ($containerHeight !== null) ? ($containerHeight - $totalHeightUsed) : null;
+
 
             $updateData = [];
             if ($sisaLuas >= 0) {
                 $updateData['sisa_luas'] = $sisaLuas;
             }
-            if ($sisaPanjang !== null) {
-                $updateData['sisa_panjang'] = $sisaPanjang < 0 ? 0 : $sisaPanjang;
-            }
-            if ($sisaLebar !== null) {
-                $updateData['sisa_lebar'] = $sisaLebar < 0 ? 0 : $sisaLebar;
-            }
+
 
             if (!empty($updateData)) {
                 \App\Models\MasterData\ItemBarang::where('id', $saranData['item_barang_id'])
