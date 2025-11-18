@@ -28,8 +28,8 @@ class SaranPlatController extends Controller
             'bentuk_barang_id' => 'required|exists:ref_bentuk_barang,id',
             'grade_barang_id' => 'required|exists:ref_grade_barang,id',
             'tebal' => 'required|numeric',
-            'sisa_panjang' => 'required|numeric',
-            'sisa_lebar' => 'required|numeric',
+            'panjang' => 'required|numeric',
+            'lebar' => 'required|numeric',
         ]);
 
         if ($validator->fails()) {
@@ -39,24 +39,48 @@ class SaranPlatController extends Controller
         // Ambil user_id dari JWT token
         $currentUserId = auth()->id();
         
-        // Ambil data item barang sesuai kriteria yang dikirim melalui body
+        $areaNeeded = (float)$request->panjang * (float)$request->lebar;
+        $reqPanjang = (float)$request->panjang;
+        $reqLebar = (float)$request->lebar;
+
         $data = ItemBarang::with(['jenisBarang', 'bentukBarang', 'gradeBarang'])
             ->where('jenis_barang_id', $request->jenis_barang_id)
             ->where('bentuk_barang_id', $request->bentuk_barang_id)
             ->where('grade_barang_id', $request->grade_barang_id)
             ->where('tebal', $request->tebal)
-            ->where('sisa_panjang', '>=', $request->sisa_panjang)
-            ->where('sisa_lebar', '>=', $request->sisa_lebar)
+            ->where('sisa_luas', '>=', $areaNeeded)
             ->where(function($query) use ($currentUserId) {
                 $query->where('is_edit', false)
                       ->orWhereNull('is_edit')
                       ->orWhere('user_id', $currentUserId); // Kalau yang edit user yang sama, tetap return
             })
-            ->orderBy('sisa_panjang', 'asc')
-            ->orderBy('sisa_lebar', 'asc')
+            ->orderBy('sisa_luas', 'asc')
             ->get();
+        
+        $data = $data->filter(function ($item) use ($reqPanjang, $reqLebar) {
+            $fallbackCheck = function($itm) use ($reqPanjang, $reqLebar) {
+                $p = $itm->panjang;
+                $l = $itm->lebar;
+                if ($p === null || $l === null) {
+                    return false;
+                }
+                return ((float)$p >= (float)$reqPanjang) && ((float)$l >= (float)$reqLebar);
+            };
 
-        // Mapping data untuk response
+            if (!$item->canvas_file) {
+                return $fallbackCheck($item);
+            }
+            $path = storage_path('app/public/' . $item->canvas_file);
+            if (!file_exists($path)) {
+                return $fallbackCheck($item);
+            }
+            $json = json_decode(file_get_contents($path), true);
+            if (!is_array($json)) {
+                return $fallbackCheck($item);
+            }
+            return $this->canFitInCanvas($json, (float)$reqPanjang, (float)$reqLebar);
+        });
+
         $data = $data->map(function ($item) {
             return [
                 'id' => $item->id,
@@ -65,11 +89,157 @@ class SaranPlatController extends Controller
                     (is_null($item->panjang) ? '' : ($item->panjang . ' x ')) .
                     (is_null($item->lebar) ? '' : ($item->lebar . ' x ')) .
                     (is_null($item->tebal) ? '' : $item->tebal),
-                'sisa_panjang' => $item->sisa_panjang,
-                'sisa_lebar' => $item->sisa_lebar,
+                'sisa_luas' => $item->sisa_luas,
             ];
         });
-        return $this->successResponse($data);
+        return $this->successResponse($data->values()->all());
+    }
+
+    private function canFitInCanvas(array $json, float $reqW, float $reqH): bool
+    {
+        $cw = $json['baseContainer']['width'] ?? null;
+        $ch = $json['baseContainer']['height'] ?? null;
+        $meta = $json['metadata'] ?? [];
+        if (($cw === null || $ch === null) && !empty($meta['containerSize']) && strpos($meta['containerSize'], '×') !== false) {
+            $parts = explode('×', $meta['containerSize']);
+            $cw = isset($parts[0]) ? (float) $parts[0] : null;
+            $ch = isset($parts[1]) ? (float) $parts[1] : null;
+        }
+        if ($cw === null || $ch === null) {
+            return false;
+        }
+        if ($reqW <= 0 || $reqH <= 0 || $reqW > $cw || $reqH > $ch) {
+            return false;
+        }
+        $boxes = $json['boxes'] ?? [];
+        $yEdges = [0.0, (float)$ch];
+        foreach ($boxes as $b) {
+            $y0 = isset($b['y']) ? (float)$b['y'] : 0.0;
+            $h = isset($b['height']) ? (float)$b['height'] : 0.0;
+            $y1 = $y0 + $h;
+            $yEdges[] = $y0;
+            $yEdges[] = $y1;
+        }
+        $yEdges = array_values(array_unique($yEdges));
+        sort($yEdges);
+        $n = count($yEdges);
+        for ($i = 0; $i < $n - 1; $i++) {
+            $stripTop = $yEdges[$i];
+            $stripBot = $yEdges[$i + 1];
+            $stripH = $stripBot - $stripTop;
+            if ($stripH <= 0) {
+                continue;
+            }
+            $occ = [];
+            foreach ($boxes as $b) {
+                $y0 = isset($b['y']) ? (float)$b['y'] : 0.0;
+                $h = isset($b['height']) ? (float)$b['height'] : 0.0;
+                $y1 = $y0 + $h;
+                if ($y0 < $stripBot && $y1 > $stripTop) {
+                    $x0 = isset($b['x']) ? (float)$b['x'] : 0.0;
+                    $w = isset($b['width']) ? (float)$b['width'] : 0.0;
+                    $x1 = $x0 + $w;
+                    $x0 = max(0.0, min($x0, (float)$cw));
+                    $x1 = max(0.0, min($x1, (float)$cw));
+                    if ($x1 > $x0) {
+                        $occ[] = [$x0, $x1];
+                    }
+                }
+            }
+            usort($occ, function ($a, $b) { return $a[0] <=> $b[0]; });
+            $merged = [];
+            foreach ($occ as $iv) {
+                if (empty($merged) || $iv[0] > $merged[count($merged) - 1][1]) {
+                    $merged[] = [$iv[0], $iv[1]];
+                } else {
+                    $merged[count($merged) - 1][1] = max($merged[count($merged) - 1][1], $iv[1]);
+                }
+            }
+            $free = [];
+            $cur = 0.0;
+            foreach ($merged as $iv) {
+                if ($iv[0] > $cur) {
+                    $free[] = [$cur, $iv[0]];
+                }
+                $cur = max($cur, $iv[1]);
+            }
+            if ($cur < (float)$cw) {
+                $free[] = [$cur, (float)$cw];
+            }
+            foreach ($free as $seg) {
+                $w0 = $seg[0];
+                $w1 = $seg[1];
+                if (($w1 - $w0) < $reqW) {
+                    continue;
+                }
+                $xL = $w0;
+                $xR = $w1;
+                $accH = $stripH;
+                $k = $i + 1;
+                while ($accH < $reqH && $k < $n - 1) {
+                    $nextTop = $yEdges[$k];
+                    $nextBot = $yEdges[$k + 1];
+                    $nextH = $nextBot - $nextTop;
+                    if ($nextH <= 0) { $k++; continue; }
+                    $occ2 = [];
+                    foreach ($boxes as $b) {
+                        $y0 = isset($b['y']) ? (float)$b['y'] : 0.0;
+                        $h = isset($b['height']) ? (float)$b['height'] : 0.0;
+                        $y1 = $y0 + $h;
+                        if ($y0 < $nextBot && $y1 > $nextTop) {
+                            $x0 = isset($b['x']) ? (float)$b['x'] : 0.0;
+                            $w = isset($b['width']) ? (float)$b['width'] : 0.0;
+                            $x1 = $x0 + $w;
+                            $x0 = max(0.0, min($x0, (float)$cw));
+                            $x1 = max(0.0, min($x1, (float)$cw));
+                            if ($x1 > $x0) {
+                                $occ2[] = [$x0, $x1];
+                            }
+                        }
+                    }
+                    usort($occ2, function ($a, $b) { return $a[0] <=> $b[0]; });
+                    $merged2 = [];
+                    foreach ($occ2 as $iv) {
+                        if (empty($merged2) || $iv[0] > $merged2[count($merged2) - 1][1]) {
+                            $merged2[] = [$iv[0], $iv[1]];
+                        } else {
+                            $merged2[count($merged2) - 1][1] = max($merged2[count($merged2) - 1][1], $iv[1]);
+                        }
+                    }
+                    $free2 = [];
+                    $cur2 = 0.0;
+                    foreach ($merged2 as $iv) {
+                        if ($iv[0] > $cur2) {
+                            $free2[] = [$cur2, $iv[0]];
+                        }
+                        $cur2 = max($cur2, $iv[1]);
+                    }
+                    if ($cur2 < (float)$cw) {
+                        $free2[] = [$cur2, (float)$cw];
+                    }
+                    $foundOverlap = false;
+                    foreach ($free2 as $seg2) {
+                        $xxL = max($xL, $seg2[0]);
+                        $xxR = min($xR, $seg2[1]);
+                        if (($xxR - $xxL) >= $reqW) {
+                            $xL = $xxL;
+                            $xR = $xxR;
+                            $accH += $nextH;
+                            $foundOverlap = true;
+                            break;
+                        }
+                    }
+                    if (!$foundOverlap) {
+                        break;
+                    }
+                    $k++;
+                }
+                if ($accH >= $reqH) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
@@ -109,8 +279,7 @@ class SaranPlatController extends Controller
                       ->orWhereNull('is_edit')
                       ->orWhere('user_id', $currentUserId); // Kalau yang edit user yang sama, tetap return
             })
-            ->orderBy('sisa_panjang', 'asc')
-            ->orderBy('sisa_lebar', 'asc')
+            ->orderBy('sisa_luas', 'asc')
             ->get();
 
         // Mapping data untuk response
@@ -122,11 +291,10 @@ class SaranPlatController extends Controller
                     (is_null($item->panjang) ? '' : ($item->panjang . ' x ')) .
                     (is_null($item->lebar) ? '' : ($item->lebar . ' x ')) .
                     (is_null($item->tebal) ? '' : $item->tebal),
-                'sisa_panjang' => $item->sisa_panjang,
-                'sisa_lebar' => $item->sisa_lebar,
+                'sisa_luas' => $item->sisa_luas,
             ];
         });
-        return $this->successResponse($data);
+        return $this->successResponse($data->values()->all());
     }
 
     /**
@@ -171,17 +339,41 @@ class SaranPlatController extends Controller
                 
                 $canvasFilePath = $folderPath . '/' . $fileName;
                 
-                // Update item barang dengan canvas file path dan sisa_luas (hanya di item barang, tidak di saran)
                 $itemBarang = ItemBarang::find($request->item_barang_id);
                 if ($itemBarang) {
                     $updateData = ['canvas_file' => $canvasFilePath];
-                    
-                    // Update sisa_luas dari totalArea di metadata canvas
                     $canvasDataDecoded = json_decode($canvasData, true);
-                    if (isset($canvasDataDecoded['metadata']['totalArea'])) {
-                        $updateData['sisa_luas'] = $canvasDataDecoded['metadata']['totalArea'];
+                    if (is_array($canvasDataDecoded)) {
+                        $containerWidth = $canvasDataDecoded['baseContainer']['width'] ?? null;
+                        $containerHeight = $canvasDataDecoded['baseContainer']['height'] ?? null;
+                        $metadata = $canvasDataDecoded['metadata'] ?? [];
+                        if (($containerWidth === null || $containerHeight === null) && !empty($metadata['containerSize']) && strpos($metadata['containerSize'], '×') !== false) {
+                            $parts = explode('×', $metadata['containerSize']);
+                            $containerWidth = isset($parts[0]) ? (float) $parts[0] : null;
+                            $containerHeight = isset($parts[1]) ? (float) $parts[1] : null;
+                        }
+                        $boxes = $canvasDataDecoded['boxes'] ?? [];
+                        $totalWidthUsed = 0.0;
+                        $totalHeightUsed = 0.0;
+                        $totalAreaBoxes = 0.0;
+                        foreach ($boxes as $box) {
+                            $w = isset($box['width']) ? (float) $box['width'] : 0.0;
+                            $h = isset($box['height']) ? (float) $box['height'] : 0.0;
+                            $totalWidthUsed += $w;
+                            $totalHeightUsed += $h;
+                            $totalAreaBoxes += ($w * $h);
+                        }
+                        $sisaPanjang = ($containerWidth !== null) ? max($containerWidth - $totalWidthUsed, 0) : null;
+                        $sisaLebar = ($containerHeight !== null) ? max($containerHeight - $totalHeightUsed, 0) : null;
+                        $containerArea = $metadata['containerArea'] ?? (($containerWidth !== null && $containerHeight !== null) ? ($containerWidth * $containerHeight) : null);
+                        $totalArea = $metadata['totalArea'] ?? $totalAreaBoxes;
+                        $sisaLuas = ($containerArea !== null && $totalArea !== null) ? max($containerArea - $totalArea, 0) : null;
+                        
+                        
+                        if ($sisaLuas !== null) {
+                            $updateData['sisa_luas'] = $sisaLuas;
+                        }
                     }
-                    
                     $itemBarang->update($updateData);
                 }
                 $saved['canvas_file'] = $canvasFilePath;
