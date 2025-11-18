@@ -119,8 +119,7 @@ class ItemBarangController extends Controller
             'is_onprogress_po' => 'nullable|boolean',
             'user_id' => 'nullable|exists:users,id',
             'gudang_id' => 'nullable|exists:ref_gudang,id',
-            'sisa_panjang' => 'nullable|numeric|min:0',
-            'sisa_lebar' => 'nullable|numeric|min:0',
+
         ]);
         if ($validator->fails()) {
             return $this->errorResponse($validator->errors()->first(), 422);
@@ -145,8 +144,7 @@ class ItemBarangController extends Controller
         } else {
             $sisa_luas = $request->panjang * $request->lebar * $request->tebal;
         }
-        $sisa_panjang = $request->sisa_panjang ?? $request->panjang;
-        $sisa_lebar = $request->sisa_lebar ?? $request->lebar;
+
         // Generate nomor sequence barang
         $sequenceBarangResponse = $this->documentSequenceController->generateDocumentSequence('barang');
         if (method_exists($sequenceBarangResponse, 'getStatusCode') && $sequenceBarangResponse->getStatusCode() !== 200) {
@@ -163,7 +161,7 @@ class ItemBarangController extends Controller
         // Rakitan data untuk store, tambahkan kode_barang secara _eksplisit_ pada array yang diinsert
         $input = $request->only([
             'jenis_barang_id', 'bentuk_barang_id', 'grade_barang_id',
-            'nama_item_barang', 'sisa_luas', 'sisa_panjang', 'sisa_lebar', 'panjang', 'lebar', 'tebal',
+            'nama_item_barang', 'sisa_luas', 'panjang', 'lebar', 'tebal',
             'berat',
             'quantity', 'jenis_potongan',
             'is_edit', 'is_onprogress_po', 'user_id', 'gudang_id'
@@ -171,8 +169,7 @@ class ItemBarangController extends Controller
         $input['kode_barang'] = $kode_barang;
         $input['nama_item_barang'] = $nama_item_barang;
         $input['sisa_luas'] = $sisa_luas;
-        $input['sisa_panjang'] = $sisa_panjang;
-        $input['sisa_lebar'] = $sisa_lebar;
+
 
         $data = ItemBarang::create($input);
 
@@ -220,8 +217,7 @@ class ItemBarangController extends Controller
             'grade_barang_id' => 'required|exists:ref_grade_barang,id',
             'nama_item_barang' => 'required|string',
             'sisa_luas' => 'nullable|numeric|min:0',
-            'sisa_panjang' => 'nullable|numeric|min:0',
-            'sisa_lebar' => 'nullable|numeric|min:0',
+
             'panjang' => 'nullable|numeric|min:0',
             'lebar' => 'nullable|numeric|min:0',
             'tebal' => 'nullable|numeric|min:0',
@@ -244,8 +240,6 @@ class ItemBarangController extends Controller
             'grade_barang_id',
             'nama_item_barang',
             'sisa_luas',
-            'sisa_panjang',
-            'sisa_lebar',
             'panjang',
             'lebar',
             'tebal',
