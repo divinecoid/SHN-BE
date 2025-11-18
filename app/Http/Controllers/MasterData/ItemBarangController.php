@@ -162,11 +162,23 @@ class ItemBarangController extends Controller
 
         // Rakitan data untuk store, tambahkan kode_barang secara _eksplisit_ pada array yang diinsert
         $input = $request->only([
-            'jenis_barang_id', 'bentuk_barang_id', 'grade_barang_id',
-            'nama_item_barang', 'sisa_luas', 'sisa_panjang', 'sisa_lebar', 'panjang', 'lebar', 'tebal',
+            'jenis_barang_id',
+            'bentuk_barang_id',
+            'grade_barang_id',
+            'nama_item_barang',
+            'sisa_luas',
+            'sisa_panjang',
+            'sisa_lebar',
+            'panjang',
+            'lebar',
+            'tebal',
             'berat',
-            'quantity', 'jenis_potongan',
-            'is_edit', 'is_onprogress_po', 'user_id', 'gudang_id'
+            'quantity',
+            'jenis_potongan',
+            'is_edit',
+            'is_onprogress_po',
+            'user_id',
+            'gudang_id'
         ]);
         $input['kode_barang'] = $kode_barang;
         $input['nama_item_barang'] = $nama_item_barang;
@@ -187,12 +199,12 @@ class ItemBarangController extends Controller
     public function show(Request $request, $id)
     {
         $query = ItemBarang::with(['jenisBarang', 'bentukBarang', 'gradeBarang', 'gudang']);
-        
+
         // Filter berdasarkan gudang_id jika ada
         if ($request->has('gudang_id') && $request->gudang_id) {
             $query->where('gudang_id', $request->gudang_id);
         }
-        
+
         $data = $query->find($id);
         if (!$data) {
             return $this->errorResponse('Data tidak ditemukan', 404);
@@ -203,12 +215,12 @@ class ItemBarangController extends Controller
     public function update(Request $request, $id)
     {
         $query = ItemBarang::query();
-        
+
         // Filter berdasarkan gudang_id jika ada
         if ($request->has('gudang_id') && $request->gudang_id) {
             $query->where('gudang_id', $request->gudang_id);
         }
-        
+
         $data = $query->find($id);
         if (!$data) {
             return $this->errorResponse('Data tidak ditemukan', 404);
@@ -325,18 +337,30 @@ class ItemBarangController extends Controller
         $items = collect($data->items());
         return response()->json($this->paginateResponse($data, $items));
     }
+
+    public function mergeable(Request $request)
+    {
+        $query = ItemBarang::with(['jenisBarang', 'bentukBarang', 'gradeBarang', 'gudang']);
+
+        $query->where('jenis_potongan', 'utuh');
+
+        $query = $this->applyFilter($query, $request, ['kode_barang', 'nama_item_barang']);
+
+        $items = $query->get();
+
+        return $this->successResponse($items, 'Data tidak ditemukan');
+
+    }
+
     public function similarType(Request $request, $id)
     {
         $data = ItemBarang::with(['jenisBarang', 'bentukBarang', 'gradeBarang', 'gudang'])->find($id);
         if (!$data) {
-            return $this->errorResponse('Data tidak ditemukan', 404);
+            return $this->successResponse(null, 'Data tidak ditemukan');
         }
-        $perPage = (int) ($request->input('per_page', $this->getPerPageDefault()));
         $query = ItemBarang::with(['jenisBarang', 'bentukBarang', 'gradeBarang', 'gudang']);
 
-        if ($request->filled('gudang_id')) {
-            $query->where('gudang_id', $request->gudang_id);
-        }
+        $query->where('gudang_id', $data->gudang_id);
 
         $query->where([
             ['jenis_barang_id', '=', $data->jenis_barang_id],
@@ -347,9 +371,8 @@ class ItemBarangController extends Controller
         ]);
 
         $query = $this->applyFilter($query, $request, ['kode_barang', 'nama_item_barang']);
-        $data = $query->paginate($perPage);
-        $items = collect($data->items());
-        return response()->json($this->paginateResponse($data, $items));
+        $items = $query->get();
+        return $this->successResponse($items, 'Data tidak ditemukan');
     }
 
     public function bulk(Request $request)
@@ -386,10 +409,10 @@ class ItemBarangController extends Controller
 
         // Apply additional filters and sorting
         $query = $this->applyFilter($query, $request, ['kode_barang', 'nama_item_barang']);
-        
+
         $data = $query->paginate($perPage);
         $items = collect($data->items());
-        
+
         return response()->json($this->paginateResponse($data, $items));
     }
 
