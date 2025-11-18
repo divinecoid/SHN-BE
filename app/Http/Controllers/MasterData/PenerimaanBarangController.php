@@ -142,12 +142,6 @@ class PenerimaanBarangController extends Controller
             // Update status based on origin
             if ($request->asal_penerimaan === 'purchaseorder' && $purchaseOrder) {
                 $purchaseOrder->update(['status' => 'received']);
-                $purchaseOrderItems = PurchaseOrderItem::where('purchase_order_id', $purchaseOrder->id)->get();
-                foreach ($purchaseOrderItems as $purchaseOrderItem) {
-                    $itemBarang = ItemBarang::find($purchaseOrderItem->id_item_barang);
-                    $itemBarang->is_onprogress_po = false;
-                    $itemBarang->save();
-                }
             } elseif ($request->asal_penerimaan === 'stockmutation' && $stockMutation) {
                 $stockMutation->update(['status' => 'accepted']);
             }
@@ -173,6 +167,12 @@ class PenerimaanBarangController extends Controller
                 $itemBarang = ItemBarang::find($detail['id']);
                 if (!$itemBarang) {
                     throw new \Exception("Item barang dengan ID {$detail['id']} tidak ditemukan");
+                }
+
+                // Update is_onprogress_po menjadi false jika barang berhasil diterima (asal dari purchase order)
+                if ($request->asal_penerimaan === 'purchaseorder') {
+                    $itemBarang->is_onprogress_po = false;
+                    $itemBarang->save();
                 }
 
                 // For now, we'll use the gudang_id as the rak_id since the new structure doesn't specify rak

@@ -64,7 +64,24 @@ class SalesOrderController extends Controller
 
             return $arrayItem;
         });
-        return response()->json($this->paginateResponse($data, $items));
+
+        // Calculate status counts from all data (not filtered)
+        $statusCounts = SalesOrder::selectRaw('status, COUNT(*) as count')
+            ->groupBy('status')
+            ->pluck('count', 'status')
+            ->toArray();
+
+        // Ensure all statuses are present with 0 if not found
+        $statusCounts = [
+            'active' => $statusCounts['active'] ?? 0,
+            'delete_requested' => $statusCounts['delete_requested'] ?? 0,
+            'deleted' => $statusCounts['deleted'] ?? 0,
+        ];
+
+        $response = $this->paginateResponse($data, $items);
+        $response['status_counts'] = $statusCounts;
+        
+        return response()->json($response);
     }
 
     public function store(Request $request)

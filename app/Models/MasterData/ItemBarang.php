@@ -29,6 +29,7 @@ class ItemBarang extends Model
         'jenis_potongan',
         'is_available',
         'is_edit',
+        'is_onprogress_po',
         'user_id',
         'canvas_file',
         'canvas_image',
@@ -47,6 +48,8 @@ class ItemBarang extends Model
     protected $casts = [
         'jenis_potongan' => 'string',
         'is_available' => 'boolean',
+        'is_edit' => 'boolean',
+        'is_onprogress_po' => 'boolean',
         'panjang' => 'decimal:2',
         'lebar' => 'decimal:2',
         'tebal' => 'decimal:2',

@@ -159,6 +159,8 @@ class PurchaseOrderController extends Controller
                                     'grade_barang_id' => $gradeBarang->id,
                                     'nama_item_barang' => $namaItemBarang,
                                     'sisa_luas' => $sisaLuas,
+                                    'sisa_panjang' => $panjang,
+                                    'sisa_lebar' => $lebar,
                                     'panjang' => $panjang,
                                     'lebar' => $lebar,
                                     'tebal' => $tebal,
