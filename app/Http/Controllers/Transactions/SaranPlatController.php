@@ -617,13 +617,13 @@ class SaranPlatController extends Controller
         }
 
         if (!$itemBarang->canvas_image) {
-            return $this->errorResponse('Canvas image tidak ditemukan untuk item ini', 404);
+            return $this->successResponse(['canvas_image' => null], 'Canvas image tidak ditemukan untuk item ini');
         }
 
         $imagePath = storage_path('app/public/' . $itemBarang->canvas_image);
         
         if (!file_exists($imagePath)) {
-            return $this->errorResponse('File image tidak ditemukan di storage', 404);
+            return $this->successResponse(['canvas_image' => null], 'File image tidak ditemukan di storage');
         }
 
         $imageData = file_get_contents($imagePath);
