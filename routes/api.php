@@ -198,6 +198,7 @@ Route::prefix('item-barang')->middleware('checkrole')->group(function () {
     Route::get('/', [ItemBarangController::class, 'index']);
     Route::get('/bulk', [ItemBarangController::class, 'bulk']);
     Route::get('/by-gudang/{gudangId}', [ItemBarangController::class, 'getByGudang']);
+    Route::get('/mergeable', [ItemBarangController::class, 'mergeable']);
     Route::get('{id}', [ItemBarangController::class, 'show']);
     Route::post('/', [ItemBarangController::class, 'store']);
     Route::put('{id}', [ItemBarangController::class, 'update']);
