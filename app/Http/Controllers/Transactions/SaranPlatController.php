@@ -92,7 +92,7 @@ class SaranPlatController extends Controller
                 'sisa_luas' => $item->sisa_luas,
             ];
         });
-        return $this->successResponse($data);
+        return $this->successResponse($data->values()->all());
     }
 
     private function canFitInCanvas(array $json, float $reqW, float $reqH): bool
@@ -294,7 +294,7 @@ class SaranPlatController extends Controller
                 'sisa_luas' => $item->sisa_luas,
             ];
         });
-        return $this->successResponse($data);
+        return $this->successResponse($data->values()->all());
     }
 
     /**
