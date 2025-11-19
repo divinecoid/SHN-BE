@@ -1097,13 +1097,13 @@ class WorkOrderPlanningController extends Controller
         }
 
         if (!$itemBarang->canvas_image) {
-            return $this->errorResponse('Canvas image tidak ditemukan untuk item ini', 404);
+            return $this->successResponse(['canvas_image' => null], 'Canvas image tidak ditemukan untuk item ini');
         }
 
         $imagePath = storage_path('app/public/' . $itemBarang->canvas_image);
         
         if (!file_exists($imagePath)) {
-            return $this->errorResponse('File image tidak ditemukan di storage', 404);
+            return $this->successResponse(['canvas_image' => null], 'File image tidak ditemukan di storage');
         }
 
         $imageData = file_get_contents($imagePath);
@@ -1179,33 +1179,31 @@ class WorkOrderPlanningController extends Controller
             foreach ($workOrder->workOrderPlanningItems as $item) {
                 // Loop melalui setiap saran plat dasar dalam item
                 foreach ($item->hasManySaranPlatShaftDasar as $saran) {
-                    // Jika ada canvas_file (path image), tambahkan ke array
-                    if (!empty($saran->canvas_file)) {
-                        $base64Image = null;
-                        $filePath = storage_path('app/public/' . $saran->canvas_file);
-                        
-                        // Cek apakah file exists dan convert ke base64
+                    $base64Image = null;
+                    $imageRelPath = $saran->itemBarang->canvas_image ?? null;
+                    if ($imageRelPath) {
+                        $filePath = storage_path('app/public/' . ltrim($imageRelPath, '/'));
                         if (file_exists($filePath)) {
                             $imageData = file_get_contents($filePath);
                             $base64Image = 'data:image/jpeg;base64,' . base64_encode($imageData);
                         }
-
-                        $images[] = [
-                            'wo_id' => $workOrder->id,
-                            'wo_unique_id' => $workOrder->wo_unique_id,
-                            'wo_item_id' => $item->id,
-                            'wo_item_unique_id' => $item->wo_item_unique_id,
-                            'saran_id' => $saran->id,
-                            'item_barang_id' => $saran->item_barang_id,
-                            'item_barang_name' => $saran->itemBarang->nama_item_barang ?? null,
-                            'canvas_file_path' => $saran->canvas_file,
-                            'canvas_image_base64' => $base64Image,
-                            'is_selected' => $saran->is_selected ?? false,
-                            'quantity' => $saran->quantity,
-                            'created_at' => $saran->created_at,
-                            'updated_at' => $saran->updated_at,
-                        ];
                     }
+
+                    $images[] = [
+                        'wo_id' => $workOrder->id,
+                        'wo_unique_id' => $workOrder->wo_unique_id,
+                        'wo_item_id' => $item->id,
+                        'wo_item_unique_id' => $item->wo_item_unique_id,
+                        'saran_id' => $saran->id,
+                        'item_barang_id' => $saran->item_barang_id,
+                        'item_barang_name' => $saran->itemBarang->nama_item_barang ?? null,
+                        'canvas_file_path' => $imageRelPath,
+                        'canvas_image_base64' => $base64Image,
+                        'is_selected' => $saran->is_selected ?? false,
+                        'quantity' => $saran->quantity,
+                        'created_at' => $saran->created_at,
+                        'updated_at' => $saran->updated_at,
+                    ];
                 }
             }
 

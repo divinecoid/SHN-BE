@@ -162,18 +162,18 @@
       - **Description**: Mendapatkan canvas data (JSON) berdasarkan item barang ID dari tabel ref_item_barang
       - **Response**: JSON canvas data langsung (tanpa wrapper object)
       - **Example**: `GET /api/item-barang/1/canvas` akan mengembalikan canvas data untuk item barang ID 1
-    - `GET /api/item-barang/{itemBarangId}/canvas-image` - Get canvas image by item barang ID
-      - **Description**: Mendapatkan canvas image (base64) berdasarkan item barang ID dari tabel ref_item_barang
-      - **Response**: 
-        ```json
-        {
-          "canvas_image": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD..."
-        }
-        ```
-      - **Note**: 
-        - Return base64 encoded JPG image dengan prefix data URI
-        - Return error 404 jika file tidak ditemukan
-      - **Example**: `GET /api/item-barang/1/canvas-image` akan mengembalikan canvas image untuk item barang ID 1
+  - `GET /api/item-barang/{itemBarangId}/canvas-image` - Get canvas image by item barang ID
+    - **Description**: Mendapatkan canvas image (base64) berdasarkan item barang ID dari tabel ref_item_barang
+    - **Response**: 
+      ```json
+      {
+        "canvas_image": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD..."
+      }
+      ```
+    - **Note**: 
+      - Return base64 encoded JPG image dengan prefix data URI
+      - Jika file tidak ditemukan atau path kosong, endpoint mengembalikan status 200 dengan `canvas_image: null` dan message yang menjelaskan.
+    - **Example**: `GET /api/item-barang/1/canvas-image` akan mengembalikan canvas image untuk item barang ID 1
 
     ## Master Data - Jenis Transaksi Kas
     - `GET /api/jenis-transaksi-kas` - List all jenis transaksi kas
@@ -1167,15 +1167,15 @@
     Catatan:
     - Untuk detail lengkap (dengan semua relasi), gunakan endpoint `GET /api/work-order-actual/{id}`.
 
-    #### 2. Get Work Order Actual by ID
-    - **GET** `/api/work-order-actual/{id}`
-    - **Description**: Mendapatkan detail work order actual berdasarkan ID dengan relasi lengkap
+  #### 2. Get Work Order Actual by ID
+  - **GET** `/api/work-order-actual/{id}`
+  - **Description**: Mendapatkan detail work order actual berdasarkan ID dengan relasi lengkap. Setiap item menyertakan `item_barang_nama` dari plat dasar terkait.
     - **Request Example**:
     ```
     GET /api/work-order-actual/1
     Authorization: Bearer your_jwt_token
     ```
-    - **Response**: Detail work order actual lengkap dengan semua relasi
+  - **Response**: Detail work order actual lengkap dengan semua relasi
     - **Response Format**:
     ```json
     {
@@ -1203,6 +1203,7 @@
             "foto_bukti": "work-order-actual/1/items/1/foto_bukti.jpg",
             "qty_planning": 10,
             "berat_planning": 30.0,
+            "item_barang_nama": "Plat Aluminium 5mm",
             "created_at": "2024-01-01T10:00:00.000000Z",
             "updated_at": "2024-01-01T10:00:00.000000Z",
             "work_order_planning_item": {
@@ -1377,10 +1378,10 @@
     - **Data Cleanup**: Menghapus data actual items dan pelaksana yang sudah ada sebelum menyimpan data baru
     - **File Management**: Menyimpan foto bukti ke folder `work-order-actual/{actualWorkOrderId}/` dengan nama `foto_bukti.jpg`
 
-    #### 4. Get WO Actual Image (Header)
-    - **GET** `/api/work-order-actual/{id}/image`
-    - **Description**: Mengembalikan file image foto bukti header Work Order Actual secara langsung (stream/file). Cocok untuk `<img src="...">` di frontend.
-    - **Response**: Konten binary image (`image/jpeg`), bukan JSON.
+  #### 4. Get WO Actual Image (Header)
+  - **GET** `/api/work-order-actual/{id}/image`
+  - **Description**: Mengembalikan file image foto bukti header Work Order Actual secara langsung (stream/file). Cocok untuk `<img src="...">` di frontend.
+  - **Response**: Konten binary image (`image/jpeg`), bukan JSON.
     - **Auth**: Endpoint berada dalam group `checkrole` → wajib `Authorization: Bearer <token>`. Browser tidak mengirim header ini untuk `<img src>`. Gunakan fetch → blob → `URL.createObjectURL(blob)` atau generate signed URL jika ingin embed langsung.
     - **Path & Storage**:
       - Path yang disimpan di DB adalah path relatif terhadap disk `public` (mis. `work-order-actual/{actualId}/foto_bukti.jpg`).
@@ -1397,10 +1398,10 @@
           -H "Authorization: Bearer <token>"
         ```
 
-    #### 5. Get WO Actual Item Image by Item ID
-    - **GET** `/api/work-order-actual/item/{itemId}/image`
-    - **Description**: Mengembalikan file image foto bukti untuk satu Work Order Actual Item berdasarkan ID item (stream/file).
-    - **Response**: Konten binary image (`image/jpeg`), bukan JSON.
+  #### 5. Get WO Actual Item Image by Item ID
+  - **GET** `/api/work-order-actual/item/{itemId}/image`
+  - **Description**: Mengembalikan file image foto bukti untuk satu Work Order Actual Item berdasarkan ID item (stream/file).
+  - **Response**: Konten binary image (`image/jpeg`), bukan JSON.
     - **Auth**: Wajib `Authorization: Bearer <token>` (bagian dari group `checkrole`). Untuk `<img src>`, gunakan pendekatan fetch blob atau signed URL.
     - **Path & Storage**:
       - Path item disimpan relatif: `work-order-actual/{actualId}/items/{itemId}/foto_bukti.jpg`.
@@ -1809,3 +1810,14 @@
     }
     ```
     - **Response**: Mengembalikan data Purchase Order yang telah diupdate.
+  #### 5.1. Get WO Actual Image Base64 (Header)
+  - **GET** `/api/work-order-actual/{id}/image-base64`
+  - **Description**: Mengembalikan image foto bukti header dalam format base64 JSON.
+  - **Response**: `{ "wo_actual_id": int, "file_path": string|null, "foto_bukti_base64": string|null }`
+  - **Note**: Jika path kosong atau file tidak ditemukan, endpoint mengembalikan status 200 dengan `foto_bukti_base64: null` dan message.
+
+  #### 5.2. Get WO Actual Item Image Base64 by Item ID
+  - **GET** `/api/work-order-actual/item/{itemId}/image-base64`
+  - **Description**: Mengembalikan image foto bukti item dalam format base64 JSON.
+  - **Response**: `{ "wo_actual_item_id": int, "wo_actual_id": int, "file_path": string|null, "foto_bukti_base64": string|null }`
+  - **Note**: Jika path kosong atau file tidak ditemukan, endpoint mengembalikan status 200 dengan `foto_bukti_base64: null` dan message.

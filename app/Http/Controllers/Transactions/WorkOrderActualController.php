@@ -114,12 +114,20 @@ class WorkOrderActualController extends Controller
             }
 
             if (empty($actual->foto_bukti)) {
-                return $this->errorResponse('Foto bukti tidak tersedia untuk WO Actual ini', 404);
+                return $this->successResponse([
+                    'wo_actual_id' => $actual->id,
+                    'file_path' => null,
+                    'foto_bukti_base64' => null,
+                ], 'Foto bukti tidak tersedia untuk WO Actual ini');
             }
 
             $imagePath = storage_path('app/public/' . $actual->foto_bukti);
             if (!file_exists($imagePath)) {
-                return $this->errorResponse('File image tidak ditemukan di storage', 404);
+                return $this->successResponse([
+                    'wo_actual_id' => $actual->id,
+                    'file_path' => $actual->foto_bukti,
+                    'foto_bukti_base64' => null,
+                ], 'File image tidak ditemukan di storage');
             }
 
             $base64 = base64_encode(file_get_contents($imagePath));
@@ -145,12 +153,22 @@ class WorkOrderActualController extends Controller
             }
 
             if (empty($item->foto_bukti)) {
-                return $this->errorResponse('Foto bukti tidak tersedia untuk WO Actual Item ini', 404);
+                return $this->successResponse([
+                    'wo_actual_item_id' => $item->id,
+                    'wo_actual_id' => $item->work_order_actual_id,
+                    'file_path' => null,
+                    'foto_bukti_base64' => null,
+                ], 'Foto bukti tidak tersedia untuk WO Actual Item ini');
             }
 
             $imagePath = storage_path('app/public/' . $item->foto_bukti);
             if (!file_exists($imagePath)) {
-                return $this->errorResponse('File image tidak ditemukan di storage', 404);
+                return $this->successResponse([
+                    'wo_actual_item_id' => $item->id,
+                    'wo_actual_id' => $item->work_order_actual_id,
+                    'file_path' => $item->foto_bukti,
+                    'foto_bukti_base64' => null,
+                ], 'File image tidak ditemukan di storage');
             }
 
             $base64 = base64_encode(file_get_contents($imagePath));
@@ -272,35 +290,35 @@ class WorkOrderActualController extends Controller
     /**
      * Stream image file for Work Order Actual Item by Item ID
      */
-    public function streamActualItemImage($itemId)
-    {
-        try {
-            $item = WorkOrderActualItem::find($itemId);
-            if (!$item) {
-                return $this->errorResponse('Work Order Actual Item tidak ditemukan', 404);
-            }
+        public function streamActualItemImage($itemId)
+        {
+            try {
+                $item = WorkOrderActualItem::find($itemId);
+                if (!$item) {
+                    return $this->errorResponse('Work Order Actual Item tidak ditemukan', 404);
+                }
 
-            if (empty($item->foto_bukti)) {
-                return $this->errorResponse('Foto bukti tidak tersedia untuk WO Actual Item ini', 404);
-            }
+                if (empty($item->foto_bukti)) {
+                    return $this->errorResponse('Foto bukti tidak tersedia untuk WO Actual Item ini', 404);
+                }
 
-            // Pastikan path relatif bersih (tanpa leading slash)
-            $relativePath = ltrim($item->foto_bukti, '/');
+                // Pastikan path relatif bersih (tanpa leading slash)
+                $relativePath = ltrim($item->foto_bukti, '/');
 
-            // Resolve full path dengan fallback yang lebih kuat (termasuk nested folder)
-            $fullPath = $this->resolvePublicImagePath($relativePath, [
-                'foto_bukti.jpg',
-            ]);
-
-            if (!$fullPath || !file_exists($fullPath)) {
-                Log::warning('WO Actual item image not found', [
-                    'wo_actual_item_id' => $item->id,
-                    'wo_actual_id' => $item->work_order_actual_id,
-                    'stored_path' => $item->foto_bukti,
-                    'resolved_path' => $fullPath,
+                // Resolve full path dengan fallback yang lebih kuat (termasuk nested folder)
+                $fullPath = $this->resolvePublicImagePath($relativePath, [
+                    'foto_bukti.jpg',
                 ]);
-                return $this->errorResponse('File image tidak ditemukan di storage', 404);
-            }
+
+                if (!$fullPath || !file_exists($fullPath)) {
+                    Log::warning('WO Actual item image not found', [
+                        'wo_actual_item_id' => $item->id,
+                        'wo_actual_id' => $item->work_order_actual_id,
+                        'stored_path' => $item->foto_bukti,
+                        'resolved_path' => $fullPath,
+                    ]);
+                    return $this->errorResponse('File image tidak ditemukan di storage', 404);
+                }
 
             $mime = @mime_content_type($fullPath) ?: 'image/jpeg';
             $size = @filesize($fullPath) ?: null;
@@ -479,10 +497,20 @@ class WorkOrderActualController extends Controller
                 ], 404);
             }
 
+            $data = $workOrderActual->toArray();
+            if (!empty($data['workOrderActualItems'])) {
+                foreach ($data['workOrderActualItems'] as $idx => $itm) {
+                    $nama = null;
+                    if (isset($itm['work_order_planning_item']['plat_dasar']['nama_item_barang'])) {
+                        $nama = $itm['work_order_planning_item']['plat_dasar']['nama_item_barang'];
+                    }
+                    $data['workOrderActualItems'][$idx]['item_barang_nama'] = $nama;
+                }
+            }
             return response()->json([
                 'success' => true,
                 'message' => 'Data work order actual berhasil diambil',
-                'data' => $workOrderActual
+                'data' => $data
             ]);
 
         } catch (\Exception $e) {
@@ -508,37 +536,65 @@ class WorkOrderActualController extends Controller
             // Validasi input untuk struktur baru (ADD hanya terima base64 untuk foto)
             $validator = Validator::make($request->all(), [
                 'foto_bukti' => 'required|string',
-                // Allow null for create flow; we'll auto-create if not found
                 'actualWorkOrderId' => 'nullable|integer',
                 'planningWorkOrderId' => 'required|integer',
                 'items' => 'required|array',
                 'items.*.qtyActual' => 'required|numeric|min:0',
-                // Hanya terima berat (actual) sebagai nama field
                 'items.*.berat' => 'required|numeric|min:0',
-                // Optional base64 foto bukti per item
                 'items.*.foto_bukti' => 'nullable|string',
-                'items.*.assignments' => 'required|array',
+                'items.*.assignments' => 'required|array|min:1',
                 'items.*.assignments.*.id' => 'nullable|integer',
-                'items.*.assignments.*.pelaksana_id' => 'required|integer',
+                'items.*.assignments.*.pelaksana_id' => 'required|integer|exists:ref_pelaksana,id',
                 'items.*.assignments.*.qty' => 'required|integer|min:1',
-                // Terima salah satu: weight atau berat untuk assignments
                 'items.*.assignments.*.weight' => 'required_without:items.*.assignments.*.berat|numeric|min:0',
                 'items.*.assignments.*.berat' => 'required_without:items.*.assignments.*.weight|numeric|min:0',
                 'items.*.assignments.*.pelaksana' => 'nullable|string',
-                'items.*.assignments.*.pelaksana_id' => 'required|integer',
                 'items.*.assignments.*.tanggal' => 'required|date',
                 'items.*.assignments.*.jamMulai' => 'required|string',
                 'items.*.assignments.*.jamSelesai' => 'required|string',
                 'items.*.assignments.*.catatan' => 'nullable|string',
                 'items.*.assignments.*.status' => 'nullable|string',
                 'items.*.timestamp' => 'nullable|date'
+            ], [
+                'foto_bukti.required' => 'Gambar foto bukti header belum ada',
+                'planningWorkOrderId.required' => 'Referensi Work Order Planning wajib diisi',
+                'items.required' => 'Daftar item actual wajib diisi',
+                'items.*.qtyActual.required' => 'Qty actual wajib diisi untuk setiap item',
+                'items.*.berat.required' => 'Berat actual wajib diisi untuk setiap item',
+                'items.*.assignments.required' => 'Assignments pelaksana wajib diisi untuk setiap item',
+                'items.*.assignments.min' => 'Assignments pelaksana minimal satu per item',
+                'items.*.assignments.*.pelaksana_id.required' => 'Pelaksana tidak sesuai atau belum dipilih',
+                'items.*.assignments.*.pelaksana_id.exists' => 'Pelaksana tidak ditemukan',
+                'items.*.assignments.*.qty.required' => 'Qty per pelaksana wajib diisi',
+                'items.*.assignments.*.qty.min' => 'Qty per pelaksana minimal 1',
+                'items.*.assignments.*.weight.required_without' => 'Berat/weight wajib diisi untuk setiap pelaksana',
+                'items.*.assignments.*.berat.required_without' => 'Berat/weight wajib diisi untuk setiap pelaksana',
+                'items.*.assignments.*.tanggal.required' => 'Tanggal pelaksanaan wajib diisi',
+                'items.*.assignments.*.jamMulai.required' => 'Jam mulai wajib diisi',
+                'items.*.assignments.*.jamSelesai.required' => 'Jam selesai wajib diisi'
+            ], [
+                'foto_bukti' => 'foto bukti header',
+                'planningWorkOrderId' => 'Work Order Planning',
+                'items.*.assignments.*.pelaksana_id' => 'pelaksana'
             ]);
 
             if ($validator->fails()) {
+                $raw = $validator->errors()->toArray();
+                $sanitized = [];
+                foreach ($raw as $key => $msgs) {
+                    if (strpos($key, 'items.') === 0) {
+                        $sanitized['items'][] = 'Belum semua gambar diupload untuk item';
+                    } else {
+                        $sanitized[$key] = $msgs;
+                    }
+                }
+                if (isset($sanitized['items'])) {
+                    $sanitized['items'] = array_values(array_unique($sanitized['items']));
+                }
                 return response()->json([
                     'success' => false,
                     'message' => 'Validasi gagal',
-                    'errors' => $validator->errors()
+                    'errors' => $sanitized
                 ], 422);
             }
 
