@@ -1169,7 +1169,7 @@
 
   #### 2. Get Work Order Actual by ID
   - **GET** `/api/work-order-actual/{id}`
-  - **Description**: Mendapatkan detail work order actual berdasarkan ID dengan relasi lengkap. Setiap item menyertakan `item_barang_nama` dari plat dasar terkait.
+    - **Description**: Mendapatkan detail work order actual berdasarkan ID dengan relasi lengkap. Setiap item menyertakan nama deskriptif: `jenis_barang_nama`, `bentuk_barang_nama`, `grade_barang_nama`. Objek relasi nested untuk `jenis_barang`, `bentuk_barang`, `grade_barang` di item actual tidak dikembalikan untuk menghindari duplikasi.
     - **Request Example**:
     ```
     GET /api/work-order-actual/1
@@ -1196,55 +1196,51 @@
         },
         "work_order_actual_items": [
           {
-            "id": 1,
-            "work_order_planning_item_id": 1,
-            "qty_actual": 10,
-            "berat": 25.5,
-            "foto_bukti": "work-order-actual/1/items/1/foto_bukti.jpg",
-            "qty_planning": 10,
-            "berat_planning": 30.0,
-            "item_barang_nama": "Plat Aluminium 5mm",
-            "created_at": "2024-01-01T10:00:00.000000Z",
-            "updated_at": "2024-01-01T10:00:00.000000Z",
+            "id": 106,
+            "work_order_actual_id": 47,
+            "wo_plan_item_id": 40,
+            "panjang_actual": "1000.00",
+            "lebar_actual": "500.00",
+            "tebal_actual": "10.00",
+            "qty_actual": 3,
+            "jenis_barang_id": 8,
+            "bentuk_barang_id": 9,
+            "grade_barang_id": 12,
+            "plat_dasar_id": null,
+            "foto_bukti": "work-order-actual/47/items/106/foto_bukti.jpg",
+            "berat": "0.00",
+            "qty_planning": 1,
+            "berat_planning": "0.00",
+            "jenis_barang_nama": "Aluminium",
+            "bentuk_barang_nama": "Plat",
+            "grade_barang_nama": "6061",
             "work_order_planning_item": {
-              "id": 1,
-              "qty": 10,
-              "panjang": 100.00,
-              "lebar": 50.00,
-              "tebal": 2.00,
+              "id": 40,
+              "panjang": "1000.00",
+              "lebar": "500.00",
+              "tebal": "10.00",
+              "berat": "0.00",
+              "qty": 1,
+              "satuan": "PCS",
               "jenis_potongan": "utuh",
-              "item_barang": {
-                "id": 1,
-                "nama_item_barang": "Aluminium Sheet",
-                "jenis_barang": {
-                  "id": 1,
-                  "nama_jenis_barang": "Aluminium"
-                },
-                "bentuk_barang": {
-                  "id": 1,
-                  "nama_bentuk_barang": "Sheet"
-                },
-                "grade_barang": {
-                  "id": 1,
-                  "nama_grade_barang": "Grade A"
-                }
-              }
+              "plat_dasar": null
             },
-            "work_order_actual_pelaksanas": [
+            "has_many_pelaksana": [
               {
-                "id": 1,
-                "qty": 5,
-                "weight": 12.5,
-                "tanggal": "2024-01-01",
+                "id": 113,
+                "wo_actual_item_id": 106,
+                "pelaksana_id": 1,
+                "qty": 3,
+                "weight": "0.00",
+                "tanggal": "2025-11-19T00:00:00.000000Z",
                 "jam_mulai": "08:00:00",
-                "jam_selesai": "12:00:00",
-                "catatan": "Shift pagi",
-                "created_at": "2024-01-01T10:00:00.000000Z",
-                "updated_at": "2024-01-01T10:00:00.000000Z",
+                "jam_selesai": "17:00:00",
+                "catatan": null,
                 "pelaksana": {
                   "id": 1,
-                  "nama_pelaksana": "John Doe",
-                  "email": "john@example.com"
+                  "kode": "PLK001",
+                  "nama_pelaksana": "Agus",
+                  "level": "1"
                 }
               }
             ]
