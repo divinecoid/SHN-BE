@@ -33,7 +33,7 @@ class SalesOrderController extends Controller
         ])->withCount('salesOrderItems');
 
         // Generic search/sort
-        $query = $this->applyFilter($query, $request, ['nomor_so', 'syarat_pembayaran', 'status']);
+        $query = $this->applyFilter($query, $request, ['nomor_so', 'syarat_pembayaran', 'status', 'process_status']);
 
         // Optional date range filter by tanggal_so
         $start = $request->input('date_start');
@@ -44,6 +44,11 @@ class SalesOrderController extends Controller
             $query->whereDate('tanggal_so', '>=', $start);
         } elseif ($end) {
             $query->whereDate('tanggal_so', '<=', $end);
+        }
+
+        // Filter by process_status if provided
+        if ($request->filled('process_status')) {
+            $query->where('process_status', $request->input('process_status'));
         }
 
         // Conditional pagination: paginate only if per_page or page provided; otherwise return all on a single page
