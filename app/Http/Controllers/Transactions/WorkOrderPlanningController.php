@@ -44,7 +44,42 @@ class WorkOrderPlanningController extends Controller
             ])
             ->withCount(['workOrderPlanningItems as count']);
         
-        // Filter by tanggal WO
+        // Filter by No.WO
+        if ($request->filled('nomor_wo')) {
+            $query->where('trx_work_order_planning.nomor_wo', 'like', '%' . $request->input('nomor_wo') . '%');
+        }
+        
+        // Filter by No.SO
+        if ($request->filled('nomor_so')) {
+            $query->where('trx_sales_order.nomor_so', 'like', '%' . $request->input('nomor_so') . '%');
+        }
+        
+        // Filter by pelanggan (nama customer)
+        if ($request->filled('nama_customer') || $request->filled('pelanggan')) {
+            $pelangganValue = $request->input('nama_customer') ?? $request->input('pelanggan');
+            $query->where('ref_pelanggan.nama_pelanggan', 'like', '%' . $pelangganValue . '%');
+        }
+        
+        // Filter by gudang (support both id and nama)
+        if ($request->filled('gudang')) {
+            $gudangValue = $request->input('gudang');
+            // Try to match by ID first, if not numeric then match by nama_gudang
+            if (is_numeric($gudangValue)) {
+                $query->where('trx_work_order_planning.id_gudang', $gudangValue);
+            } else {
+                $query->where('ref_gudang.nama_gudang', 'like', '%' . $gudangValue . '%');
+            }
+        }
+        
+        // Filter by status
+        if ($request->filled('status')) {
+            $query->where('trx_work_order_planning.status', $request->input('status'));
+        }
+        if ($request->filled('exclude_status')) {
+            $query->where('trx_work_order_planning.status', '!=', $request->input('exclude_status'));
+        }
+        
+        // Filter by tanggal WO (from and to)
         if ($request->filled('tanggal_wo_from') || $request->filled('tanggal_wo_to')) {
             $tanggalWoFrom = $request->input('tanggal_wo_from');
             $tanggalWoTo = $request->input('tanggal_wo_to');
@@ -56,31 +91,6 @@ class WorkOrderPlanningController extends Controller
             } elseif ($tanggalWoTo) {
                 $query->whereDate('trx_work_order_planning.tanggal_wo', '<=', $tanggalWoTo);
             }
-        }
-        
-        // Filter by No.WO
-        if ($request->filled('nomor_wo')) {
-            $query->where('trx_work_order_planning.nomor_wo', 'like', '%' . $request->input('nomor_wo') . '%');
-        }
-        
-        // Filter by No.SO
-        if ($request->filled('nomor_so')) {
-            $query->where('trx_sales_order.nomor_so', 'like', '%' . $request->input('nomor_so') . '%');
-        }
-        
-        // Filter by nama customer
-        if ($request->filled('nama_customer')) {
-            $query->where('ref_pelanggan.nama_pelanggan', 'like', '%' . $request->input('nama_customer') . '%');
-        }
-        
-        // Filter by gudang
-        if ($request->filled('gudang')) {
-            $query->where('trx_work_order_planning.id_gudang', $request->input('gudang'));
-        }
-        
-        // Filter by status
-        if ($request->filled('status')) {
-            $query->where('trx_work_order_planning.status', $request->input('status'));
         }
         
         // Filter by jumlah item
@@ -100,14 +110,15 @@ class WorkOrderPlanningController extends Controller
             }
         }
         
-        $query = $this->applyFilter($query, $request, ['sales_order.nomor_so', 'nomor_wo', 'tanggal_wo', 'prioritas', 'status']);
-
-        if ($request->filled('status')) {
-            $query->where('trx_work_order_planning.status', $request->input('status'));
-        }
-        if ($request->filled('exclude_status')) {
-            $query->where('trx_work_order_planning.status', '!=', $request->input('exclude_status'));
-        }
+        // Apply global search filter (for search parameter)
+        $query = $this->applyFilter($query, $request, [
+            'trx_work_order_planning.nomor_wo',
+            'trx_sales_order.nomor_so',
+            'ref_pelanggan.nama_pelanggan',
+            'ref_gudang.nama_gudang',
+            'trx_work_order_planning.status',
+            'trx_work_order_planning.prioritas'
+        ]);
 
         // Optional date range filter based on created_at (WO Planning)
         $start = $request->input('date_start');
