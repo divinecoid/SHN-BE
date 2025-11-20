@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\ApiFilterTrait;
 use App\Helpers\FileHelper;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\Paginator;
 
 class SaranPlatController extends Controller
 {
@@ -92,94 +94,18 @@ class SaranPlatController extends Controller
                 'sisa_luas' => $item->sisa_luas,
             ];
         });
-        return $this->successResponse($data->values()->all());
-    }
 
-    /**
-     * Versi GET untuk mendapatkan daftar saran plat dasar dengan pagination
-     * Query params: jenis_barang_id, bentuk_barang_id, grade_barang_id, tebal, panjang, lebar, per_page, page
-     */
-    public function getSaranPlatDasarGet(Request $request)
-    {
-        $validator = Validator::make($request->query(), [
-            'jenis_barang_id' => 'required|exists:ref_jenis_barang,id',
-            'bentuk_barang_id' => 'required|exists:ref_bentuk_barang,id',
-            'grade_barang_id' => 'required|exists:ref_grade_barang,id',
-            'tebal' => 'required|numeric',
-            'panjang' => 'required|numeric',
-            'lebar' => 'required|numeric',
-            'per_page' => 'nullable|integer|min:1',
-            'page' => 'nullable|integer|min:1',
-        ]);
-
-        if ($validator->fails()) {
-            return $this->errorResponse($validator->errors()->first(), 422);
-        }
-
-        $currentUserId = auth()->id();
-        $areaNeeded = (float)$request->query('panjang') * (float)$request->query('lebar');
-        $reqPanjang = (float)$request->query('panjang');
-        $reqLebar = (float)$request->query('lebar');
-
-        $query = ItemBarang::with(['jenisBarang', 'bentukBarang', 'gradeBarang'])
-            ->where('jenis_barang_id', $request->query('jenis_barang_id'))
-            ->where('bentuk_barang_id', $request->query('bentuk_barang_id'))
-            ->where('grade_barang_id', $request->query('grade_barang_id'))
-            ->where('tebal', $request->query('tebal'))
-            ->where('sisa_luas', '>=', $areaNeeded)
-            ->where(function($q) use ($currentUserId) {
-                $q->where('is_edit', false)
-                  ->orWhereNull('is_edit')
-                  ->orWhere('user_id', $currentUserId);
-            })
-            ->orderBy('sisa_luas', 'asc');
-
-        // Ambil semua kandidat terlebih dahulu untuk cek canvas/ukuran
-        $all = $query->get();
-
-        $filtered = $all->filter(function ($item) use ($reqPanjang, $reqLebar) {
-            $fallbackCheck = function($itm) use ($reqPanjang, $reqLebar) {
-                $p = $itm->panjang;
-                $l = $itm->lebar;
-                if ($p === null || $l === null) {
-                    return false;
-                }
-                return ((float)$p >= (float)$reqPanjang) && ((float)$l >= (float)$reqLebar);
-            };
-
-            if (!$item->canvas_file) {
-                return $fallbackCheck($item);
-            }
-            $path = storage_path('app/public/' . $item->canvas_file);
-            if (!file_exists($path)) {
-                return $fallbackCheck($item);
-            }
-            $json = json_decode(file_get_contents($path), true);
-            if (!is_array($json)) {
-                return $fallbackCheck($item);
-            }
-            return $this->canFitInCanvas($json, (float)$reqPanjang, (float)$reqLebar);
-        })->values();
-
-        $mapped = $filtered->map(function ($item) {
-            return [
-                'id' => $item->id,
-                'nama' => $item->nama_item_barang,
-                'ukuran' =>
-                    (is_null($item->panjang) ? '' : ($item->panjang . ' x ')) .
-                    (is_null($item->lebar) ? '' : ($item->lebar . ' x ')) .
-                    (is_null($item->tebal) ? '' : $item->tebal),
-                'sisa_luas' => $item->sisa_luas,
-            ];
-        });
-
-        $page = max(1, (int)$request->query('page', 1));
-        $perPage = max(1, (int)$request->query('per_page', $this->getPerPageDefault()));
-
-        $total = $mapped->count();
-        $items = $mapped->slice(($page - 1) * $perPage, $perPage)->values();
-
-        $paginator = new \Illuminate\Pagination\LengthAwarePaginator($items, $total, $perPage, $page);
+        $perPage = (int) $request->input('per_page', $this->getPerPageDefault());
+        $page = (int) $request->input('page', 1);
+        $total = $data->count();
+        $items = $data->forPage($page, $perPage)->values();
+        $paginator = new LengthAwarePaginator(
+            $items,
+            $total,
+            $perPage,
+            $page,
+            ['path' => Paginator::resolveCurrentPath(), 'pageName' => 'page']
+        );
         return response()->json($this->paginateResponse($paginator, $items));
     }
 
