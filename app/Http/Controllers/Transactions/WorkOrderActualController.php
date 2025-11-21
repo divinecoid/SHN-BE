@@ -487,12 +487,6 @@ class WorkOrderActualController extends Controller
                 'workOrderActualItems.workOrderPlanningItem.platDasar.jenisBarang',
                 'workOrderActualItems.workOrderPlanningItem.platDasar.bentukBarang',
                 'workOrderActualItems.workOrderPlanningItem.platDasar.gradeBarang',
-                'workOrderActualItems.platDasar.jenisBarang',
-                'workOrderActualItems.platDasar.bentukBarang',
-                'workOrderActualItems.platDasar.gradeBarang',
-                'workOrderActualItems.jenisBarang',
-                'workOrderActualItems.bentukBarang',
-                'workOrderActualItems.gradeBarang',
                 'workOrderActualItems.hasManyPelaksana.pelaksana'
             ])->find($id);
 
@@ -504,38 +498,15 @@ class WorkOrderActualController extends Controller
             }
 
             $data = $workOrderActual->toArray();
-            $itemsKey = isset($data['workOrderActualItems']) ? 'workOrderActualItems' : (isset($data['work_order_actual_items']) ? 'work_order_actual_items' : null);
-            if ($itemsKey && !empty($data[$itemsKey])) {
-                foreach ($data[$itemsKey] as $idx => $itm) {
+            if (!empty($data['workOrderActualItems'])) {
+                foreach ($data['workOrderActualItems'] as $idx => $itm) {
+                    $namaItem = null;
                     $jenisNama = null;
                     $bentukNama = null;
                     $gradeNama = null;
-
-                    if (isset($itm['plat_dasar'])) {
-                        $pd = $itm['plat_dasar'];
-                        if (isset($pd['jenis_barang'])) {
-                            $jenisNama = $pd['jenis_barang']['nama_jenis'] ?? null;
-                        }
-                        if (isset($pd['bentuk_barang'])) {
-                            $bentukNama = $pd['bentuk_barang']['nama_bentuk'] ?? null;
-                        }
-                        if (isset($pd['grade_barang'])) {
-                            $gradeNama = $pd['grade_barang']['nama'] ?? null;
-                        }
-                    }
-
-                    if (!($jenisNama && $bentukNama && $gradeNama)) {
-                        if (isset($itm['jenis_barang'])) {
-                            $jenisNama = $itm['jenis_barang']['nama_jenis'] ?? $jenisNama;
-                        }
-                        if (isset($itm['bentuk_barang'])) {
-                            $bentukNama = $itm['bentuk_barang']['nama_bentuk'] ?? $bentukNama;
-                        }
-                        if (isset($itm['grade_barang'])) {
-                            $gradeNama = $itm['grade_barang']['nama'] ?? $gradeNama;
-                        }
-                    } elseif (isset($itm['work_order_planning_item']['plat_dasar'])) {
+                    if (isset($itm['work_order_planning_item']['plat_dasar'])) {
                         $pd = $itm['work_order_planning_item']['plat_dasar'];
+                        $namaItem = $pd['nama_item_barang'] ?? null;
                         if (isset($pd['jenis_barang'])) {
                             $jenisNama = $pd['jenis_barang']['nama_jenis'] ?? null;
                         }
@@ -545,25 +516,11 @@ class WorkOrderActualController extends Controller
                         if (isset($pd['grade_barang'])) {
                             $gradeNama = $pd['grade_barang']['nama'] ?? null;
                         }
-                    } elseif (isset($itm['work_order_planning_item'])) {
-                        $pi = $itm['work_order_planning_item'];
-                        if (isset($pi['jenis_barang'])) {
-                            $jenisNama = $pi['jenis_barang']['nama_jenis'] ?? null;
-                        }
-                        if (isset($pi['bentuk_barang'])) {
-                            $bentukNama = $pi['bentuk_barang']['nama_bentuk'] ?? null;
-                        }
-                        if (isset($pi['grade_barang'])) {
-                            $gradeNama = $pi['grade_barang']['nama'] ?? null;
-                        }
                     }
-                    
-                    $data[$itemsKey][$idx]['jenis_barang_nama'] = $jenisNama;
-                    $data[$itemsKey][$idx]['bentuk_barang_nama'] = $bentukNama;
-                    $data[$itemsKey][$idx]['grade_barang_nama'] = $gradeNama;
-                    unset($data[$itemsKey][$idx]['jenis_barang']);
-                    unset($data[$itemsKey][$idx]['bentuk_barang']);
-                    unset($data[$itemsKey][$idx]['grade_barang']);
+                    $data['workOrderActualItems'][$idx]['item_barang_nama'] = $namaItem;
+                    $data['workOrderActualItems'][$idx]['jenis_barang_nama'] = $jenisNama;
+                    $data['workOrderActualItems'][$idx]['bentuk_barang_nama'] = $bentukNama;
+                    $data['workOrderActualItems'][$idx]['grade_barang_nama'] = $gradeNama;
                 }
             }
             return response()->json([
