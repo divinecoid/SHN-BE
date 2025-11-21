@@ -5,7 +5,7 @@ namespace App\Models\Transactions;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Traits\HideTimestampsInRelations;
-
+use App\Models\Transactions\Payment;
 class PurchaseOrder extends Model
 {
     use SoftDeletes, HideTimestampsInRelations;
@@ -22,7 +22,9 @@ class PurchaseOrder extends Model
         'tanggal_jatuh_tempo',
         'tanggal_pembayaran',
         'total_amount',
+        'jumlah_dibayar',
         'status',
+        'status_bayar',
         'catatan',
     ];
     
@@ -33,6 +35,8 @@ class PurchaseOrder extends Model
         'tanggal_penerimaan' => 'date',
         'tanggal_jatuh_tempo' => 'date',
         'tanggal_pembayaran' => 'date',
+        'total_amount' => 'decimal:2',
+        'jumlah_dibayar' => 'decimal:2',
     ];
     
     /**
@@ -49,5 +53,10 @@ class PurchaseOrder extends Model
     public function supplier()
     {
         return $this->belongsTo(\App\Models\MasterData\Supplier::class, 'id_supplier');
+    }
+    
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
     }
 }

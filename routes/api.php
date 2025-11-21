@@ -1,9 +1,6 @@
 <?php
 
-use App\Http\Controllers\Dashboard\PurchaseOrderDashboardController;
-use App\Http\Controllers\Dashboard\SalesOrderDashboardController;
-use App\Http\Controllers\Dashboard\WorkOrderActualDashboardController;
-use App\Http\Controllers\Dashboard\WorkOrderPlanningDashboardController;
+use App\Http\Controllers\Dashboard\DashboardController;
 use App\Http\Controllers\Transactions\KonversiBarangController;
 use App\Http\Controllers\Transactions\SplitBarangController;
 use App\Http\Controllers\Transactions\MergeBarangController;
@@ -37,11 +34,11 @@ use App\Http\Controllers\FileController;
 use App\Http\Controllers\Transactions\WorkOrderPlanningController;
 use App\Http\Controllers\Transactions\WorkOrderActualController;
 use App\Http\Controllers\Transactions\SaranPlatController;
-use App\Http\Controllers\Transactions\DashboardController;
 use App\Http\Controllers\Transactions\PurchaseOrderController;
 use App\Http\Controllers\Transactions\StockOpnameController;
 use App\Http\Controllers\Output\InvoicePodController;
 use App\Http\Controllers\Transactions\StockMutationController;
+use App\Http\Controllers\Transactions\PaymentController;
 use App\Http\Controllers\MasterData\DocumentSequenceController;
 
 
@@ -201,6 +198,7 @@ Route::prefix('item-barang')->middleware('checkrole')->group(function () {
     Route::get('/', [ItemBarangController::class, 'index']);
     Route::get('/bulk', [ItemBarangController::class, 'bulk']);
     Route::get('/by-gudang/{gudangId}', [ItemBarangController::class, 'getByGudang']);
+    Route::get('/mergeable', [ItemBarangController::class, 'mergeable']);
     Route::get('{id}', [ItemBarangController::class, 'show']);
     Route::post('/', [ItemBarangController::class, 'store']);
     Route::put('{id}', [ItemBarangController::class, 'update']);
@@ -516,8 +514,17 @@ Route::prefix('invoice-pod')->middleware('checkrole')->group(function () {
 });
 
 
-Route::prefix('dashboard')->middleware('checkrole')->group(function () {
-    Route::get('/workshop', [DashboardController::class, 'workshop']);
+// Payment routes
+Route::prefix('payment')->middleware('checkrole')->group(function () {
+    Route::get('/', [PaymentController::class, 'index']);
+    Route::get('/summary', [PaymentController::class, 'summary']);
+    Route::get('/financial-report', [PaymentController::class, 'financialReport']);
+    Route::post('/submit-payment', [PaymentController::class, 'submitPayment']);
+    Route::get('/payment-detail', [PaymentController::class, 'paymentDetail']);
+    Route::post('/generate-receipt', [PaymentController::class, 'generateReceipt']);
+
+    Route::post('/submit-purchase-order-payment', [PaymentController::class, 'submitPurchaseOrderPayment']);
+    Route::get('/purchase-order-payment-detail', [PaymentController::class, 'purchaseOrderPaymentDetail']);
 });
 
 
@@ -577,8 +584,10 @@ Route::prefix('item-barang-request')->middleware('checkrole')->group(function ()
 });
 
 Route::prefix('dashboard')->middleware('checkrole')->group(function() {
-    Route::get('/sales-order', [SalesOrderDashboardController::class, 'index']);
-    Route::get('/work-order-planning', [WorkOrderPlanningDashboardController::class, 'index']);
-    Route::get('/work-order-actual', [WorkOrderActualDashboardController::class, 'index']);
-    Route::get('/purchase-order', [PurchaseOrderDashboardController::class, 'index']);
+    Route::get('/workshop', [DashboardController::class, 'workshop']);
+    Route::get('/general', [DashboardController::class, 'general']);
+    Route::get('/sales-order', [DashboardController::class, 'salesOrder']);
+    Route::get('/work-order-planning', [DashboardController::class, 'workOrderPlanning']);
+    Route::get('/work-order-actual', [DashboardController::class, 'workOrderActual']);
+    Route::get('/purchase-order', [DashboardController::class, 'purchaseOrder']);
 });

@@ -30,6 +30,31 @@ class StockOpnameController extends Controller
     {
         $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
         $query = StockOpname::with(['picUser', 'gudang'])->orderBy('created_at', 'desc');
+        
+        // Filter by date range
+        if ($request->filled('date_from') || $request->filled('date_to')) {
+            $dateFrom = $request->input('date_from');
+            $dateTo = $request->input('date_to');
+            
+            if ($dateFrom && $dateTo) {
+                $query->whereBetween('created_at', [$dateFrom, $dateTo]);
+            } elseif ($dateFrom) {
+                $query->whereDate('created_at', '>=', $dateFrom);
+            } elseif ($dateTo) {
+                $query->whereDate('created_at', '<=', $dateTo);
+            }
+        }
+        
+        // Filter by gudang
+        if ($request->filled('gudang')) {
+            $query->where('gudang_id', $request->input('gudang'));
+        }
+        
+        // Filter by status
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+        
         $query = $this->applyFilter($query, $request, []);
         $data = $query->paginate($perPage);
         $items = collect($data->items());

@@ -8,6 +8,7 @@ use App\Models\Traits\HideTimestampsInRelations;
 use App\Models\Transactions\WorkOrderPlanning;
 use App\Models\MasterData\SalesOrder;
 use App\Models\Transactions\WorkOrderActual;
+use App\Models\Transactions\Payment;
 
 class InvoicePod extends Model
 {
@@ -85,5 +86,10 @@ class InvoicePod extends Model
     public function invoicePodItems()
     {
         return $this->hasMany(InvoicePodItem::class, 'invoicepod_id');
+    }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class, 'invoice_pod_id');
     }
 }
