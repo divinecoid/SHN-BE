@@ -17,6 +17,18 @@ class GudangController extends Controller
         $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
         $query = Gudang::query();
         $query = $this->applyFilter($query, $request, ['kode', 'nama_gudang', 'tipe_gudang', 'telepon_hp', 'kapasitas']);
+        $type = $request->input('tipe_gudang', $request->input('tipe'));
+        if ($type !== null && $type !== '') {
+            $query->where('tipe_gudang', $type);
+        }
+        $parentId = $request->input('parent_id');
+        if ($parentId !== null && $parentId !== '') {
+            if ($parentId === 'null') {
+                $query->whereNull('parent_id');
+            } else {
+                $query->where('parent_id', $parentId);
+            }
+        }
         $data = $query->paginate($perPage);
         $items = collect($data->items());
         return response()->json($this->paginateResponse($data, $items));

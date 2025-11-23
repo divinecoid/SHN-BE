@@ -17,7 +17,10 @@ class MenuSeeder extends Seeder
             ['kode' => 'M002', 'nama_menu' => 'Master Data'],
             ['kode' => 'M003', 'nama_menu' => 'Penerimaan Barang'],
             ['kode' => 'M004', 'nama_menu' => 'Sales Order'],
-            ['kode' => 'M005', 'nama_menu' => 'Laporan'],
+            ['kode' => 'M006', 'nama_menu' => 'Work Order Planning'],
+            ['kode' => 'M007', 'nama_menu' => 'Work Order Actual'],  
+            ['kode' => 'M008', 'nama_menu' => 'Purchase Order'],
+            ['kode' => 'M009', 'nama_menu' => 'Laporan'],
         ];
 
         foreach ($menus as $menu) {

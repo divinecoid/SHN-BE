@@ -192,6 +192,18 @@
 
     ## Master Data - Gudang
     - `GET /api/gudang` - List all gudang
+      - **Query Params:**
+        - `search`: Pencarian pada `kode`, `nama_gudang`, `tipe_gudang`, `telepon_hp`, `kapasitas`
+        - `per_page`: Jumlah item per halaman (default dari sistem)
+        - `sort_by`: Kolom sort (default `id`), `order`: `asc|desc`
+        - `sort`: Multiple sort, format `kolom,asc;kolom2,desc`
+        - `tipe_gudang`: Filter persis berdasarkan tipe gudang
+        - `tipe`: Alias untuk `tipe_gudang`
+        - `parent_id`: Filter satu-level child berdasarkan parent tertentu; gunakan `parent_id=null` untuk hanya root
+      - **Contoh:**
+        - `GET /api/gudang?tipe_gudang=Rak&parent_id=1`
+        - `GET /api/gudang?tipe=rak&per_page=20&sort_by=nama_gudang&order=asc`
+        - `GET /api/gudang?parent_id=null` (hanya gudang root)
       - **Response:** `{ "data": [{ "id": "int", "kode": "string", "nama_gudang": "string", "tipe_gudang": "string", "parent_id": "int|null", "telepon_hp": "string", "kapasitas": "float|null" }] }`
     - `GET /api/gudang/tipe` - Get tipe gudang
     - `GET /api/gudang/hierarchy` - Get gudang hierarchy
