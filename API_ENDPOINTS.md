@@ -367,14 +367,18 @@
 
     ### Sales Order for WO Planning
 
-    - `GET /api/sales-order/sales-order-for-woplanning` - Ambil item SO dengan sisa qty untuk WO Planning
-      - **Description:** Mengembalikan item Sales Order beserta `sisa_qty` berdasarkan alokasi sebelumnya.
+    - `GET /api/sales-order/sales-order-for-woplanning` - Ambil satu Sales Order (header) dengan item tersisa untuk WO Planning
+      - **Description:** Mengembalikan satu objek Sales Order berdasarkan `sales_order_id` dengan `sales_order_items` yang sudah dihitung `qty_ref` dan `sisa_qty`. Item dengan `sisa_qty <= 0` disembunyikan secara default.
       - **Query Parameters:**
         - `sales_order_id` (required)
-      - **Catatan Perhitungan:** `sisa_qty = qty_so - SUM(qty) dari trx_work_order_planning_item`
-      - **Response Fields:** `id`, `sales_order_id`, `panjang`, `lebar`, `tebal`, `qty_so`, `qty_ref`, `sisa_qty`, `jenis_barang`, `bentuk_barang`, `grade_barang`, `harga`, `satuan`, `jenis_potongan`, `diskon`, `catatan`
+        - `include_zero` (optional, boolean): jika `true`, item dengan `sisa_qty <= 0` tetap ditampilkan
+      - **Catatan Perhitungan:** `sisa_qty = qty_so - SUM(qty) dari trx_work_order_planning_item` (mengabaikan `deleted_at`).
+      - **Response:**
+        - Header SO sesuai format `GET /api/sales-order/{id}` ditambah `sales_order_items`.
+        - Struktur item: `id`, `sales_order_id`, `panjang`, `lebar`, `tebal`, `qty_so`, `qty_ref`, `sisa_qty`, `jenis_barang`, `bentuk_barang`, `grade_barang`, `harga`, `satuan`, `jenis_potongan`, `diskon`, `catatan`.
       - **Examples:**
         - `GET /api/sales-order/sales-order-for-woplanning?sales_order_id=12`
+        - `GET /api/sales-order/sales-order-for-woplanning?sales_order_id=12&include_zero=true`
 
     ### Sales Order Header Endpoints (Header Only)
     - `GET /api/sales-order/header` - List all sales order (header attributes only, without item details)

@@ -633,79 +633,37 @@ class SalesOrderController extends Controller
         }
 
         $salesOrderId = (int) $request->input('sales_order_id');
+        $includeZero = filter_var($request->input('include_zero', false), FILTER_VALIDATE_BOOLEAN);
 
-        $plannedAgg = DB::table('trx_work_order_planning_item as wopi')
+        $salesOrder = SalesOrder::with(['salesOrderItems.jenisBarang', 'salesOrderItems.bentukBarang', 'salesOrderItems.gradeBarang', 'pelanggan', 'gudang'])
+            ->find($salesOrderId);
+        if (!$salesOrder) {
+            return $this->errorResponse('Data tidak ditemukan', 404);
+        }
+
+        $agg = DB::table('trx_work_order_planning_item as wopi')
             ->select('wopi.sales_order_item_id', DB::raw('COALESCE(SUM(wopi.qty), 0) as qty_ref'))
             ->whereNull('wopi.deleted_at')
-            ->groupBy('wopi.sales_order_item_id');
+            ->groupBy('wopi.sales_order_item_id')
+            ->pluck('qty_ref', 'sales_order_item_id');
 
-        $query = DB::table('trx_sales_order_item as soi')
-            ->leftJoinSub($plannedAgg, 'wo_sum', function ($join) {
-                $join->on('wo_sum.sales_order_item_id', '=', 'soi.id');
-            })
-            ->select([
-                'soi.id',
-                'soi.sales_order_id',
-                'soi.panjang',
-                'soi.lebar',
-                'soi.tebal',
-                'soi.qty as qty_so',
-                'soi.jenis_barang_id',
-                'soi.bentuk_barang_id',
-                'soi.grade_barang_id',
-                'soi.harga',
-                'soi.satuan',
-                'soi.jenis_potongan',
-                'soi.diskon',
-                'soi.catatan',
-                DB::raw('COALESCE(wo_sum.qty_ref, 0) as qty_ref'),
-                DB::raw('(soi.qty - COALESCE(wo_sum.qty_ref, 0)) as sisa_qty'),
-            ])
-            ->where('soi.sales_order_id', $salesOrderId)
-            ->whereNull('soi.deleted_at');
-
-        $query->having('sisa_qty', '>', 0);
-
-        $query->orderBy('soi.id', 'asc');
-
-        $itemsAll = $query->get();
-        $total = $itemsAll->count();
-        $perPage = $total > 0 ? $total : 1;
-        $page = 1;
-        $pagedItems = $itemsAll->slice(0, $perPage)->values();
-
-        $enriched = $pagedItems->map(function ($row) {
-            $item = SalesOrderItem::with(['jenisBarang:id,kode,nama_jenis', 'bentukBarang:id,kode,nama_bentuk,dimensi', 'gradeBarang:id,kode,nama'])
-                ->find($row->id);
-            return [
-                'id' => $row->id,
-                'sales_order_id' => $row->sales_order_id,
-                'panjang' => $row->panjang,
-                'lebar' => $row->lebar,
-                'tebal' => $row->tebal,
-                'qty_so' => (int) $row->qty_so,
-                'qty_ref' => (int) $row->qty_ref,
-                'sisa_qty' => max((int) $row->sisa_qty, 0),
-                'jenis_barang' => $item?->jenisBarang,
-                'bentuk_barang' => $item?->bentukBarang,
-                'grade_barang' => $item?->gradeBarang,
-                'harga' => $row->harga,
-                'satuan' => $row->satuan,
-                'jenis_potongan' => $row->jenis_potongan,
-                'diskon' => $row->diskon,
-                'catatan' => $row->catatan,
-            ];
+        $processedItems = $salesOrder->salesOrderItems->map(function ($item) use ($agg) {
+            $qtyRef = (int) ($agg[$item->id] ?? 0);
+            $sisa = max((int) $item->qty - $qtyRef, 0);
+            $arr = $item->toArray();
+            $arr['qty_so'] = (int) $item->qty;
+            $arr['qty_ref'] = $qtyRef;
+            $arr['sisa_qty'] = $sisa;
+            return $arr;
         });
 
-        $paginator = new \Illuminate\Pagination\LengthAwarePaginator(
-            $enriched,
-            $total,
-            $perPage,
-            $page,
-            ['path' => request()->url(), 'query' => request()->query()]
-        );
+        if (!$includeZero) {
+            $processedItems = $processedItems->filter(function ($i) { return ($i['sisa_qty'] ?? 0) > 0; })->values();
+        }
 
-        return response()->json($this->paginateResponse($paginator, $enriched));
+        $data = $salesOrder->toArray();
+        $data['sales_order_items'] = $processedItems;
+        return $this->successResponse($data, 'Data ditemukan');
     }
 
     /**
