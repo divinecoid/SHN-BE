@@ -8,6 +8,7 @@ use App\Models\Traits\HideTimestampsInRelations;
 use App\Models\MasterData\JenisBarang;
 use App\Models\MasterData\BentukBarang;
 use App\Models\MasterData\GradeBarang;
+use App\Models\MasterData\Gudang;
 use App\Models\User;
 
 class ItemBarangRequest extends Model
@@ -18,6 +19,7 @@ class ItemBarangRequest extends Model
     
     protected $fillable = [
         'nomor_request',
+        'item_barang_id',
         'nama_item_barang',
         'jenis_barang_id',
         'bentuk_barang_id',
@@ -26,6 +28,8 @@ class ItemBarangRequest extends Model
         'lebar',
         'tebal',
         'quantity',
+        'gudang_asal_id',
+        'gudang_tujuan_id',
         'keterangan',
         'status',
         'requested_by',
@@ -44,6 +48,10 @@ class ItemBarangRequest extends Model
         'lebar' => 'decimal:2',
         'tebal' => 'decimal:2',
         'quantity' => 'integer'
+    ];
+
+    protected $appends = [
+        'requested_at'
     ];
 
     // Relationships
@@ -72,6 +80,21 @@ class ItemBarangRequest extends Model
         return $this->belongsTo(User::class, 'approved_by');
     }
 
+    public function itemBarang()
+    {
+        return $this->belongsTo(\App\Models\MasterData\ItemBarang::class, 'item_barang_id');
+    }
+
+    public function asalGudang()
+    {
+        return $this->belongsTo(Gudang::class, 'gudang_asal_id');
+    }
+
+    public function tujuanGudang()
+    {
+        return $this->belongsTo(Gudang::class, 'gudang_tujuan_id');
+    }
+
     // Scopes
     public function scopePending($query)
     {
@@ -86,5 +109,10 @@ class ItemBarangRequest extends Model
     public function scopeRejected($query)
     {
         return $query->where('status', 'rejected');
+    }
+
+    public function getRequestedAtAttribute()
+    {
+        return optional($this->created_at)->setTimezone('Asia/Jakarta')->toIso8601String();
     }
 }
