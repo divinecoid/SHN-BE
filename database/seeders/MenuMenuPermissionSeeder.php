@@ -28,6 +28,7 @@ class MenuMenuPermissionSeeder extends Seeder
             'Work Order Planning' => ['Create', 'Read'],
             'Master Data' => ['Create', 'Read', 'Update', 'Delete'],
             'User Management' => ['Create', 'Update', 'Delete'],
+            'Laporan' => ['View', 'Read'],
             'Purchase Order' => ['Create', 'Read'],
         ];
 
@@ -49,6 +50,18 @@ class MenuMenuPermissionSeeder extends Seeder
                     ]);
                 }
             }
+        }
+
+        // Pastikan Admin memiliki semua menu-permission yang ada di sistem
+        if ($admin) {
+            MenuPermission::query()->select('id')->chunk(200, function ($chunk) use ($admin) {
+                foreach ($chunk as $mp) {
+                    RoleMenuPermission::firstOrCreate([
+                        'role_id' => $admin->id,
+                        'menu_menu_permission_id' => $mp->id,
+                    ]);
+                }
+            });
         }
     }
 }
