@@ -14,8 +14,7 @@ class RoleMenuPermission extends Model
 
     protected $fillable = [
         'role_id',
-        'menu_id',
-        'permission_id',
+        'menu_menu_permission_id',
     ];
 
     /**
@@ -29,9 +28,9 @@ class RoleMenuPermission extends Model
     /**
      * Get the menu that owns the role menu permission.
      */
-    public function menu()
+    public function menuPermission()
     {
-        return $this->belongsTo(Menu::class, 'menu_id');
+        return $this->belongsTo(MenuPermission::class, 'menu_menu_permission_id');
     }
 
     /**
@@ -39,6 +38,11 @@ class RoleMenuPermission extends Model
      */
     public function permission()
     {
-        return $this->belongsTo(Permission::class, 'permission_id');
+        return $this->hasOneThrough(Permission::class, MenuPermission::class, 'id', 'id', 'menu_menu_permission_id', 'permission_id');
+    }
+
+    public function menu()
+    {
+        return $this->hasOneThrough(Menu::class, MenuPermission::class, 'id', 'id', 'menu_menu_permission_id', 'menu_id');
     }
 }

@@ -484,6 +484,9 @@ class WorkOrderActualController extends Controller
         try {
             $workOrderActual = WorkOrderActual::with([
                 'workOrderPlanning',
+                'workOrderActualItems.jenisBarang',
+                'workOrderActualItems.bentukBarang',
+                'workOrderActualItems.gradeBarang',
                 'workOrderActualItems.workOrderPlanningItem.platDasar.jenisBarang',
                 'workOrderActualItems.workOrderPlanningItem.platDasar.bentukBarang',
                 'workOrderActualItems.workOrderPlanningItem.platDasar.gradeBarang',
@@ -496,38 +499,7 @@ class WorkOrderActualController extends Controller
                     'message' => 'Work order actual tidak ditemukan'
                 ], 404);
             }
-
-            $data = $workOrderActual->toArray();
-            if (!empty($data['workOrderActualItems'])) {
-                foreach ($data['workOrderActualItems'] as $idx => $itm) {
-                    $namaItem = null;
-                    $jenisNama = null;
-                    $bentukNama = null;
-                    $gradeNama = null;
-                    if (isset($itm['work_order_planning_item']['plat_dasar'])) {
-                        $pd = $itm['work_order_planning_item']['plat_dasar'];
-                        $namaItem = $pd['nama_item_barang'] ?? null;
-                        if (isset($pd['jenis_barang'])) {
-                            $jenisNama = $pd['jenis_barang']['nama_jenis'] ?? null;
-                        }
-                        if (isset($pd['bentuk_barang'])) {
-                            $bentukNama = $pd['bentuk_barang']['nama_bentuk'] ?? null;
-                        }
-                        if (isset($pd['grade_barang'])) {
-                            $gradeNama = $pd['grade_barang']['nama'] ?? null;
-                        }
-                    }
-                    $data['workOrderActualItems'][$idx]['item_barang_nama'] = $namaItem;
-                    $data['workOrderActualItems'][$idx]['jenis_barang_nama'] = $jenisNama;
-                    $data['workOrderActualItems'][$idx]['bentuk_barang_nama'] = $bentukNama;
-                    $data['workOrderActualItems'][$idx]['grade_barang_nama'] = $gradeNama;
-                }
-            }
-            return response()->json([
-                'success' => true,
-                'message' => 'Data work order actual berhasil diambil',
-                'data' => $data
-            ]);
+            return $this->successResponse($workOrderActual, 'Data work order actual berhasil diambil');
 
         } catch (\Exception $e) {
             Log::error('Error fetching work order actual: ' . $e->getMessage());

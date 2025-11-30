@@ -29,6 +29,7 @@ use App\Http\Controllers\MasterData\MenuController;
 use App\Http\Controllers\SysSettingController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RoleMenuPermissionController;
+use App\Http\Controllers\MenuMenuPermissionController;
 use App\Http\Controllers\StaticDataController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\Transactions\WorkOrderPlanningController;
@@ -125,21 +126,21 @@ Route::prefix('menu')->middleware('checkrole:admin')->group(function () {
 });
 
 // Role Menu Permission routes
-Route::prefix('role-menu-permission')->middleware('checkrole')->group(function () {
-    Route::get('/', [RoleMenuPermissionController::class, 'index']);
-    Route::get('{id}', [RoleMenuPermissionController::class, 'show']);
-    Route::get('by-role/{roleId}', [RoleMenuPermissionController::class, 'getByRole']);
-    Route::get('by-menu/{menuId}', [RoleMenuPermissionController::class, 'getByMenu']);
+Route::prefix('role')->middleware('checkrole')->group(function () {
+    Route::get('/menu-permission/grouped/{roleId}', [RoleMenuPermissionController::class, 'groupedByRole']);
 });
 
-Route::prefix('role-menu-permission')->middleware('checkrole:admin')->group(function () {
-    Route::post('/', [RoleMenuPermissionController::class, 'store']);
-    Route::put('{id}', [RoleMenuPermissionController::class, 'update']);
-    Route::patch('{id}', [RoleMenuPermissionController::class, 'update']);
-    Route::delete('{id}', [RoleMenuPermissionController::class, 'destroy']);
-    Route::post('bulk', [RoleMenuPermissionController::class, 'bulkStore']);
-    Route::delete('by-role/{roleId}', [RoleMenuPermissionController::class, 'deleteByRole']);
-    Route::delete('by-menu/{menuId}', [RoleMenuPermissionController::class, 'deleteByMenu']);
+
+Route::prefix('role')->middleware('checkrole:admin')->group(function () {
+    Route::post('/', [RoleController::class, 'store']);
+    Route::put('/{id}', [RoleController::class, 'update']);
+    Route::patch('/{id}', [RoleController::class, 'update']);
+});
+
+// Menu-Menu Permission routes (read-only)
+Route::prefix('menu-menu-permission')->middleware('checkrole')->group(function () {
+    Route::get('/', [MenuMenuPermissionController::class, 'index']);
+    Route::get('{id}', [MenuMenuPermissionController::class, 'show']);
 });
 
 // JenisBarang routes

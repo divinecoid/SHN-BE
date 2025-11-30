@@ -27,6 +27,11 @@ class Menu extends Model
      */
     public function roleMenuPermissions()
     {
-        return $this->hasMany(RoleMenuPermission::class, 'menu_id');
+        return $this->hasMany(MenuPermission::class, 'menu_id');
+    }
+
+    public function permissions()
+    {
+        return $this->belongsToMany(Permission::class, 'ref_menu_menu_permission', 'menu_id', 'permission_id');
     }
 }

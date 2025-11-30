@@ -7,6 +7,7 @@ use App\Models\RefreshToken;
 use Illuminate\Http\Request;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class LoginController extends Controller
 {
@@ -76,12 +77,20 @@ class LoginController extends Controller
             $payload = JWTAuth::setToken($accessToken)->getPayload();
             Log::info('JWT Payload:', $payload->toArray());
             
+            // Ambil role utama (gunakan role pertama jika multi-role)
+            $roles = $user->roles()->select('roles.id', 'roles.name', 'roles.role_code')->get();
+            $primaryRole = $roles->first();
+            $roleCode = $primaryRole ? ($primaryRole->role_code ?? strtoupper(Str::slug($primaryRole->name, '_'))) : null;
+
             return response()->json([
                 'success' => true,
                 'message' => 'Login berhasil',
                 'token' => $accessToken,
                 'refresh_token' => $refreshToken->token,
                 'token_type' => 'Bearer',
+                'role_id' => $primaryRole->id ?? null,
+                'role_name' => $primaryRole->name ?? null,
+                'role_code' => $roleCode,
             ]);
         } catch (\Illuminate\Database\ConnectionException $e) {
             Log::error('Database connection error during token generation: ' . $e->getMessage());
