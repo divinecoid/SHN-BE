@@ -27,9 +27,12 @@ class MenuMenuPermissionSeeder extends Seeder
             'Work Order Actual' => ['Create', 'Read'],
             'Work Order Planning' => ['Create', 'Read'],
             'Master Data' => ['Create', 'Read', 'Update', 'Delete'],
-            'User Management' => ['Create', 'Update', 'Delete'],
+            'User Management' => ['Create', 'Read', 'Update', 'Delete'],
             'Laporan' => ['View', 'Read'],
             'Purchase Order' => ['Create', 'Read'],
+            'Item Barang Request Approval' => ['Update'],
+            'Item Barang Request' => ['Create', 'Read', 'Delete'],
+            'Sales Order Approval' => ['Update'],
         ];
 
         $admin = Role::where('name', 'Admin')->first();
