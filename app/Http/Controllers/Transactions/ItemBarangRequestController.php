@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use App\Http\Traits\ApiFilterTrait;
 use App\Http\Controllers\MasterData\DocumentSequenceController;
+use App\Models\MasterData\DocumentSequence;
+use App\Models\MasterData\ItemBarang;
 
 class ItemBarangRequestController extends Controller
 {
@@ -26,7 +28,9 @@ class ItemBarangRequestController extends Controller
             'bentukBarang', 
             'gradeBarang',
             'requestedBy:id,name,username',
-            'approvedBy:id,name,username'
+            'approvedBy:id,name,username',
+            'asalGudang:id,kode,nama_gudang',
+            'tujuanGudang:id,kode,nama_gudang'
         ]);
 
         // Apply filters
@@ -59,30 +63,72 @@ class ItemBarangRequestController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'nama_item_barang' => 'required|string|max:255',
-            'jenis_barang_id' => 'required|exists:ref_jenis_barang,id',
-            'bentuk_barang_id' => 'required|exists:ref_bentuk_barang,id',
-            'grade_barang_id' => 'required|exists:ref_grade_barang,id',
-            'panjang' => 'nullable|numeric|min:0',
-            'lebar' => 'nullable|numeric|min:0',
-            'tebal' => 'nullable|numeric|min:0',
-            'quantity' => 'required|integer|min:1',
-            'keterangan' => 'nullable|string'
-        ]);
-
-        if ($validator->fails()) {
-            return $this->errorResponse($validator->errors()->first(), 422);
+        // Dua mode input: (A) via item_barang_id, atau (B) manual field
+        if ($request->filled('item_barang_id')) {
+            $validator = Validator::make($request->all(), [
+                'item_barang_id' => 'required|exists:ref_item_barang,id',
+                'quantity' => 'required|integer|min:1',
+                'gudang_tujuan_id' => 'nullable|exists:ref_gudang,id',
+                'gudang_asal_id' => 'nullable|exists:ref_gudang,id',
+                'notes' => 'nullable|string',
+            ]);
+            if ($validator->fails()) {
+                return $this->errorResponse($validator->errors()->first(), 422);
+            }
+            $item = \App\Models\MasterData\ItemBarang::with(['jenisBarang','bentukBarang','gradeBarang'])->find($request->item_barang_id);
+            if (!$item) {
+                return $this->errorResponse('Item barang tidak ditemukan', 404);
+            }
+            // Map ke struktur request standar
+            $request->merge([
+                'nama_item_barang' => $item->nama_item_barang,
+                'jenis_barang_id' => $item->jenis_barang_id,
+                'bentuk_barang_id' => $item->bentuk_barang_id,
+                'grade_barang_id' => $item->grade_barang_id,
+                'panjang' => $item->panjang,
+                'lebar' => $item->lebar,
+                'tebal' => $item->tebal,
+                'keterangan' => $request->input('notes'),
+                'gudang_asal_id' => $request->input('gudang_asal_id', $item->gudang_id),
+            ]);
+        } else {
+            $validator = Validator::make($request->all(), [
+                'nama_item_barang' => 'required|string|max:255',
+                'jenis_barang_id' => 'required|exists:ref_jenis_barang,id',
+                'bentuk_barang_id' => 'required|exists:ref_bentuk_barang,id',
+                'grade_barang_id' => 'required|exists:ref_grade_barang,id',
+                'panjang' => 'nullable|numeric|min:0',
+                'lebar' => 'nullable|numeric|min:0',
+                'tebal' => 'nullable|numeric|min:0',
+                'quantity' => 'required|integer|min:1',
+                'keterangan' => 'nullable|string'
+            ]);
+            if ($validator->fails()) {
+                return $this->errorResponse($validator->errors()->first(), 422);
+            }
         }
 
         try {
             DB::beginTransaction();
 
-            // Generate nomor request
-            $nomorRequest = DocumentSequenceController::generateSequence('ITEM_REQUEST');
+            // Increment sequence terlebih dahulu agar unik, lalu format nomor RCP-ddmmyyyy-xxx
+            // Generate nomor request memakai DocumentSequenceController
+            $gen = (new DocumentSequenceController())->generateDocumentSequence('item_barang_request');
+            if (method_exists($gen, 'getStatusCode') && $gen->getStatusCode() !== 200) {
+                return $this->errorResponse('Gagal generate nomor request', 500);
+            }
+            $nomorRequest = $gen->getData()->data ?? null;
+            if (!$nomorRequest) {
+                return $this->errorResponse('Nomor request tidak tersedia', 500);
+            }
+            $inc = (new DocumentSequenceController())->increaseSequence('item_barang_request');
+            if (method_exists($inc, 'getStatusCode') && $inc->getStatusCode() !== 200) {
+                return $this->errorResponse('Gagal update sequence request', 500);
+            }
 
             $itemRequest = ItemBarangRequest::create([
                 'nomor_request' => $nomorRequest,
+                'item_barang_id' => $request->input('item_barang_id'),
                 'nama_item_barang' => $request->nama_item_barang,
                 'jenis_barang_id' => $request->jenis_barang_id,
                 'bentuk_barang_id' => $request->bentuk_barang_id,
@@ -92,6 +138,8 @@ class ItemBarangRequestController extends Controller
                 'tebal' => $request->tebal,
                 'quantity' => $request->quantity,
                 'keterangan' => $request->keterangan,
+                'gudang_asal_id' => $request->input('gudang_asal_id'),
+                'gudang_tujuan_id' => $request->input('gudang_tujuan_id'),
                 'requested_by' => auth()->id(),
                 'status' => 'pending'
             ]);
@@ -123,7 +171,11 @@ class ItemBarangRequestController extends Controller
             'bentukBarang',
             'gradeBarang',
             'requestedBy:id,name,username',
-            'approvedBy:id,name,username'
+            'approvedBy:id,name,username',
+            'asalGudang:id,kode,nama_gudang',
+            'tujuanGudang:id,kode,nama_gudang',
+            'itemBarang:id,kode_barang,nama_item_barang,jenis_potongan,gudang_id',
+            'itemBarang.gudang:id,kode,nama_gudang'
         ])->find($id);
 
         if (!$itemRequest) {
@@ -163,7 +215,9 @@ class ItemBarangRequestController extends Controller
             'lebar' => 'nullable|numeric|min:0',
             'tebal' => 'nullable|numeric|min:0',
             'quantity' => 'required|integer|min:1',
-            'keterangan' => 'nullable|string'
+            'keterangan' => 'nullable|string',
+            'gudang_asal_id' => 'nullable|exists:ref_gudang,id',
+            'gudang_tujuan_id' => 'nullable|exists:ref_gudang,id'
         ]);
 
         if ($validator->fails()) {
@@ -180,7 +234,9 @@ class ItemBarangRequestController extends Controller
                 'lebar' => $request->lebar,
                 'tebal' => $request->tebal,
                 'quantity' => $request->quantity,
-                'keterangan' => $request->keterangan
+                'keterangan' => $request->keterangan,
+                'gudang_asal_id' => $request->input('gudang_asal_id'),
+                'gudang_tujuan_id' => $request->input('gudang_tujuan_id')
             ]);
 
             $itemRequest->load([
@@ -265,7 +321,8 @@ class ItemBarangRequestController extends Controller
     public function approve(Request $request, $id)
     {
         $validator = Validator::make($request->all(), [
-            'approval_notes' => 'nullable|string'
+            'approval_notes' => 'nullable|string',
+            'gudang_tujuan_id' => 'nullable|exists:ref_gudang,id'
         ]);
 
         if ($validator->fails()) {
@@ -283,24 +340,57 @@ class ItemBarangRequestController extends Controller
         }
 
         try {
+            DB::beginTransaction();
+
+            $destGudangId = $request->input('gudang_tujuan_id', $itemRequest->gudang_tujuan_id);
+            if (!$destGudangId) {
+                DB::rollBack();
+                return $this->errorResponse('gudang_tujuan_id wajib diisi saat approve', 422);
+            }
+
+            if (!$itemRequest->item_barang_id) {
+                DB::rollBack();
+                return $this->errorResponse('Request ini tidak terhubung ke item barang asli (item_barang_id kosong)', 422);
+            }
+
+            $item = ItemBarang::find($itemRequest->item_barang_id);
+            if (!$item) {
+                DB::rollBack();
+                return $this->errorResponse('Item barang sumber tidak ditemukan', 404);
+            }
+
+            $item->update([
+                'gudang_id' => $destGudangId,
+                'jenis_potongan' => 'potongan'
+            ]);
+
             $itemRequest->update([
                 'status' => 'approved',
                 'approved_by' => auth()->id(),
                 'approved_at' => now(),
-                'approval_notes' => $request->approval_notes
+                'approval_notes' => $request->approval_notes,
+                'gudang_tujuan_id' => $destGudangId
             ]);
+
+            DB::commit();
 
             $itemRequest->load([
                 'jenisBarang',
                 'bentukBarang',
                 'gradeBarang',
                 'requestedBy:id,name,username',
-                'approvedBy:id,name,username'
+                'approvedBy:id,name,username',
+                'asalGudang:id,kode,nama_gudang',
+                'tujuanGudang:id,kode,nama_gudang'
             ]);
 
-            return $this->successResponse($itemRequest, 'Request item barang berhasil disetujui');
+            return $this->successResponse([
+                'request' => $itemRequest,
+                'updated_item' => $item
+            ], 'Request item barang disetujui, gudang dipindahkan dan jenis_potongan diubah menjadi potongan');
 
         } catch (\Exception $e) {
+            DB::rollBack();
             return $this->errorResponse('Gagal menyetujui request item barang: ' . $e->getMessage(), 500);
         }
     }

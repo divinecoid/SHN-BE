@@ -33,6 +33,26 @@ class ItemBarangController extends Controller
         }
 
         $query = $this->applyFilter($query, $request, ['kode_barang', 'nama_item_barang']);
+
+        $jenis = $request->input('jenis_potongan', $request->input('tipe'));
+        if ($jenis !== null && $jenis !== '') {
+            $query->where('jenis_potongan', $jenis);
+        }
+
+        $jenisBarangId = $request->input('jenis_barang_id', $request->input('tipe_barang'));
+        if ($jenisBarangId !== null && $jenisBarangId !== '') {
+            $query->where('jenis_barang_id', $jenisBarangId);
+        }
+
+        if ($request->filled('min_quantity')) {
+            $query->where('quantity', '>=', $request->input('min_quantity'));
+        }
+        if ($request->filled('max_quantity')) {
+            $query->where('quantity', '<=', $request->input('max_quantity'));
+        }
+        if ($request->filled('quantity')) {
+            $query->where('quantity', $request->input('quantity'));
+        }
         $data = $query->paginate($perPage);
         $items = collect($data->items());
         return response()->json($this->paginateResponse($data, $items));
@@ -303,6 +323,24 @@ class ItemBarangController extends Controller
         }
 
         $query = $this->applyFilter($query, $request, ['kode_barang', 'nama_item_barang']);
+        $jenis = $request->input('jenis_potongan', $request->input('tipe'));
+        if ($jenis !== null && $jenis !== '') {
+            $query->where('jenis_potongan', $jenis);
+        }
+
+        $jenisBarangId = $request->input('jenis_barang_id', $request->input('tipe_barang'));
+        if ($jenisBarangId !== null && $jenisBarangId !== '') {
+            $query->where('jenis_barang_id', $jenisBarangId);
+        }
+        if ($request->filled('min_quantity')) {
+            $query->where('quantity', '>=', $request->input('min_quantity'));
+        }
+        if ($request->filled('max_quantity')) {
+            $query->where('quantity', '<=', $request->input('max_quantity'));
+        }
+        if ($request->filled('quantity')) {
+            $query->where('quantity', $request->input('quantity'));
+        }
         $data = $query->paginate($perPage);
         $items = collect($data->items());
         return response()->json($this->paginateResponse($data, $items));
@@ -319,6 +357,24 @@ class ItemBarangController extends Controller
         }
 
         $query = $this->applyFilter($query, $request, ['kode_barang', 'nama_item_barang']);
+        $jenis = $request->input('jenis_potongan', $request->input('tipe'));
+        if ($jenis !== null && $jenis !== '') {
+            $query->where('jenis_potongan', $jenis);
+        }
+
+        $jenisBarangId = $request->input('jenis_barang_id', $request->input('tipe_barang'));
+        if ($jenisBarangId !== null && $jenisBarangId !== '') {
+            $query->where('jenis_barang_id', $jenisBarangId);
+        }
+        if ($request->filled('min_quantity')) {
+            $query->where('quantity', '>=', $request->input('min_quantity'));
+        }
+        if ($request->filled('max_quantity')) {
+            $query->where('quantity', '<=', $request->input('max_quantity'));
+        }
+        if ($request->filled('quantity')) {
+            $query->where('quantity', $request->input('quantity'));
+        }
         $data = $query->paginate($perPage);
         $items = collect($data->items());
         return response()->json($this->paginateResponse($data, $items));
@@ -395,6 +451,25 @@ class ItemBarangController extends Controller
 
         // Apply additional filters and sorting
         $query = $this->applyFilter($query, $request, ['kode_barang', 'nama_item_barang']);
+
+        $jenis = $request->input('jenis_potongan', $request->input('tipe'));
+        if ($jenis !== null && $jenis !== '') {
+            $query->where('jenis_potongan', $jenis);
+        }
+
+        $jenisBarangId = $request->input('jenis_barang_id', $request->input('tipe_barang'));
+        if ($jenisBarangId !== null && $jenisBarangId !== '') {
+            $query->where('jenis_barang_id', $jenisBarangId);
+        }
+        if ($request->filled('min_quantity')) {
+            $query->where('quantity', '>=', $request->input('min_quantity'));
+        }
+        if ($request->filled('max_quantity')) {
+            $query->where('quantity', '<=', $request->input('max_quantity'));
+        }
+        if ($request->filled('quantity')) {
+            $query->where('quantity', $request->input('quantity'));
+        }
 
         $data = $query->paginate($perPage);
         $items = collect($data->items());
