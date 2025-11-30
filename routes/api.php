@@ -62,7 +62,7 @@ Route::middleware('checkrole')->group(function () {
 });
 
 // User routes - Delete operations (admin only)
-Route::middleware('checkrole:admin')->group(function () {
+Route::middleware('checkrole')->group(function () {
     Route::get('users-with-trashed/all', [UserController::class, 'indexWithTrashed']);
     Route::get('users-with-trashed/trashed', [UserController::class, 'indexTrashed']);
     Route::post('users', [UserController::class, 'store']);
@@ -92,7 +92,7 @@ Route::middleware('checkrole')->group(function () {
     Route::get('/roles/{id}', [RoleController::class, 'show']);
 });
 
-Route::middleware('checkrole:admin')->group(function () {
+Route::middleware('checkrole')->group(function () {
     Route::post('/roles', [RoleController::class, 'store']);
     Route::put('/roles/{id}', [RoleController::class, 'update']);
     Route::delete('/roles/{id}', [RoleController::class, 'destroy']);
@@ -117,7 +117,7 @@ Route::prefix('menu')->middleware('checkrole')->group(function () {
     Route::put('{id}', [MenuController::class, 'update']);
     Route::patch('{id}', [MenuController::class, 'update']);
 });
-Route::prefix('menu')->middleware('checkrole:admin')->group(function () {
+Route::prefix('menu')->middleware('checkrole')->group(function () {
     Route::delete('{id}/soft', [MenuController::class, 'softDelete']);
     Route::patch('{id}/restore', [MenuController::class, 'restore']);
     Route::delete('{id}/force', [MenuController::class, 'forceDelete']);
@@ -131,7 +131,7 @@ Route::prefix('role')->middleware('checkrole')->group(function () {
 });
 
 
-Route::prefix('role')->middleware('checkrole:admin')->group(function () {
+Route::prefix('role')->middleware('checkrole')->group(function () {
     Route::post('/', [RoleController::class, 'store']);
     Route::put('/{id}', [RoleController::class, 'update']);
     Route::patch('/{id}', [RoleController::class, 'update']);
@@ -148,7 +148,7 @@ Route::prefix('jenis-barang')->middleware('checkrole')->group(function () {
     Route::get('/', [JenisBarangController::class, 'index']);
     Route::get('{id}', [JenisBarangController::class, 'show']);
 });
-Route::prefix('jenis-barang')->middleware('checkrole:admin,manager')->group(function () {
+Route::prefix('jenis-barang')->middleware('checkrole')->group(function () {
     Route::post('/', [JenisBarangController::class, 'store']);
     Route::put('{id}', [JenisBarangController::class, 'update']);
     Route::patch('{id}', [JenisBarangController::class, 'update']);
@@ -168,7 +168,7 @@ Route::prefix('bentuk-barang')->middleware('checkrole')->group(function () {
     Route::put('{id}', [BentukBarangController::class, 'update']);
     Route::patch('{id}', [BentukBarangController::class, 'update']);
 });
-Route::prefix('bentuk-barang')->middleware('checkrole:admin')->group(function () {
+Route::prefix('bentuk-barang')->middleware('checkrole')->group(function () {
     Route::delete('{id}', [BentukBarangController::class, 'destroy']);
     Route::delete('{id}/soft', [BentukBarangController::class, 'softDelete']);
     Route::patch('{id}/restore', [BentukBarangController::class, 'restore']);
@@ -185,7 +185,7 @@ Route::prefix('grade-barang')->middleware('checkrole')->group(function () {
     Route::put('{id}', [GradeBarangController::class, 'update']);
     Route::patch('{id}', [GradeBarangController::class, 'update']);
 });
-Route::prefix('grade-barang')->middleware('checkrole:admin')->group(function () {
+Route::prefix('grade-barang')->middleware('checkrole')->group(function () {
     Route::delete('{id}', [GradeBarangController::class, 'destroy']);
     Route::delete('{id}/soft', [GradeBarangController::class, 'softDelete']);
     Route::patch('{id}/restore', [GradeBarangController::class, 'restore']);
@@ -208,7 +208,7 @@ Route::prefix('item-barang')->middleware('checkrole')->group(function () {
     Route::get('{itemBarangId}/canvas-image', [WorkOrderPlanningController::class, 'getCanvasImageByItemId']);
     Route::get('/similar-type/{id}', [ItemBarangController::class, 'similarType']);
 });
-Route::prefix('item-barang')->middleware('checkrole:admin')->group(function () {
+Route::prefix('item-barang')->middleware('checkrole')->group(function () {
     Route::delete('{id}/soft', [ItemBarangController::class, 'softDelete']);
     Route::patch('{id}/restore', [ItemBarangController::class, 'restore']);
     Route::delete('{id}/force', [ItemBarangController::class, 'forceDelete']);
@@ -242,7 +242,7 @@ Route::prefix('jenis-transaksi-kas')->middleware('checkrole')->group(function ()
     Route::put('{id}', [JenisTransaksiKasController::class, 'update']);
     Route::patch('{id}', [JenisTransaksiKasController::class, 'update']);
 });
-Route::prefix('jenis-transaksi-kas')->middleware('checkrole:admin')->group(function () {
+Route::prefix('jenis-transaksi-kas')->middleware('checkrole')->group(function () {
     Route::delete('{id}/soft', [JenisTransaksiKasController::class, 'softDelete']);
     Route::patch('{id}/restore', [JenisTransaksiKasController::class, 'restore']);
     Route::delete('{id}/force', [JenisTransaksiKasController::class, 'forceDelete']);
@@ -264,7 +264,7 @@ Route::prefix('gudang')->middleware('checkrole')->group(function () {
     Route::put('{id}', [GudangController::class, 'update']);
     Route::patch('{id}', [GudangController::class, 'update']);
 });
-Route::prefix('gudang')->middleware('checkrole:admin')->group(function () {
+Route::prefix('gudang')->middleware('checkrole')->group(function () {
     Route::delete('{id}/soft', [GudangController::class, 'softDelete']);
     Route::patch('{id}/restore', [GudangController::class, 'restore']);
     Route::delete('{id}/force', [GudangController::class, 'forceDelete']);
@@ -280,7 +280,7 @@ Route::prefix('jenis-biaya')->middleware('checkrole')->group(function () {
     Route::put('{id}', [JenisBiayaController::class, 'update']);
     Route::patch('{id}', [JenisBiayaController::class, 'update']);
 });
-Route::prefix('jenis-biaya')->middleware('checkrole:admin')->group(function () {
+Route::prefix('jenis-biaya')->middleware('checkrole')->group(function () {
     Route::delete('{id}/soft', [JenisBiayaController::class, 'softDelete']);
     Route::patch('{id}/restore', [JenisBiayaController::class, 'restore']);
     Route::delete('{id}/force', [JenisBiayaController::class, 'forceDelete']);
@@ -296,7 +296,7 @@ Route::prefix('jenis-mutasi-stock')->middleware('checkrole')->group(function () 
     Route::put('{id}', [JenisMutasiStockController::class, 'update']);
     Route::patch('{id}', [JenisMutasiStockController::class, 'update']);
 });
-Route::prefix('jenis-mutasi-stock')->middleware('checkrole:admin')->group(function () {
+Route::prefix('jenis-mutasi-stock')->middleware('checkrole')->group(function () {
     Route::delete('{id}/soft', [JenisMutasiStockController::class, 'softDelete']);
     Route::patch('{id}/restore', [JenisMutasiStockController::class, 'restore']);
     Route::delete('{id}/force', [JenisMutasiStockController::class, 'forceDelete']);
@@ -312,7 +312,7 @@ Route::prefix('pelaksana')->middleware('checkrole')->group(function () {
     Route::put('{id}', [PelaksanaController::class, 'update']);
     Route::patch('{id}', [PelaksanaController::class, 'update']);
 });
-Route::prefix('pelaksana')->middleware('checkrole:admin')->group(function () {
+Route::prefix('pelaksana')->middleware('checkrole')->group(function () {
     Route::delete('{id}/soft', [PelaksanaController::class, 'softDelete']);
     Route::patch('{id}/restore', [PelaksanaController::class, 'restore']);
     Route::delete('{id}/force', [PelaksanaController::class, 'forceDelete']);
@@ -329,7 +329,7 @@ Route::prefix('pelanggan')->middleware('checkrole')->group(function () {
     Route::put('{id}', [PelangganController::class, 'update']);
     Route::patch('{id}', [PelangganController::class, 'update']);
 });
-Route::prefix('pelanggan')->middleware('checkrole:admin')->group(function () {
+Route::prefix('pelanggan')->middleware('checkrole')->group(function () {
     Route::delete('{id}/soft', [PelangganController::class, 'softDelete']);
     Route::patch('{id}/restore', [PelangganController::class, 'restore']);
     Route::delete('{id}/force', [PelangganController::class, 'forceDelete']);
@@ -345,7 +345,7 @@ Route::prefix('supplier')->middleware('checkrole')->group(function () {
     Route::put('{id}', [SupplierController::class, 'update']);
     Route::patch('{id}', [SupplierController::class, 'update']);
 });
-Route::prefix('supplier')->middleware('checkrole:admin')->group(function () {
+Route::prefix('supplier')->middleware('checkrole')->group(function () {
     Route::delete('{id}/soft', [SupplierController::class, 'softDelete']);
     Route::patch('{id}/restore', [SupplierController::class, 'restore']);
     Route::delete('{id}/force', [SupplierController::class, 'forceDelete']);
@@ -363,8 +363,6 @@ Route::prefix('penerimaan-barang')->middleware('checkrole')->group(function () {
     Route::get('by-item-barang/{idItemBarang}', [PenerimaanBarangController::class, 'getByItemBarang']);
     Route::get('by-gudang/{idGudang}', [PenerimaanBarangController::class, 'getByGudang']);
     Route::get('by-rak/{idRak}', [PenerimaanBarangController::class, 'getByRak']);
-});
-Route::prefix('penerimaan-barang')->middleware('checkrole:admin')->group(function () {
     Route::delete('{id}/soft', [PenerimaanBarangController::class, 'softDelete']);
     Route::patch('{id}/restore', [PenerimaanBarangController::class, 'restore']);
     Route::delete('{id}/force', [PenerimaanBarangController::class, 'forceDelete']);
@@ -385,7 +383,7 @@ Route::prefix('sys-setting')->middleware('checkrole')->group(function () {
     Route::get('value/{key}', [SysSettingController::class, 'getValueByKey']);
 });
 
-Route::prefix('sales-order')->middleware('checkrole:admin')->group(function () {
+Route::prefix('sales-order')->middleware('checkrole')->group(function () {
     // Specific routes must come before parameterized routes
     Route::get('pending-delete-requests', [SalesOrderController::class, 'getPendingDeleteRequests']);
     Route::delete('{id}/soft', [SalesOrderController::class, 'softDelete']);
