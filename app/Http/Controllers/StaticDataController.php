@@ -16,19 +16,11 @@ class StaticDataController extends Controller
                 'id' => 1,
                 'kode' => 'Gudang',
                 'nama' => 'Gudang',
-                'deskripsi' => 'Gudang utama'
             ],
             [
                 'id' => 2,
-                'kode' => 'Rack',
-                'nama' => 'Rack',
-                'deskripsi' => 'Rak penyimpanan'
-            ],
-            [
-                'id' => 3,
-                'kode' => 'BIN',
-                'nama' => 'BIN',
-                'deskripsi' => 'Bin penyimpanan'
+                'kode' => 'Rak',
+                'nama' => 'Rak',
             ]
         ];
 
