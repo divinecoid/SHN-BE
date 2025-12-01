@@ -1676,6 +1676,15 @@
             }
           }
         }
+      ```
+
+    ### Cancel Item Barang Request (Soft Delete)
+    - `DELETE /api/item-barang-request/{id}`
+      - **Prasyarat:** hanya bisa jika `status = pending` dan requester adalah pemilik request
+      - **Efek:** soft delete pada request (data tetap bisa dilihat via with-trashed jika disediakan)
+      - **Response:**
+        ```json
+        { "success": true, "message": "Request item barang berhasil dihapus", "data": null }
         ```
 
     ### Create Item Barang Request
