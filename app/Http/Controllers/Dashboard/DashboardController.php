@@ -102,8 +102,14 @@ class DashboardController extends Controller
         $dateRange = $this->getDateRange($request);
         $query = WorkOrderPlanning::query();
 
-        // Apply date filter
-        $query->whereBetween('created_at', [$dateRange['date_from'], $dateRange['date_to']]);
+        // Apply date filter only if date_from or date_to is set
+        if (!empty($dateRange['date_from']) && !empty($dateRange['date_to'])) {
+            $query->whereBetween('created_at', [$dateRange['date_from'], $dateRange['date_to']]);
+        } elseif (!empty($dateRange['date_from'])) {
+            $query->where('created_at', '>=', $dateRange['date_from']);
+        } elseif (!empty($dateRange['date_to'])) {
+            $query->where('created_at', '<=', $dateRange['date_to']);
+        }
 
         if ($status !== 'all') {
             if (in_array(strtolower($status), ['pending', 'onprogress', 'on progress', 'selesai'])) {
@@ -130,7 +136,7 @@ class DashboardController extends Controller
                 'waktu_so' => $salesOrder ? $salesOrder->created_at : null,
                 'nomor_wo' => $item->nomor_wo,
                 'waktu_wo' => $item->created_at,
-                'estimate_selesai' => $item->estimate_done ?? null,
+                'estimate_selesai' => $item->estimate_done ? \Carbon\Carbon::parse($item->estimate_done)->timezone('Asia/Jakarta')->toDateTimeString() : null,
                 'real_selesai' => $item->real_selesai ?? null,
                 'close_wo_at' => $item->close_wo_at ? \Carbon\Carbon::parse($item->close_wo_at)->timezone('Asia/Jakarta')->toDateTimeString() : null,
                 'nomor_inv' => $invoicePod ? $invoicePod->nomor_invoice : null,

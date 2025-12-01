@@ -167,6 +167,7 @@ class WorkOrderPlanningController extends Controller
                 'trx_work_order_planning.prioritas',
                 'trx_work_order_planning.status',
                 'trx_work_order_planning.handover_method',
+                'trx_work_order_planning.estimate_done',
                 'trx_work_order_planning.created_at',
                 'trx_work_order_planning.updated_at',
                 'ref_pelanggan.nama_pelanggan',
@@ -237,6 +238,7 @@ class WorkOrderPlanningController extends Controller
             'tanggal_wo' => 'required|date',
             'prioritas' => 'required|string',
             'handover_method' => 'required|string|in:pickup,delivery',
+            'estimate_done' => 'nullable|date',
             'items' => 'required|array',
             'items.*.wo_item_unique_id' => 'required|string|unique:trx_work_order_planning_item,wo_item_unique_id',
             'items.*.sales_order_item_id' => 'nullable|exists:trx_sales_order_item,id',
@@ -280,6 +282,7 @@ class WorkOrderPlanningController extends Controller
                 'prioritas',
                 'status',
                 'handover_method',
+                'estimate_done',
             ]);
             $workOrderData['wo_unique_id'] = $woUniqueId;
             $workOrderData['nomor_wo'] = $nomorWo;
@@ -414,6 +417,7 @@ class WorkOrderPlanningController extends Controller
             'catatan' => $data->catatan,
             'created_at' => $data->created_at,
             'updated_at' => $data->updated_at,
+            'estimate_done' => $data->estimate_done,
             'close_wo_at' => $data->close_wo_at,
             'has_generated_invoice' => $data->has_generated_invoice,
             'has_generated_pod' => $data->has_generated_pod,

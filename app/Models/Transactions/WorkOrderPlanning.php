@@ -23,12 +23,14 @@ class WorkOrderPlanning extends Model
         'prioritas',
         'status',
         'handover_method',
+        'estimate_done',
     ];
 
     protected $hidden = ['deleted_at'];
 
     protected $casts = [
         'tanggal_wo' => 'date',
+        'estimate_done' => 'datetime',
     ];
 
     public function workOrderPlanningItems()
