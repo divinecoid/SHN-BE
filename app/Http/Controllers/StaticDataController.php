@@ -84,14 +84,16 @@ class StaticDataController extends Controller
 
     /**
      * Get satuan data
+     * @param Request $request
+     * @param string $jenis_potongan - 'utuh' untuk hanya PCS dan KG, 'potongan' untuk semua satuan
      */
-    public function getSatuan()
+    public function getSatuan(Request $request)
     {
         $satuan = [
             [
                 'id' => 1,
                 'kode' => 'PCS',
-                'nama' => 'Utuh',
+                'nama' => 'Pieces',
                 'deskripsi' => 'Satuan utuh per pieces'
             ],
             [
@@ -107,6 +109,19 @@ class StaticDataController extends Controller
                 'deskripsi' => 'Satuan berdasarkan dimensi (panjang x lebar x tebal)'
             ]
         ];
+
+        // Filter berdasarkan jenis potongan
+        $jenisPotongan = $request->input('jenis_potongan');
+        
+        if ($jenisPotongan === 'utuh') {
+            // Hanya return PCS dan KG
+            $satuan = array_filter($satuan, function($item) {
+                return in_array($item['id'], [1, 2]);
+            });
+            // Re-index array setelah filter
+            $satuan = array_values($satuan);
+        }
+        // Jika 'potongan' atau tidak ada parameter, return semua satuan
 
         return response()->json([
             'success' => true,

@@ -15,6 +15,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Middleware\RoleMiddleware;
 use App\Http\Controllers\MasterData\BentukBarangController;
 use App\Http\Controllers\MasterData\GradeBarangController;
+use App\Http\Controllers\MasterData\BeratJenisController;
 use App\Http\Controllers\MasterData\ItemBarangController;
 use App\Http\Controllers\MasterData\JenisTransaksiKasController;
 use App\Http\Controllers\MasterData\GudangController;
@@ -192,6 +193,22 @@ Route::prefix('grade-barang')->middleware('checkrole')->group(function () {
     Route::delete('{id}/force', [GradeBarangController::class, 'forceDelete']);
     Route::get('with-trashed/all', [GradeBarangController::class, 'indexWithTrashed']);
     Route::get('with-trashed/trashed', [GradeBarangController::class, 'indexTrashed']);
+});
+
+// BeratJenis routes
+Route::prefix('berat-jenis')->middleware('checkrole')->group(function () {
+    Route::get('/', [BeratJenisController::class, 'index']);
+    Route::get('{id}', [BeratJenisController::class, 'show']);
+    Route::post('/', [BeratJenisController::class, 'store']);
+    Route::put('{id}', [BeratJenisController::class, 'update']);
+    Route::patch('{id}', [BeratJenisController::class, 'update']);
+});
+Route::prefix('berat-jenis')->middleware('checkrole')->group(function () {
+    Route::delete('{id}/soft', [BeratJenisController::class, 'softDelete']);
+    Route::patch('{id}/restore', [BeratJenisController::class, 'restore']);
+    Route::delete('{id}/force', [BeratJenisController::class, 'forceDelete']);
+    Route::get('with-trashed/all', [BeratJenisController::class, 'indexWithTrashed']);
+    Route::get('with-trashed/trashed', [BeratJenisController::class, 'indexTrashed']);
 });
 
 // ItemBarang routes
