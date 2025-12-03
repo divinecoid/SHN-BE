@@ -4,10 +4,12 @@ namespace App\Http\Controllers\MasterData;
 
 use Illuminate\Http\Request;
 use App\Models\MasterData\ItemBarang;
+use App\Models\MasterData\ItemBarangGroup;
 use App\Models\MasterData\JenisBarang;
 use App\Models\MasterData\BentukBarang;
 use App\Models\MasterData\GradeBarang;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\ApiFilterTrait;
 use App\Http\Controllers\MasterData\DocumentSequenceController;
@@ -202,7 +204,230 @@ class ItemBarangController extends Controller
         // Tambah urutan sequence barang (counter) supaya tidak double
         $this->documentSequenceController->increaseSequence('barang');
 
+        // Update atau create group berdasarkan kombinasi jenis, bentuk, grade, panjang, lebar, tebal
+        $this->syncItemBarangGroup($data->jenis_barang_id, $data->bentuk_barang_id, $data->grade_barang_id, $data->panjang, $data->lebar, $data->tebal);
+
         return $this->successResponse($data, 'Data berhasil ditambahkan');
+    }
+
+    /**
+     * Sync item barang group berdasarkan kombinasi jenis, bentuk, grade, panjang, lebar, tebal
+     */
+    private function syncItemBarangGroup($jenisBarangId, $bentukBarangId, $gradeBarangId, $panjang, $lebar, $tebal)
+    {
+        // Hitung quantity_utuh dan quantity_potongan dari semua item barang dengan kombinasi yang sama
+        $quantityUtuh = ItemBarang::where('jenis_barang_id', $jenisBarangId)
+            ->where('bentuk_barang_id', $bentukBarangId)
+            ->where('grade_barang_id', $gradeBarangId)
+            ->where('panjang', $panjang)
+            ->where('tebal', $tebal)
+            ->where(function($query) use ($lebar) {
+                if ($lebar !== null) {
+                    $query->where('lebar', $lebar);
+                } else {
+                    $query->whereNull('lebar');
+                }
+            })
+            ->where('jenis_potongan', 'utuh')
+            ->sum('quantity');
+
+        $quantityPotongan = ItemBarang::where('jenis_barang_id', $jenisBarangId)
+            ->where('bentuk_barang_id', $bentukBarangId)
+            ->where('grade_barang_id', $gradeBarangId)
+            ->where('panjang', $panjang)
+            ->where('tebal', $tebal)
+            ->where(function($query) use ($lebar) {
+                if ($lebar !== null) {
+                    $query->where('lebar', $lebar);
+                } else {
+                    $query->whereNull('lebar');
+                }
+            })
+            ->where(function($query) {
+                $query->where('jenis_potongan', '!=', 'utuh')
+                    ->orWhereNull('jenis_potongan');
+            })
+            ->sum('quantity');
+
+        // Cari atau buat group
+        $query = ItemBarangGroup::where('jenis_barang_id', $jenisBarangId)
+            ->where('bentuk_barang_id', $bentukBarangId)
+            ->where('grade_barang_id', $gradeBarangId)
+            ->where('panjang', (int) $panjang)
+            ->where('tebal', (int) $tebal);
+
+        if ($lebar !== null) {
+            $query->where('lebar', (int) $lebar);
+        } else {
+            $query->whereNull('lebar');
+        }
+
+        $itemBarangGroup = $query->first();
+
+        if (!$itemBarangGroup) {
+            // Buat group baru jika belum ada
+            $itemBarangGroup = new ItemBarangGroup();
+            $itemBarangGroup->jenis_barang_id = $jenisBarangId;
+            $itemBarangGroup->bentuk_barang_id = $bentukBarangId;
+            $itemBarangGroup->grade_barang_id = $gradeBarangId;
+            $itemBarangGroup->panjang = (int) $panjang;
+            $itemBarangGroup->lebar = $lebar ? (int) $lebar : null;
+            $itemBarangGroup->tebal = (int) $tebal;
+        }
+
+        $itemBarangGroup->quantity_utuh = (int) $quantityUtuh;
+        $itemBarangGroup->quantity_potongan = (int) $quantityPotongan;
+        $itemBarangGroup->save();
+    }
+
+    public function generateGroup(Request $request)
+    {
+        // Grouping dari semua item barang yang ada berdasarkan:
+        // jenis_barang_id, bentuk_barang_id, grade_barang_id, panjang, lebar (opsional), tebal
+        
+        $groups = ItemBarang::select(
+                'jenis_barang_id',
+                'bentuk_barang_id',
+                'grade_barang_id',
+                'panjang',
+                'lebar',
+                'tebal',
+                DB::raw('SUM(CASE WHEN jenis_potongan = "utuh" THEN quantity ELSE 0 END) as quantity_utuh'),
+                DB::raw('SUM(CASE WHEN jenis_potongan != "utuh" OR jenis_potongan IS NULL THEN quantity ELSE 0 END) as quantity_potongan')
+            )
+            ->groupBy('jenis_barang_id', 'bentuk_barang_id', 'grade_barang_id', 'panjang', 'lebar', 'tebal')
+            ->get();
+
+        $createdGroups = [];
+        $updatedGroups = [];
+        $allGroups = [];
+
+        foreach ($groups as $group) {
+            // Cari atau buat group di tabel ref_item_barang_group
+            // Untuk lebar yang bisa null, gunakan whereNull jika null
+            $query = ItemBarangGroup::where('jenis_barang_id', $group->jenis_barang_id)
+                ->where('bentuk_barang_id', $group->bentuk_barang_id)
+                ->where('grade_barang_id', $group->grade_barang_id)
+                ->where('panjang', (int) $group->panjang)
+                ->where('tebal', (int) $group->tebal);
+
+            if ($group->lebar !== null) {
+                $query->where('lebar', (int) $group->lebar);
+            } else {
+                $query->whereNull('lebar');
+            }
+
+            $itemBarangGroup = $query->first();
+
+            if (!$itemBarangGroup) {
+                $itemBarangGroup = new ItemBarangGroup();
+                $itemBarangGroup->jenis_barang_id = $group->jenis_barang_id;
+                $itemBarangGroup->bentuk_barang_id = $group->bentuk_barang_id;
+                $itemBarangGroup->grade_barang_id = $group->grade_barang_id;
+                $itemBarangGroup->panjang = (int) $group->panjang;
+                $itemBarangGroup->lebar = $group->lebar ? (int) $group->lebar : null;
+                $itemBarangGroup->tebal = (int) $group->tebal;
+                $isNew = true;
+            } else {
+                $isNew = false;
+            }
+
+            $itemBarangGroup->quantity_utuh = (int) $group->quantity_utuh;
+            $itemBarangGroup->quantity_potongan = (int) $group->quantity_potongan;
+            $itemBarangGroup->save();
+
+            $itemBarangGroup->load(['jenisBarang', 'bentukBarang', 'gradeBarang']);
+
+            if ($isNew) {
+                $createdGroups[] = $itemBarangGroup;
+            } else {
+                $updatedGroups[] = $itemBarangGroup;
+            }
+
+            $allGroups[] = $itemBarangGroup;
+        }
+
+        return $this->successResponse([
+            'total_groups' => count($allGroups),
+            'created' => count($createdGroups),
+            'updated' => count($updatedGroups),
+            'groups' => $allGroups
+        ], 'Grouping item barang berhasil dibuat/diperbarui');
+    }
+
+    public function indexGroup(Request $request)
+    {
+        $perPage = (int) ($request->input('per_page', $this->getPerPageDefault()));
+        $query = ItemBarangGroup::with(['jenisBarang', 'bentukBarang', 'gradeBarang']);
+
+        // Filter berdasarkan jenis_barang_id jika ada
+        if ($request->filled('jenis_barang_id')) {
+            $query->where('jenis_barang_id', $request->jenis_barang_id);
+        }
+
+        // Filter berdasarkan bentuk_barang_id jika ada
+        if ($request->filled('bentuk_barang_id')) {
+            $query->where('bentuk_barang_id', $request->bentuk_barang_id);
+        }
+
+        // Filter berdasarkan grade_barang_id jika ada
+        if ($request->filled('grade_barang_id')) {
+            $query->where('grade_barang_id', $request->grade_barang_id);
+        }
+
+        // Filter berdasarkan panjang jika ada
+        if ($request->filled('panjang')) {
+            $query->where('panjang', $request->panjang);
+        }
+
+        // Filter berdasarkan lebar jika ada
+        if ($request->filled('lebar')) {
+            $query->where('lebar', $request->lebar);
+        } else if ($request->has('lebar') && $request->lebar === null) {
+            // Jika lebar secara eksplisit null (untuk filter item tanpa lebar)
+            $query->whereNull('lebar');
+        }
+
+        // Filter berdasarkan tebal jika ada
+        if ($request->filled('tebal')) {
+            $query->where('tebal', $request->tebal);
+        }
+
+        // Filter berdasarkan min quantity_utuh
+        if ($request->filled('min_quantity_utuh')) {
+            $query->where('quantity_utuh', '>=', $request->input('min_quantity_utuh'));
+        }
+
+        // Filter berdasarkan max quantity_utuh
+        if ($request->filled('max_quantity_utuh')) {
+            $query->where('quantity_utuh', '<=', $request->input('max_quantity_utuh'));
+        }
+
+        // Filter berdasarkan min quantity_potongan
+        if ($request->filled('min_quantity_potongan')) {
+            $query->where('quantity_potongan', '>=', $request->input('min_quantity_potongan'));
+        }
+
+        // Filter berdasarkan max quantity_potongan
+        if ($request->filled('max_quantity_potongan')) {
+            $query->where('quantity_potongan', '<=', $request->input('max_quantity_potongan'));
+        }
+
+        $data = $query->paginate($perPage);
+        $items = collect($data->items());
+        
+        return response()->json($this->paginateResponse($data, $items));
+    }
+
+    public function showGroup(Request $request, $id)
+    {
+        $data = ItemBarangGroup::with(['jenisBarang', 'bentukBarang', 'gradeBarang'])->find($id);
+        
+        if (!$data) {
+            return $this->errorResponse('Data group tidak ditemukan', 404);
+        }
+        
+        return $this->successResponse($data);
     }
 
     public function show(Request $request, $id)
@@ -277,8 +502,39 @@ class ItemBarangController extends Controller
         ]), function ($value) {
             return $value !== null && $value !== '';
         });
+        
+        // Simpan nilai lama untuk sync group setelah update
+        $oldJenisBarangId = $data->jenis_barang_id;
+        $oldBentukBarangId = $data->bentuk_barang_id;
+        $oldGradeBarangId = $data->grade_barang_id;
+        $oldPanjang = $data->panjang;
+        $oldLebar = $data->lebar;
+        $oldTebal = $data->tebal;
+        
         $data->update($updateData);
         $data->load(['jenisBarang', 'bentukBarang', 'gradeBarang', 'gudang']);
+        
+        // Sync group untuk kombinasi baru setelah update
+        $newJenisBarangId = $data->jenis_barang_id;
+        $newBentukBarangId = $data->bentuk_barang_id;
+        $newGradeBarangId = $data->grade_barang_id;
+        $newPanjang = $data->panjang;
+        $newLebar = $data->lebar;
+        $newTebal = $data->tebal;
+        
+        // Sync group untuk kombinasi baru
+        $this->syncItemBarangGroup($newJenisBarangId, $newBentukBarangId, $newGradeBarangId, $newPanjang, $newLebar, $newTebal);
+        
+        // Jika kombinasi berubah, sync juga group lama
+        if ($oldJenisBarangId != $newJenisBarangId || 
+            $oldBentukBarangId != $newBentukBarangId || 
+            $oldGradeBarangId != $newGradeBarangId || 
+            $oldPanjang != $newPanjang || 
+            $oldLebar != $newLebar || 
+            $oldTebal != $newTebal) {
+            $this->syncItemBarangGroup($oldJenisBarangId, $oldBentukBarangId, $oldGradeBarangId, $oldPanjang, $oldLebar, $oldTebal);
+        }
+        
         return $this->successResponse($data, 'Data berhasil diperbarui');
     }
 
@@ -288,7 +544,20 @@ class ItemBarangController extends Controller
         if (!$data) {
             return $this->errorResponse('Data tidak ditemukan', 404);
         }
+        
+        // Simpan nilai untuk sync group setelah delete
+        $jenisBarangId = $data->jenis_barang_id;
+        $bentukBarangId = $data->bentuk_barang_id;
+        $gradeBarangId = $data->grade_barang_id;
+        $panjang = $data->panjang;
+        $lebar = $data->lebar;
+        $tebal = $data->tebal;
+        
         $data->delete();
+        
+        // Sync group setelah item dihapus
+        $this->syncItemBarangGroup($jenisBarangId, $bentukBarangId, $gradeBarangId, $panjang, $lebar, $tebal);
+        
         return $this->successResponse(null, 'Data berhasil dihapus');
     }
 
@@ -298,7 +567,20 @@ class ItemBarangController extends Controller
         if (!$data) {
             return $this->errorResponse('Data tidak ditemukan atau tidak dihapus', 404);
         }
+        
+        // Simpan nilai untuk sync group setelah restore
+        $jenisBarangId = $data->jenis_barang_id;
+        $bentukBarangId = $data->bentuk_barang_id;
+        $gradeBarangId = $data->grade_barang_id;
+        $panjang = $data->panjang;
+        $lebar = $data->lebar;
+        $tebal = $data->tebal;
+        
         $data->restore();
+        
+        // Sync group setelah item dipulihkan
+        $this->syncItemBarangGroup($jenisBarangId, $bentukBarangId, $gradeBarangId, $panjang, $lebar, $tebal);
+        
         return $this->successResponse($data, 'Data berhasil dipulihkan');
     }
 
@@ -308,7 +590,20 @@ class ItemBarangController extends Controller
         if (!$data) {
             return $this->errorResponse('Data tidak ditemukan', 404);
         }
+        
+        // Simpan nilai untuk sync group setelah force delete
+        $jenisBarangId = $data->jenis_barang_id;
+        $bentukBarangId = $data->bentuk_barang_id;
+        $gradeBarangId = $data->grade_barang_id;
+        $panjang = $data->panjang;
+        $lebar = $data->lebar;
+        $tebal = $data->tebal;
+        
         $data->forceDelete();
+        
+        // Sync group setelah item dihapus permanen
+        $this->syncItemBarangGroup($jenisBarangId, $bentukBarangId, $gradeBarangId, $panjang, $lebar, $tebal);
+        
         return $this->successResponse(null, 'Data berhasil dihapus permanen');
     }
 

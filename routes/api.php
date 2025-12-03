@@ -197,16 +197,19 @@ Route::prefix('grade-barang')->middleware('checkrole')->group(function () {
 // ItemBarang routes
 Route::prefix('item-barang')->middleware('checkrole')->group(function () {
     Route::get('/', [ItemBarangController::class, 'index']);
-    Route::get('/bulk', [ItemBarangController::class, 'bulk']);
-    Route::get('/by-gudang/{gudangId}', [ItemBarangController::class, 'getByGudang']);
-    Route::get('/mergeable', [ItemBarangController::class, 'mergeable']);
-    Route::get('{id}', [ItemBarangController::class, 'show']);
     Route::post('/', [ItemBarangController::class, 'store']);
-    Route::put('{id}', [ItemBarangController::class, 'update']);
-    Route::patch('{id}', [ItemBarangController::class, 'update']);
+    Route::get('/bulk', [ItemBarangController::class, 'bulk']);
+    Route::get('/mergeable', [ItemBarangController::class, 'mergeable']);
+    Route::post('/generate-group', [ItemBarangController::class, 'generateGroup']);
+    Route::get('/group', [ItemBarangController::class, 'indexGroup']);
+    Route::get('/group/{id}', [ItemBarangController::class, 'showGroup']);
+    Route::get('/by-gudang/{gudangId}', [ItemBarangController::class, 'getByGudang']);
+    Route::get('/similar-type/{id}', [ItemBarangController::class, 'similarType']);
     Route::get('{itemBarangId}/canvas', [WorkOrderPlanningController::class, 'getCanvasByItemId']);
     Route::get('{itemBarangId}/canvas-image', [WorkOrderPlanningController::class, 'getCanvasImageByItemId']);
-    Route::get('/similar-type/{id}', [ItemBarangController::class, 'similarType']);
+    Route::get('{id}', [ItemBarangController::class, 'show']);
+    Route::put('{id}', [ItemBarangController::class, 'update']);
+    Route::patch('{id}', [ItemBarangController::class, 'update']);
 });
 Route::prefix('item-barang')->middleware('checkrole')->group(function () {
     Route::delete('{id}/soft', [ItemBarangController::class, 'softDelete']);
