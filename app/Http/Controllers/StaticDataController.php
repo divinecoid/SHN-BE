@@ -120,8 +120,14 @@ class StaticDataController extends Controller
             });
             // Re-index array setelah filter
             $satuan = array_values($satuan);
+        } elseif ($jenisPotongan === 'potongan') {
+            // Hanya return Dimensi dan KG
+            $satuan = array_filter($satuan, function($item) {
+                return in_array($item['id'], [10, 2]);
+            });
+            $satuan = array_values($satuan);
         }
-        // Jika 'potongan' atau tidak ada parameter, return semua satuan
+        // Jika tidak ada parameter, return semua satuan
 
         return response()->json([
             'success' => true,
