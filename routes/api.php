@@ -197,9 +197,15 @@ Route::prefix('grade-barang')->middleware('checkrole')->group(function () {
 
 // BeratJenis routes
 Route::prefix('berat-jenis')->middleware('checkrole')->group(function () {
+    // Specific routes must come before parameterized routes
+    Route::post('generate-from-item-barang-group', [BeratJenisController::class, 'generateFromItemBarangGroup']);
+    Route::get('with-trashed/all', [BeratJenisController::class, 'indexWithTrashed']);
+    Route::get('with-trashed/trashed', [BeratJenisController::class, 'indexTrashed']);
+    
+    // Standard CRUD routes
     Route::get('/', [BeratJenisController::class, 'index']);
-    Route::get('{id}', [BeratJenisController::class, 'show']);
     Route::post('/', [BeratJenisController::class, 'store']);
+    Route::get('{id}', [BeratJenisController::class, 'show']);
     Route::put('{id}', [BeratJenisController::class, 'update']);
     Route::patch('{id}', [BeratJenisController::class, 'update']);
 });
@@ -207,8 +213,6 @@ Route::prefix('berat-jenis')->middleware('checkrole')->group(function () {
     Route::delete('{id}/soft', [BeratJenisController::class, 'softDelete']);
     Route::patch('{id}/restore', [BeratJenisController::class, 'restore']);
     Route::delete('{id}/force', [BeratJenisController::class, 'forceDelete']);
-    Route::get('with-trashed/all', [BeratJenisController::class, 'indexWithTrashed']);
-    Route::get('with-trashed/trashed', [BeratJenisController::class, 'indexTrashed']);
 });
 
 // ItemBarang routes

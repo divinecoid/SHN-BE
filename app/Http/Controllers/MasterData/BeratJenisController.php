@@ -5,7 +5,9 @@ namespace App\Http\Controllers\MasterData;
 use Illuminate\Http\Request;
 use App\Models\MasterData\BeratJenis;
 use App\Models\MasterData\BentukBarang;
+use App\Models\MasterData\ItemBarangGroup;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\ApiFilterTrait;
 
@@ -257,5 +259,77 @@ class BeratJenisController extends Controller
         $data = $query->paginate($perPage);
         $items = collect($data->items());
         return response()->json($this->paginateResponse($data, $items));
+    }
+
+    /**
+     * Generate data berat jenis berdasarkan group item barang
+     * Mengambil kombinasi unik jenis_barang_id, bentuk_barang_id, grade_barang_id dari ItemBarangGroup
+     * dan membuat record BeratJenis baru dengan nilai berat default null untuk kombinasi yang belum ada
+     */
+    public function generateFromItemBarangGroup(Request $request)
+    {
+        // Ambil semua kombinasi unik dari ItemBarangGroup
+        // Hanya ambil kombinasi yang memiliki semua ID tidak null
+        $itemBarangGroups = ItemBarangGroup::select('jenis_barang_id', 'bentuk_barang_id', 'grade_barang_id')
+            ->whereNotNull('jenis_barang_id')
+            ->whereNotNull('bentuk_barang_id')
+            ->whereNotNull('grade_barang_id')
+            ->distinct()
+            ->with(['jenisBarang', 'bentukBarang', 'gradeBarang'])
+            ->get();
+
+        if ($itemBarangGroups->isEmpty()) {
+            return $this->successResponse([
+                'created' => 0,
+                'skipped' => 0,
+                'total_combinations' => 0,
+                'data' => []
+            ], 'Tidak ada data group item barang untuk di-generate');
+        }
+
+        $created = 0;
+        $skipped = 0;
+        $createdData = [];
+
+        foreach ($itemBarangGroups as $group) {
+            // Skip jika ada nilai null (sebagai double check)
+            if (is_null($group->jenis_barang_id) || 
+                is_null($group->bentuk_barang_id) || 
+                is_null($group->grade_barang_id)) {
+                $skipped++;
+                continue;
+            }
+
+            // Cek apakah kombinasi sudah ada di BeratJenis
+            $existing = BeratJenis::where('jenis_barang_id', $group->jenis_barang_id)
+                ->where('bentuk_barang_id', $group->bentuk_barang_id)
+                ->where('grade_barang_id', $group->grade_barang_id)
+                ->first();
+
+            if ($existing) {
+                $skipped++;
+                continue;
+            }
+
+            // Buat record baru dengan nilai berat default null
+            $beratJenis = BeratJenis::create([
+                'jenis_barang_id' => $group->jenis_barang_id,
+                'bentuk_barang_id' => $group->bentuk_barang_id,
+                'grade_barang_id' => $group->grade_barang_id,
+                'berat_per_cm' => null,
+                'berat_per_luas' => null,
+            ]);
+
+            $beratJenis->load(['jenisBarang', 'bentukBarang', 'gradeBarang']);
+            $createdData[] = $beratJenis;
+            $created++;
+        }
+
+        return $this->successResponse([
+            'created' => $created,
+            'skipped' => $skipped,
+            'total_combinations' => $itemBarangGroups->count(),
+            'data' => $createdData
+        ], "Berhasil generate {$created} data berat jenis baru, {$skipped} kombinasi sudah ada");
     }
 }
