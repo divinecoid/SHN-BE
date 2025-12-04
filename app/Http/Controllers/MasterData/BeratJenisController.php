@@ -332,4 +332,114 @@ class BeratJenisController extends Controller
             'data' => $createdData
         ], "Berhasil generate {$created} data berat jenis baru, {$skipped} kombinasi sudah ada");
     }
+
+    /**
+     * Menghitung berat kilogram sebuah item barang berdasarkan bentuk barang, jenis barang, grade barang, panjang, lebar, tebal
+     * Refer ke data berat jenis, jika belum ada return 0
+     */
+    public function calculateWeight(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'jenis_barang_id' => 'required|exists:ref_jenis_barang,id',
+            'bentuk_barang_id' => 'required|exists:ref_bentuk_barang,id',
+            'grade_barang_id' => 'required|exists:ref_grade_barang,id',
+            'panjang' => 'required|numeric|min:0',
+            'lebar' => 'nullable|numeric|min:0',
+            'tebal' => 'required|numeric|min:0',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->errorResponse($validator->errors()->first(), 422);
+        }
+
+        // Cari data berat jenis berdasarkan kombinasi
+        $beratJenis = BeratJenis::where('jenis_barang_id', $request->jenis_barang_id)
+            ->where('bentuk_barang_id', $request->bentuk_barang_id)
+            ->where('grade_barang_id', $request->grade_barang_id)
+            ->first();
+
+        // Jika tidak ada data berat jenis, return 0
+        if (!$beratJenis) {
+            return $this->successResponse([
+                'berat_kg' => 0,
+                'berat_jenis_found' => false,
+                'message' => 'Data berat jenis tidak ditemukan untuk kombinasi tersebut'
+            ], 'Berat dihitung: 0 kg (data berat jenis tidak ditemukan)');
+        }
+
+        // Ambil informasi bentuk barang untuk mengetahui dimensi
+        $bentukBarang = BentukBarang::find($request->bentuk_barang_id);
+        if (!$bentukBarang) {
+            return $this->errorResponse('Bentuk barang tidak ditemukan', 422);
+        }
+
+        $dimensi = $bentukBarang->dimensi;
+        $berat = 0;
+
+        // Hitung berat berdasarkan dimensi
+        if ($dimensi == '1D') {
+            // Untuk barang 1D: berat = berat_per_cm * panjang
+            if ($beratJenis->berat_per_cm === null) {
+                return $this->successResponse([
+                    'berat_kg' => 0,
+                    'berat_jenis_found' => true,
+                    'berat_per_cm' => null,
+                    'message' => 'Data berat jenis ditemukan tetapi berat_per_cm belum diisi'
+                ], 'Berat dihitung: 0 kg (berat_per_cm belum diisi)');
+            }
+            $berat = $beratJenis->berat_per_cm * $request->panjang;
+        } else {
+            // Untuk barang 2D (plat): berat = berat_per_luas * panjang * lebar * tebal
+            if ($beratJenis->berat_per_luas === null) {
+                return $this->successResponse([
+                    'berat_kg' => 0,
+                    'berat_jenis_found' => true,
+                    'berat_per_luas' => null,
+                    'message' => 'Data berat jenis ditemukan tetapi berat_per_luas belum diisi'
+                ], 'Berat dihitung: 0 kg (berat_per_luas belum diisi)');
+            }
+
+            // Validasi lebar untuk barang 2D
+            if (!$request->filled('lebar') || $request->lebar === null) {
+                return $this->errorResponse('Lebar wajib diisi untuk barang 2D', 422);
+            }
+
+            // Hitung luas (panjang * lebar)
+            $luas = $request->panjang * $request->lebar;
+            
+            // Jika ada tebal, kalikan dengan tebal untuk perhitungan volume
+            // Jika tidak ada tebal, gunakan luas saja (asumsi berat_per_luas sudah dalam satuan per luas dengan tebal standar)
+            if ($request->filled('tebal') && $request->tebal > 0) {
+                $volume = $luas * $request->tebal;
+                $berat = $beratJenis->berat_per_luas * $volume;
+            } else {
+                // Jika tidak ada tebal, gunakan luas saja
+                $berat = $beratJenis->berat_per_luas * $luas;
+            }
+        }
+
+        // Siapkan informasi perhitungan untuk response
+        $calculation = '';
+        if ($dimensi == '1D') {
+            $calculation = "berat_per_cm ({$beratJenis->berat_per_cm}) × panjang ({$request->panjang})";
+        } else {
+            if ($request->filled('tebal') && $request->tebal > 0) {
+                $calculation = "berat_per_luas ({$beratJenis->berat_per_luas}) × panjang ({$request->panjang}) × lebar ({$request->lebar}) × tebal ({$request->tebal})";
+            } else {
+                $calculation = "berat_per_luas ({$beratJenis->berat_per_luas}) × panjang ({$request->panjang}) × lebar ({$request->lebar})";
+            }
+        }
+
+        return $this->successResponse([
+            'berat_kg' => round($berat, 4),
+            'berat_jenis_found' => true,
+            'dimensi' => $dimensi,
+            'panjang' => $request->panjang,
+            'lebar' => $request->lebar ?? null,
+            'tebal' => $request->tebal ?? null,
+            'berat_per_cm' => $beratJenis->berat_per_cm,
+            'berat_per_luas' => $beratJenis->berat_per_luas,
+            'calculation' => $calculation
+        ], 'Berat berhasil dihitung');
+    }
 }

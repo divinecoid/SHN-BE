@@ -199,6 +199,7 @@ Route::prefix('grade-barang')->middleware('checkrole')->group(function () {
 Route::prefix('berat-jenis')->middleware('checkrole')->group(function () {
     // Specific routes must come before parameterized routes
     Route::post('generate-from-item-barang-group', [BeratJenisController::class, 'generateFromItemBarangGroup']);
+    Route::post('calculate-weight', [BeratJenisController::class, 'calculateWeight']);
     Route::get('with-trashed/all', [BeratJenisController::class, 'indexWithTrashed']);
     Route::get('with-trashed/trashed', [BeratJenisController::class, 'indexTrashed']);
     
