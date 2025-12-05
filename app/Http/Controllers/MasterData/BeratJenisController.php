@@ -375,10 +375,12 @@ class BeratJenisController extends Controller
 
         $dimensi = $bentukBarang->dimensi;
         $berat = 0;
+        $calculation = '';
 
         // Hitung berat berdasarkan dimensi
         if ($dimensi == '1D') {
-            // Untuk barang 1D: berat = berat_per_cm * panjang
+            // Untuk barang 1D: berat_per_cm (kg/cm) * panjang (mm -> cm)
+
             if ($beratJenis->berat_per_cm === null) {
                 return $this->successResponse([
                     'berat_kg' => 0,
@@ -387,9 +389,17 @@ class BeratJenisController extends Controller
                     'message' => 'Data berat jenis ditemukan tetapi berat_per_cm belum diisi'
                 ], 'Berat dihitung: 0 kg (berat_per_cm belum diisi)');
             }
-            $berat = $beratJenis->berat_per_cm * $request->panjang;
+
+            // Konversi panjang dari mm ke cm
+            $panjang_cm = $request->panjang / 10;
+
+            $berat = $beratJenis->berat_per_cm * $panjang_cm;
+            $calculation = "berat_per_cm ({$beratJenis->berat_per_cm}) × panjang dalam cm ({$panjang_cm})";
         } else {
-            // Untuk barang 2D (plat): berat = berat_per_luas * panjang * lebar * tebal
+            // Untuk barang 2D (plat): berat_per_luas (kg/m2) * luas (m2)
+            // Rumus: Berat = berat_per_luas (kg/m²) × luas (m²)
+            // Catatan: berat_per_luas sudah dalam satuan kg per m², jadi hanya perlu dikalikan dengan luas
+
             if ($beratJenis->berat_per_luas === null) {
                 return $this->successResponse([
                     'berat_kg' => 0,
@@ -404,30 +414,18 @@ class BeratJenisController extends Controller
                 return $this->errorResponse('Lebar wajib diisi untuk barang 2D', 422);
             }
 
-            // Hitung luas (panjang * lebar)
-            $luas = $request->panjang * $request->lebar;
-            
-            // Jika ada tebal, kalikan dengan tebal untuk perhitungan volume
-            // Jika tidak ada tebal, gunakan luas saja (asumsi berat_per_luas sudah dalam satuan per luas dengan tebal standar)
-            if ($request->filled('tebal') && $request->tebal > 0) {
-                $volume = $luas * $request->tebal;
-                $berat = $beratJenis->berat_per_luas * $volume;
-            } else {
-                // Jika tidak ada tebal, gunakan luas saja
-                $berat = $beratJenis->berat_per_luas * $luas;
-            }
-        }
+            // Konversi ke meter untuk panjang dan lebar
+            // Asumsi input dalam cm (berdasarkan contoh: 10 cm, 5 cm)
+            $panjang_m = $request->panjang / 100;
+            $lebar_m = $request->lebar / 100;
 
-        // Siapkan informasi perhitungan untuk response
-        $calculation = '';
-        if ($dimensi == '1D') {
-            $calculation = "berat_per_cm ({$beratJenis->berat_per_cm}) × panjang ({$request->panjang})";
-        } else {
-            if ($request->filled('tebal') && $request->tebal > 0) {
-                $calculation = "berat_per_luas ({$beratJenis->berat_per_luas}) × panjang ({$request->panjang}) × lebar ({$request->lebar}) × tebal ({$request->tebal})";
-            } else {
-                $calculation = "berat_per_luas ({$beratJenis->berat_per_luas}) × panjang ({$request->panjang}) × lebar ({$request->lebar})";
-            }
+            // Hitung luas dalam m²
+            $luas_m2 = $panjang_m * $lebar_m;
+            
+            // Berat 2D: berat_per_luas (kg/m²) × luas (m²)
+            $berat = $beratJenis->berat_per_luas * $luas_m2;
+
+            $calculation = "berat_per_luas ({$beratJenis->berat_per_luas} kg/m²) × luas ({$luas_m2} m²) = berat_per_luas × (panjang {$panjang_m} m × lebar {$lebar_m} m)";
         }
 
         return $this->successResponse([
