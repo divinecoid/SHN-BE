@@ -19,6 +19,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Traits\ApiFilterTrait;
 use App\Helpers\FileHelper;
 use App\Http\Controllers\MasterData\DocumentSequenceController;
+use App\Models\User;
+use App\Models\Notification;
+use App\Models\NotificationRecipient;
+use App\Enums\NotificationType;
 
 class WorkOrderPlanningController extends Controller
 {
@@ -229,12 +233,17 @@ class WorkOrderPlanningController extends Controller
 
     public function store(Request $request)
     {
+        $typeInput = $request->input('typeWO', $request->input('type_wo'));
+        if ($typeInput) {
+            $request->merge(['typeWO' => strtolower($typeInput)]);
+        }
         $validator = Validator::make($request->all(), [ 
             'wo_unique_id' => 'required|string|unique:trx_work_order_planning,wo_unique_id',
             'id_sales_order' => 'required|exists:trx_sales_order,id',
             'id_pelanggan' => 'required|exists:ref_pelanggan,id',
             'id_gudang' => 'required|exists:ref_gudang,id',
             'status' => 'required|string',
+            'typeWO' => 'required|string|in:normal,pending,cancel',
             'tanggal_wo' => 'required|date',
             'prioritas' => 'required|string',
             'handover_method' => 'required|string|in:pickup,delivery',
@@ -284,6 +293,7 @@ class WorkOrderPlanningController extends Controller
             ]);
             $workOrderData['wo_unique_id'] = $woUniqueId;
             $workOrderData['nomor_wo'] = $nomorWo;
+            $workOrderData['type_wo'] = $request->input('typeWO');
             $workOrderPlanning = WorkOrderPlanning::create($workOrderData);
 
 
@@ -371,6 +381,36 @@ class WorkOrderPlanningController extends Controller
 
             // Update sequence counter setelah berhasil create WorkOrderPlanning
             $this->documentSequenceController->increaseSequence('wo');
+
+            if ($request->input('typeWO') === 'pending') {
+                SalesOrder::where('id', $request->id_sales_order)->update(['is_wo_qty_matched' => false, 'process_status' => 'pending']);
+            } elseif ($request->input('typeWO') === 'cancel') {
+                SalesOrder::where('id', $request->id_sales_order)->update(['status' => 'closed', 'is_wo_qty_matched' => false, 'process_status' => 'cancel']);
+            }
+
+            if (in_array($request->input('typeWO'), ['pending', 'cancel'])) {
+                $adminIds = User::whereHas('roles', function ($q) {
+                    $q->whereRaw('LOWER(name) = ?', ['admin'])->orWhere('role_code', 'ADMIN');
+                })->pluck('id')->all();
+                if (!empty($adminIds)) {
+                    $title = 'WO Planning: Qty tidak match';
+                    $message = 'Qty WO Planning terhadap SO tidak match untuk SO ' . ($workOrderPlanning->salesOrder->nomor_so ?? $workOrderPlanning->id_sales_order) . ' (WO ' . $workOrderPlanning->nomor_wo . ').';
+                    $notif = Notification::create([
+                        'title' => $title,
+                        'message' => $message,
+                        'type' => NotificationType::WORK_ORDER_PLANNING,
+                        'created_by' => auth()->id(),
+                    ]);
+                    foreach (array_unique($adminIds) as $uid) {
+                        NotificationRecipient::firstOrCreate([
+                            'notification_id' => $notif->id,
+                            'user_id' => $uid,
+                        ], [
+                            'is_read' => false,
+                        ]);
+                    }
+                }
+            }
 
             DB::commit();
 

@@ -51,6 +51,11 @@ class SalesOrderController extends Controller
             $query->where('process_status', $request->input('process_status'));
         }
 
+        // Filter by status if provided
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
         // Conditional pagination: paginate only if per_page or page provided; otherwise return all on a single page
         $shouldPaginate = $request->filled('per_page') || $request->filled('page');
         $perPage = (int)($request->input('per_page', $this->getPerPageDefault()));
@@ -82,6 +87,7 @@ class SalesOrderController extends Controller
             'delete_requested' => $statusCounts['delete_requested'] ?? 0,
             'deleted' => $statusCounts['deleted'] ?? 0,
             'closed' => $statusCounts['closed'] ?? 0,
+            'cancel' => $statusCounts['cancel'] ?? 0,
         ];
 
         $response = $this->paginateResponse($data, $items);
@@ -471,14 +477,41 @@ class SalesOrderController extends Controller
             $query->where('gudang_id', $request->gudang_id);
         }
         
+        // Add status filter if provided
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        
         // Order by latest first
         $query->orderBy('tanggal_so', 'desc');
         
         $data = $query->paginate($perPage);
         $items = collect($data->items())->map(function ($item) {
-            $arrayItem = $item->toArray();
-            $arrayItem['items_count'] = $item->sales_order_items_count ?? 0;
-            return $arrayItem;
+            return [
+                'id' => $item->id,
+                'nomor_so' => $item->nomor_so,
+                'tanggal_so' => $item->tanggal_so,
+                'tanggal_pengiriman' => $item->tanggal_pengiriman,
+                'status' => $item->status,
+                'process_status' => $item->process_status,
+                'subtotal' => $item->subtotal,
+                'total_diskon' => $item->total_diskon,
+                'ppn_percent' => $item->ppn_percent,
+                'ppn_amount' => $item->ppn_amount,
+                'total_harga_so' => $item->total_harga_so,
+                'pelanggan' => [
+                    'id' => $item->pelanggan->id ?? null,
+                    'nama_pelanggan' => $item->pelanggan->nama_pelanggan ?? null,
+                ],
+                'gudang' => [
+                    'id' => $item->gudang->id ?? null,
+                    'kode' => $item->gudang->kode ?? null,
+                    'nama_gudang' => $item->gudang->nama_gudang ?? null,
+                ],
+                'items_count' => $item->sales_order_items_count ?? 0,
+                'created_at' => $item->created_at,
+                'updated_at' => $item->updated_at,
+            ];
         });
         
         return response()->json($this->paginateResponse($data, $items));

@@ -9,7 +9,10 @@ use App\Models\Traits\HideTimestampsInRelations;
 class SalesOrder extends Model
 {
     use SoftDeletes, HideTimestampsInRelations;
-    
+    public function scopeClosed($query)
+    {
+        return $query->where('status', 'closed');
+    }
     protected $table = 'trx_sales_order';
     
     protected $fillable = [
@@ -107,8 +110,5 @@ class SalesOrder extends Model
         return $query->where('status', 'delete_requested');
     }
 
-    public function scopeClosed($query)
-    {
-        return $query->where('status', 'closed');
-    }
+    
 }
