@@ -81,6 +81,7 @@ class SalesOrderController extends Controller
             'active' => $statusCounts['active'] ?? 0,
             'delete_requested' => $statusCounts['delete_requested'] ?? 0,
             'deleted' => $statusCounts['deleted'] ?? 0,
+            'closed' => $statusCounts['closed'] ?? 0,
         ];
 
         $response = $this->paginateResponse($data, $items);

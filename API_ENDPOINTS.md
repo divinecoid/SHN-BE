@@ -1913,3 +1913,53 @@
   - **Description**: Mengembalikan image foto bukti item dalam format base64 JSON.
   - **Response**: `{ "wo_actual_item_id": int, "wo_actual_id": int, "file_path": string|null, "foto_bukti_base64": string|null }`
   - **Note**: Jika path kosong atau file tidak ditemukan, endpoint mengembalikan status 200 dengan `foto_bukti_base64: null` dan message.
+## Notifications
+
+### Create Notification
+- `POST /api/notifications`
+  - **Request:**
+    ```json
+    {
+      "title": "Approval Needed",
+      "message": "Please review SO-31102025-003",
+      "type": "sales_order",
+      "recipients": [2, 5, 7]
+    }
+    ```
+  - **Response:** Notifikasi dengan daftar recipients
+
+### Get Notifications by User
+- `GET /api/notifications/by-user/{userId}`
+  - **Query Params:**
+    - `per_page` (optional, default 10)
+    - `unread` (optional, boolean; jika true hanya notifikasi belum dibaca)
+  - **Response:** Pagination list berisi notifikasi untuk user tersebut, termasuk status `is_read` dan `read_at`
+### Work Order Planning - Validate SO Coverage
+- `POST /api/work-order-planning/validate-so-coverage`
+  - **Request:**
+    ```json
+    {
+      "id_sales_order": 123,
+      "items": [
+        { "sales_order_item_id": 1001, "quantity": 2 },
+        { "sales_order_item_id": 1002, "quantity": 5 }
+      ]
+    }
+    ```
+  - **Response (valid):**
+    ```json
+    { "success": true, "message": "Semua item Sales Order sudah tertutupi oleh Work Order Planning", "data": { "valid": true } }
+    ```
+  - **Response (tidak valid):**
+    ```json
+    {
+      "success": true,
+      "message": "Masih ada item Sales Order yang belum tertutupi",
+      "data": {
+        "valid": false,
+        "deficits": [
+          { "sales_order_item_id": 1003, "remaining_qty": 1, "jenis_barang": { "id": 8, "nama": "Aluminium" }, "bentuk_barang": { "id": 9, "nama": "Plat" }, "grade_barang": { "id": 6, "nama": "A" } }
+        ]
+      }
+    }
+    ```
