@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Transactions;
 use Illuminate\Http\Request;
 use App\Models\MasterData\ItemBarang;
 use App\Models\MasterData\SalesOrder;
+use App\Models\MasterData\SalesOrderItem;
 use App\Models\Transactions\WorkOrderActual;
 use App\Models\Transactions\WorkOrderPlanning;
 use App\Models\Transactions\WorkOrderPlanningItem;
@@ -18,6 +19,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Traits\ApiFilterTrait;
 use App\Helpers\FileHelper;
 use App\Http\Controllers\MasterData\DocumentSequenceController;
+use App\Models\User;
+use App\Models\Notification;
+use App\Models\NotificationRecipient;
+use App\Enums\NotificationType;
 
 class WorkOrderPlanningController extends Controller
 {
@@ -229,12 +234,17 @@ class WorkOrderPlanningController extends Controller
 
     public function store(Request $request)
     {
+        $typeInput = $request->input('typeWO', $request->input('type_wo'));
+        if ($typeInput) {
+            $request->merge(['typeWO' => strtolower($typeInput)]);
+        }
         $validator = Validator::make($request->all(), [ 
             'wo_unique_id' => 'required|string|unique:trx_work_order_planning,wo_unique_id',
             'id_sales_order' => 'required|exists:trx_sales_order,id',
             'id_pelanggan' => 'required|exists:ref_pelanggan,id',
             'id_gudang' => 'required|exists:ref_gudang,id',
             'status' => 'required|string',
+            'typeWO' => 'required|string|in:normal,pending,cancel',
             'tanggal_wo' => 'required|date',
             'prioritas' => 'required|string',
             'handover_method' => 'required|string|in:pickup,delivery',
@@ -286,6 +296,7 @@ class WorkOrderPlanningController extends Controller
             ]);
             $workOrderData['wo_unique_id'] = $woUniqueId;
             $workOrderData['nomor_wo'] = $nomorWo;
+            $workOrderData['type_wo'] = $request->input('typeWO');
             $workOrderPlanning = WorkOrderPlanning::create($workOrderData);
 
 
@@ -373,6 +384,36 @@ class WorkOrderPlanningController extends Controller
 
             // Update sequence counter setelah berhasil create WorkOrderPlanning
             $this->documentSequenceController->increaseSequence('wo');
+
+            if ($request->input('typeWO') === 'pending') {
+                SalesOrder::where('id', $request->id_sales_order)->update(['is_wo_qty_matched' => false, 'process_status' => 'pending']);
+            } elseif ($request->input('typeWO') === 'cancel') {
+                SalesOrder::where('id', $request->id_sales_order)->update(['status' => 'closed', 'is_wo_qty_matched' => false, 'process_status' => 'cancel']);
+            }
+
+            if (in_array($request->input('typeWO'), ['pending', 'cancel'])) {
+                $adminIds = User::whereHas('roles', function ($q) {
+                    $q->whereRaw('LOWER(name) = ?', ['admin'])->orWhere('role_code', 'ADMIN');
+                })->pluck('id')->all();
+                if (!empty($adminIds)) {
+                    $title = 'WO Planning: Qty tidak match';
+                    $message = 'Qty WO Planning terhadap SO tidak match untuk SO ' . ($workOrderPlanning->salesOrder->nomor_so ?? $workOrderPlanning->id_sales_order) . ' (WO ' . $workOrderPlanning->nomor_wo . ').';
+                    $notif = Notification::create([
+                        'title' => $title,
+                        'message' => $message,
+                        'type' => NotificationType::WORK_ORDER_PLANNING,
+                        'created_by' => auth()->id(),
+                    ]);
+                    foreach (array_unique($adminIds) as $uid) {
+                        NotificationRecipient::firstOrCreate([
+                            'notification_id' => $notif->id,
+                            'user_id' => $uid,
+                        ], [
+                            'is_read' => false,
+                        ]);
+                    }
+                }
+            }
 
             DB::commit();
 
@@ -616,6 +657,101 @@ class WorkOrderPlanningController extends Controller
         }
         
         return $this->successResponse($data);
+    }
+
+    /**
+     * Validasi coverage WO Planning terhadap Sales Order items
+     * Input: id_sales_order, items: [{sales_order_item_id, quantity}]
+     * Output: valid=true jika semua qty SO tertutupi; jika tidak, kembalikan daftar kekurangan
+     */
+    public function validateSoCoverage(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'id_sales_order' => 'required|exists:trx_sales_order,id',
+            'items' => 'required|array|min:1',
+            'items.*.sales_order_item_id' => 'required|exists:trx_sales_order_item,id',
+            'items.*.quantity' => 'required|numeric|min:0',
+        ]);
+        if ($validator->fails()) {
+            return $this->errorResponse($validator->errors()->first(), 422);
+        }
+
+        $so = SalesOrder::with(['salesOrderItems.jenisBarang', 'salesOrderItems.bentukBarang', 'salesOrderItems.gradeBarang'])
+            ->find($request->id_sales_order);
+        if (!$so) {
+            return $this->errorResponse('Sales Order tidak ditemukan', 404);
+        }
+
+        $soItemIds = $so->salesOrderItems->pluck('id')->all();
+        // Pastikan semua input item memang milik SO tersebut
+        $invalidInput = collect($request->items)->pluck('sales_order_item_id')->reject(function ($id) use ($soItemIds) {
+            return in_array($id, $soItemIds);
+        })->values();
+        if ($invalidInput->isNotEmpty()) {
+            return $this->errorResponse('Terdapat sales_order_item_id yang tidak milik Sales Order ini', 422);
+        }
+
+        // Agregasi quantity rencana dari input (additional plan)
+        $incoming = [];
+        foreach ($request->items as $it) {
+            $sid = (int) $it['sales_order_item_id'];
+            $qty = (float) $it['quantity'];
+            $incoming[$sid] = ($incoming[$sid] ?? 0) + $qty;
+        }
+
+        // Ambil qty WO Planning yang sudah terasosiasi ke SO ini
+        $woIds = WorkOrderPlanning::where('id_sales_order', $so->id)->pluck('id');
+        $existingPlans = [];
+        if ($woIds->isNotEmpty()) {
+            $rows = WorkOrderPlanningItem::whereIn('work_order_planning_id', $woIds)
+                ->select('sales_order_item_id', DB::raw('SUM(qty) as planned_qty'))
+                ->groupBy('sales_order_item_id')
+                ->get();
+            foreach ($rows as $row) {
+                if ($row->sales_order_item_id) {
+                    $existingPlans[(int)$row->sales_order_item_id] = (float)$row->planned_qty;
+                }
+            }
+        }
+
+        $mismatches = [];
+        foreach ($so->salesOrderItems as $item) {
+            $existingQty = $existingPlans[$item->id] ?? 0;
+            $incomingQty = $incoming[$item->id] ?? 0;
+            $combinedQty = $existingQty + $incomingQty;
+            $expectedQty = (float) ($item->qty ?? 0);
+            if ($combinedQty !== $expectedQty) {
+                $mismatches[] = [
+                    'sales_order_item_id' => $item->id,
+                    'expected_qty' => $expectedQty,
+                    'combined_qty' => $combinedQty,
+                    'difference' => $combinedQty - $expectedQty,
+                    'jenis_barang' => [
+                        'id' => $item->jenis_barang_id,
+                        'nama' => $item->jenisBarang->nama_jenis ?? null,
+                    ],
+                    'bentuk_barang' => [
+                        'id' => $item->bentuk_barang_id,
+                        'nama' => $item->bentukBarang->nama_bentuk ?? null,
+                    ],
+                    'grade_barang' => [
+                        'id' => $item->grade_barang_id,
+                        'nama' => $item->gradeBarang->nama ?? null,
+                    ],
+                    'existing_planned_qty' => $existingQty,
+                    'incoming_qty' => $incomingQty,
+                ];
+            }
+        }
+
+        if (empty($mismatches)) {
+            return $this->successResponse(['valid' => true], 'Semua item Sales Order jumlahnya tepat sesuai WO (existing + incoming)');
+        }
+
+        return $this->successResponse([
+            'valid' => false,
+            'mismatches' => $mismatches,
+        ], 'Jumlah WO (existing + incoming) tidak sama dengan qty Sales Order untuk sebagian item');
     }
 
     public function updateItem(Request $request, $id)

@@ -9,7 +9,10 @@ use App\Models\Traits\HideTimestampsInRelations;
 class SalesOrder extends Model
 {
     use SoftDeletes, HideTimestampsInRelations;
-    
+    public function scopeClosed($query)
+    {
+        return $query->where('status', 'closed');
+    }
     protected $table = 'trx_sales_order';
     
     protected $fillable = [
@@ -26,6 +29,7 @@ class SalesOrder extends Model
         'total_harga_so',
         'handover_method',
         'status',
+        'is_wo_qty_matched',
         'delete_requested_by',
         'delete_requested_at',
         'delete_approved_by',
@@ -45,6 +49,7 @@ class SalesOrder extends Model
         'ppn_amount' => 'decimal:2',
         'total_harga_so' => 'decimal:2',
         'handover_method' => 'string',
+        'is_wo_qty_matched' => 'boolean',
         'delete_requested_at' => 'datetime',
         'delete_approved_at' => 'datetime',
     ];
@@ -104,4 +109,6 @@ class SalesOrder extends Model
     {
         return $query->where('status', 'delete_requested');
     }
+
+    
 }

@@ -22,6 +22,7 @@ class WorkOrderPlanning extends Model
         'id_pelaksana',
         'prioritas',
         'status',
+        'type_wo',
         'handover_method',
         'estimate_done',
     ];

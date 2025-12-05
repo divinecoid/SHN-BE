@@ -42,6 +42,7 @@ use App\Http\Controllers\Output\InvoicePodController;
 use App\Http\Controllers\Transactions\StockMutationController;
 use App\Http\Controllers\Transactions\PaymentController;
 use App\Http\Controllers\MasterData\DocumentSequenceController;
+use App\Http\Controllers\NotificationController;
 
 
 Route::get('/user', function (Request $request) {
@@ -459,6 +460,12 @@ Route::prefix('purchase-order')->middleware('checkrole')->group(function () {
     Route::get('with-trashed/trashed', [PurchaseOrderController::class, 'indexTrashed']);
 });
 
+// Notifications
+Route::prefix('notifications')->middleware('checkrole')->group(function () {
+    Route::post('/', [NotificationController::class, 'store']);
+    Route::get('/by-user/{userId}', [NotificationController::class, 'getByUser']);
+});
+
 
 // WorkOrderPlanning routes
 Route::prefix('work-order-planning')->middleware('checkrole')->group(function () {
@@ -492,6 +499,7 @@ Route::prefix('work-order-planning')->middleware('checkrole')->group(function ()
     
     // Get all canvas images by Work Order ID
     Route::get('{id}/images', [WorkOrderPlanningController::class, 'getWorkOrderImages']);
+    Route::post('validate-so-coverage', [WorkOrderPlanningController::class, 'validateSoCoverage']);
     
     // Saran Plat/Shaft Dasar routes
     Route::post('saran-plat-dasar', [SaranPlatController::class, 'addSaranPlatDasar']);
