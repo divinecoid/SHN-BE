@@ -379,7 +379,8 @@ class BeratJenisController extends Controller
 
         // Hitung berat berdasarkan dimensi
         if ($dimensi == '1D') {
-            // Untuk barang 1D: berat_per_cm (kg/cm) * panjang (mm -> cm)
+            // Untuk barang 1D: berat_per_cm (kg/cm) * panjang (cm)
+            // Asumsi input panjang sudah dalam satuan cm
 
             if ($beratJenis->berat_per_cm === null) {
                 return $this->successResponse([
@@ -390,8 +391,8 @@ class BeratJenisController extends Controller
                 ], 'Berat dihitung: 0 kg (berat_per_cm belum diisi)');
             }
 
-            // Konversi panjang dari mm ke cm
-            $panjang_cm = $request->panjang / 10;
+            // Input panjang sudah dalam cm, tidak perlu konversi
+            $panjang_cm = $request->panjang;
 
             $berat = $beratJenis->berat_per_cm * $panjang_cm;
             $calculation = "berat_per_cm ({$beratJenis->berat_per_cm}) × panjang dalam cm ({$panjang_cm})";
