@@ -34,7 +34,8 @@ class PelangganController extends Controller
         if ($validator->fails()) {
             return $this->errorResponse($validator->errors()->first(), 422);
         }
-        $data = Pelanggan::create($request->only(['kode', 'nama_pelanggan', 'kota', 'telepon_hp', 'contact_person']));
+        $payload = $request->only(['kode', 'nama_pelanggan', 'kota', 'telepon_hp', 'contact_person']);
+        $data = Pelanggan::create($payload);
         return $this->successResponse($data, 'Data berhasil ditambahkan');
     }
 
@@ -48,7 +49,8 @@ class PelangganController extends Controller
         if ($validator->fails()) {
             return $this->errorResponse($validator->errors()->first(), 422);
         }
-        $data = Pelanggan::create($request->only(['kode', 'nama_pelanggan', 'kota', 'telepon_hp', 'contact_person']));
+        $payload = $request->only(['kode', 'nama_pelanggan', 'kota', 'telepon_hp', 'contact_person']);
+        $data = Pelanggan::create($payload);
         return $this->successResponse($data, 'Data berhasil ditambahkan');
     }
 
@@ -77,7 +79,8 @@ class PelangganController extends Controller
         if ($validator->fails()) {
             return $this->errorResponse($validator->errors()->first(), 422);
         }
-        $data->update($request->only(['kode', 'nama_pelanggan', 'kota', 'telepon_hp', 'contact_person']));
+        $payload = $request->only(['kode', 'nama_pelanggan', 'kota', 'telepon_hp', 'contact_person']);
+        $data->update($payload);
         return $this->successResponse($data, 'Data berhasil diupdate');
     }
 
