@@ -677,20 +677,49 @@ class ItemBarangController extends Controller
 
     public function mergeable(Request $request)
     {
+        $perPage = (int) ($request->input('per_page', $this->getPerPageDefault()));
         $query = ItemBarang::with(['jenisBarang', 'bentukBarang', 'gradeBarang', 'gudang']);
 
         $query->where('jenis_potongan', 'utuh');
 
         $query = $this->applyFilter($query, $request, ['kode_barang', 'nama_item_barang']);
 
-        $items = $query->get();
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('kode_barang', 'like', "%{$search}%")
+                  ->orWhere('nama_item_barang', 'like', "%{$search}%")
+                  ->orWhereHas('gudang', function ($qq) use ($search) {
+                      $qq->where('nama_gudang', 'like', "%{$search}%")
+                         ->orWhere('kode', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('jenisBarang', function ($qq) use ($search) {
+                      $qq->where('kode', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('bentukBarang', function ($qq) use ($search) {
+                      $qq->where('kode', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('gradeBarang', function ($qq) use ($search) {
+                      $qq->where('kode', 'like', "%{$search}%");
+                  });
+            });
+        }
 
-        return $this->successResponse($items, 'Data tidak ditemukan');
+        // Conditional pagination: paginate only if per_page or page provided; otherwise return all on a single page
+        $shouldPaginate = $request->filled('per_page') || $request->filled('page');
+        if (!$shouldPaginate) {
+            $total = (clone $query)->count();
+            $perPage = $total > 0 ? $total : 1;
+        }
+
+        $data = $query->paginate($perPage);
+        $items = collect($data->items());
+        return response()->json($this->paginateResponse($data, $items));
 
     }
 
     public function similarType(Request $request, $id)
     {
+        $perPage = (int) ($request->input('per_page', $this->getPerPageDefault()));
         $data = ItemBarang::with(['jenisBarang', 'bentukBarang', 'gradeBarang', 'gudang'])->find($id);
         if (!$data) {
             return $this->successResponse(null, 'Data tidak ditemukan');
@@ -708,8 +737,36 @@ class ItemBarangController extends Controller
         ]);
 
         $query = $this->applyFilter($query, $request, ['kode_barang', 'nama_item_barang']);
-        $items = $query->get();
-        return $this->successResponse($items, 'Data tidak ditemukan');
+
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('kode_barang', 'like', "%{$search}%")
+                  ->orWhere('nama_item_barang', 'like', "%{$search}%")
+                  ->orWhereHas('gudang', function ($qq) use ($search) {
+                      $qq->where('nama_gudang', 'like', "%{$search}%")
+                         ->orWhere('kode', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('jenisBarang', function ($qq) use ($search) {
+                      $qq->where('kode', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('bentukBarang', function ($qq) use ($search) {
+                      $qq->where('kode', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('gradeBarang', function ($qq) use ($search) {
+                      $qq->where('kode', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $shouldPaginate = $request->filled('per_page') || $request->filled('page');
+        if (!$shouldPaginate) {
+            $total = (clone $query)->count();
+            $perPage = $total > 0 ? $total : 1;
+        }
+
+        $dataPaginated = $query->paginate($perPage);
+        $items = collect($dataPaginated->items());
+        return response()->json($this->paginateResponse($dataPaginated, $items));
     }
 
     public function bulk(Request $request)
